@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  pincode   String
+  city      String
+  state     String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  staff     Staff[]
+  visits    Visit[]
+  customers Customer[]
+}
+
+model Staff {
+  id         String    @id @default(cuid())
+  name       String
+  employeeId String    @unique
+  role       StaffRole @default(STAFF)
+  isActive   Boolean   @default(true)
+  storeId    String
+  createdAt  DateTime  @default(now())
+
+  store  Store   @relation(fields: [storeId], references: [id])
+  visits Visit[]
+}
+
+enum StaffRole {
+  STAFF
+  STORE_MANAGER
+  MASTER_ADMIN
+}
+
+model Customer {
+  id           String   @id @default(cuid())
+  phone        String
+  phoneHash    String
+  name         String
+  area         String?
+  profession   String?
+  gender       String?
+  ageGroup     String?
+  activeScheme String?
+  ghsEnrolled  Boolean  @default(false)
+  storeId      String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  store  Store   @relation(fields: [storeId], references: [id])
+  visits Visit[]
+
+  @@unique([phoneHash, storeId])
+}
+
+model Visit {
+  id                String         @id @default(cuid())
+  visitDate         DateTime       @default(now())
+  inTime            DateTime?
+  outTime           DateTime?
+  durationMins      Int?
+  storeId           String
+  staffId           String
+  customerId        String?
+  customerName      String
+  customerPhone     String
+  customerPhoneHash String?
+  customerType      CustomerType
+  visitType         VisitType
+  purchaseStatus    PurchaseStatus
+  productsPurchased String[]
+  productsExplored  String[]
+  transactionAmount Float?
+  intentTier        IntentTier?
+  reasonNoPurchase  String?
+  competitorMention String?
+  purchaseOccasion  String?
+  metalKtPref       String?
+  budgetStated      BudgetRange?
+  schemeEnrolled    Boolean        @default(false)
+  ghsPolicy         Boolean        @default(false)
+  followUpNeeded    Boolean        @default(false)
+  followUpDate      DateTime?
+  staffNotes        String?
+  sourceChannel     SourceChannel
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  staff    Staff     @relation(fields: [staffId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+  followUp FollowUp?
+}
+
+enum CustomerType {
+  NEW
+  REPEAT
+  VIP
+}
+
+enum VisitType {
+  WALK_IN
+  APPOINTMENT
+}
+
+enum PurchaseStatus {
+  PURCHASED
+  NOT_PURCHASED
+  PENDING
+}
+
+enum IntentTier {
+  HOT
+  WARM
+  COLD
+  BROWSING
+}
+
+enum BudgetRange {
+  UNDER_15K
+  K15_50K
+  K50_1L
+  ABOVE_1L
+  NOT_STATED
+}
+
+enum SourceChannel {
+  ORGANIC_WALK_IN
+  REFERRAL
+  SOCIAL_MEDIA
+  INTERNET
+  PHONE
+  TANISHQ_REF
+  CARATLANE_REF
+  OTHER
+}
+
+model FollowUp {
+  id              String         @id @default(cuid())
+  visitId         String         @unique
+  assignedStaffId String
+  followUpDate    DateTime
+  reason          String?
+  context         String?
+  callOutcome     String?
+  outcomeDate     DateTime?
+  status          FollowUpStatus @default(OPEN)
+  notes           String?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  visit Visit @relation(fields: [visitId], references: [id])
+}
+
+enum FollowUpStatus {
+  OPEN
+  CLOSED
+  CONVERTED
+  NO_RESPONSE
+}

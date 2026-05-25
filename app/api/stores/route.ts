@@ -1,0 +1,46 @@
+import { NextResponse } from "next/server";
+import {
+  badRequest,
+  getServerSession,
+  requireRole,
+  unauthorized,
+} from "@/lib/auth/session";
+import { createStore, listStores } from "@/lib/services/stores";
+import { createStoreSchema, getStoresQuerySchema } from "@/lib/validations/store.schema";
+
+export async function GET(req: Request) {
+  const session = await getServerSession();
+  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+
+  const { searchParams } = new URL(req.url);
+  const query = getStoresQuerySchema.safeParse(
+    Object.fromEntries(searchParams.entries()),
+  );
+  if (!query.success) return badRequest(query.error.flatten());
+
+  const { data, total } = await listStores({
+    page: query.data.page,
+    pageSize: query.data.pageSize,
+    search: query.data.search,
+    activeOnly: query.data.activeOnly,
+  });
+
+  return NextResponse.json({
+    data,
+    total,
+    page: query.data.page,
+    pageSize: query.data.pageSize,
+  });
+}
+
+export async function POST(req: Request) {
+  const session = await getServerSession();
+  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+
+  const body: unknown = await req.json();
+  const parsed = createStoreSchema.safeParse(body);
+  if (!parsed.success) return badRequest(parsed.error.flatten());
+
+  const store = await createStore(parsed.data);
+  return NextResponse.json(store, { status: 201 });
+}

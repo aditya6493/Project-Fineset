@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: fineset-postgres
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: jewelry_store_saas
+    volumes:
+      - fineset_pgdata:/var/lib/postgresql/data
+
+volumes:
+  fineset_pgdata:

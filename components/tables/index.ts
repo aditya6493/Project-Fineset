@@ -1,0 +1,1 @@
+export { VisitsTable } from "./VisitsTable";
