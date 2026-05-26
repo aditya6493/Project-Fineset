@@ -3,7 +3,7 @@ import { authConfig } from "@/lib/auth/auth.config";
 
 const { auth } = NextAuth(authConfig);
 
-export function middleware(
+export function proxy(
   ...args: Parameters<typeof auth>
 ): ReturnType<typeof auth> {
   return auth(...args);
