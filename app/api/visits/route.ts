@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import {
   badRequest,
-  forbidden,
   getServerSession,
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
+import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { createVisit, listVisits } from "@/lib/services/visits";
 import {
   createVisitSchema,
@@ -16,14 +16,17 @@ export async function POST(req: Request) {
   const session = await getServerSession();
   if (!requireRole(session, ["STAFF"])) return unauthorized();
 
+  const staff = await requireStaffContext(session);
+  if (!staff) return unauthorized();
+
   const body: unknown = await req.json();
   const parsed = createVisitSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   const visit = await createVisit({
     ...parsed.data,
-    storeId: session.storeId,
-    staffId: session.staffId,
+    storeId: staff.storeId,
+    staffId: staff.staffId,
   });
 
   return NextResponse.json(visit, { status: 201 });

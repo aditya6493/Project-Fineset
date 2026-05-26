@@ -33,6 +33,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
 
   const { watch, control, handleSubmit, reset, trigger } = form;
   const purchaseStatus = watch("purchaseStatus");
+  const enrollmentOutcome = watch("enrollmentOutcome");
   const sections = useMemo(
     () => buildSections(copy, purchaseStatus),
     [copy, purchaseStatus],
@@ -69,13 +70,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
       return true;
     }
 
-    return trigger(getSectionFieldNames(activeSection));
-  }
-
-  async function handleNext() {
-    const valid = await validateCurrentStep();
-    if (!valid) return;
-    setStepIndex((current) => Math.min(current + 1, sections.length - 1));
+    return trigger(getSectionFieldNames(activeSection, purchaseStatus, enrollmentOutcome));
   }
 
   function handlePrevious() {
@@ -94,6 +89,29 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
     }
   }
 
+  async function handleMobilePrimaryAction() {
+    if (createVisitMutation.isPending) return;
+
+    const valid = await validateCurrentStep();
+    if (!valid) return;
+
+    if (!isLastStep) {
+      setStepIndex((current) => Math.min(current + 1, sections.length - 1));
+      return;
+    }
+
+    await handleSubmit(onSubmit)();
+  }
+
+  function handleFormKeyDown(event: React.KeyboardEvent<HTMLFormElement>) {
+    if (event.key !== "Enter") return;
+    if (event.target instanceof HTMLTextAreaElement) return;
+    if (!window.matchMedia("(max-width: 1023px)").matches) return;
+
+    event.preventDefault();
+    void handleMobilePrimaryAction();
+  }
+
   if (isSuccess) {
     return (
       <VisitFormSuccess
@@ -107,7 +125,11 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 lg:space-y-6">
+      <form
+        onSubmit={(event) => event.preventDefault()}
+        onKeyDown={handleFormKeyDown}
+        className="space-y-4 lg:space-y-6"
+      >
         <ProgressIndicator
           label={progressLabel}
           current={stepIndex + 1}
@@ -121,6 +143,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
             watch={watch}
             activeSection={activeSection}
             mode="wizard"
+            enrollmentOutcome={enrollmentOutcome}
           />
         </div>
 
@@ -130,6 +153,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
             control={control}
             watch={watch}
             mode="full"
+            enrollmentOutcome={enrollmentOutcome}
           />
         </div>
 
@@ -147,25 +171,23 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
                   {common.previous}
                 </Button>
               )}
-              {!isLastStep ? (
-                <Button type="button" className="flex-1" onClick={handleNext}>
-                  {common.next}
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  className="flex-1"
-                  disabled={createVisitMutation.isPending}
-                >
-                  {createVisitMutation.isPending
-                    ? copy.actions.saving
+              <Button
+                type="button"
+                className="flex-1"
+                disabled={createVisitMutation.isPending}
+                onClick={() => void handleMobilePrimaryAction()}
+              >
+                {createVisitMutation.isPending
+                  ? copy.actions.saving
+                  : !isLastStep
+                    ? common.next
                     : copy.actions.submit}
-                </Button>
-              )}
+              </Button>
             </div>
 
             <Button
-              type="submit"
+              type="button"
+              onClick={() => void handleSubmit(onSubmit)()}
               className="hidden w-full lg:inline-flex lg:w-auto lg:min-w-[200px]"
               disabled={createVisitMutation.isPending}
             >

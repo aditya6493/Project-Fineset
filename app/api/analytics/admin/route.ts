@@ -5,7 +5,7 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
-import { getAdminAnalytics } from "@/lib/services/analytics";
+import { getAdminDashboardOverview } from "@/lib/services/analytics";
 import { getAnalyticsQuerySchema } from "@/lib/validations/analytics.schema";
 
 export async function GET(req: Request) {
@@ -18,6 +18,6 @@ export async function GET(req: Request) {
   );
   if (!query.success) return badRequest(query.error.flatten());
 
-  const data = await getAdminAnalytics(query.data.period);
+  const data = await getAdminDashboardOverview(query.data.period);
   return NextResponse.json(data);
 }

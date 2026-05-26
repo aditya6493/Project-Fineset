@@ -16,6 +16,7 @@ export type VisitFormValues = CreateVisitInput;
 export type VisitFormSectionId =
   | "customer"
   | "visit"
+  | "scheme"
   | "noPurchase"
   | "preferences"
   | "followUp";
@@ -41,12 +42,21 @@ export type VisitDraftFields = Pick<
   | "purchaseOccasion"
   | "metalKtPref"
   | "budgetStated"
-  | "schemeEnrolled"
-  | "ghsPolicy"
+  | "schemesPitched"
+  | "enrollmentOutcome"
   | "followUpNeeded"
 >;
 
-export const VISIT_DRAFT_STORAGE_KEY = "fineset-visit-draft-v1";
+export const VISIT_DRAFT_STORAGE_KEY = "fineset-visit-draft-v2";
+
+function resolveDraftPurchaseStatus(
+  status?: VisitDraftFields["purchaseStatus"],
+): VisitFormValues["purchaseStatus"] {
+  if (status === "PURCHASED" || status === "NOT_PURCHASED") {
+    return status;
+  }
+  return undefined;
+}
 
 export function getDefaultVisitValues(
   draft?: Partial<VisitDraftFields>,
@@ -59,12 +69,13 @@ export function getDefaultVisitValues(
     customerType: draft?.customerType ?? "NEW",
     visitType: draft?.visitType ?? "WALK_IN",
     inTime: now,
+    outTime: undefined,
     sourceChannel: draft?.sourceChannel ?? "ORGANIC_WALK_IN",
     area: draft?.area,
     gender: draft?.gender,
     ageGroup: draft?.ageGroup,
     productsExplored: draft?.productsExplored ?? [],
-    purchaseStatus: draft?.purchaseStatus ?? "PENDING",
+    purchaseStatus: resolveDraftPurchaseStatus(draft?.purchaseStatus),
     productsPurchased: draft?.productsPurchased ?? [],
     transactionAmount: undefined,
     intentTier: draft?.intentTier,
@@ -73,8 +84,11 @@ export function getDefaultVisitValues(
     purchaseOccasion: draft?.purchaseOccasion,
     metalKtPref: draft?.metalKtPref,
     budgetStated: draft?.budgetStated,
-    schemeEnrolled: draft?.schemeEnrolled ?? false,
-    ghsPolicy: draft?.ghsPolicy ?? false,
+    schemesPitched: draft?.schemesPitched ?? [],
+    enrollmentOutcome: draft?.enrollmentOutcome,
+    monthlyCommitment: undefined,
+    reasonNoEnrollment: undefined,
+    schemeCompetitorMention: undefined,
     followUpNeeded: draft?.followUpNeeded ?? false,
     followUpDate: undefined,
     staffNotes: undefined,
@@ -112,30 +126,33 @@ export function extractDraftFields(values: VisitFormValues): VisitDraftFields {
     gender: values.gender,
     ageGroup: values.ageGroup,
     productsExplored: values.productsExplored,
-    purchaseStatus: values.purchaseStatus,
+    purchaseStatus: resolveDraftPurchaseStatus(values.purchaseStatus),
     productsPurchased: values.productsPurchased,
     intentTier: values.intentTier,
     reasonNoPurchase: values.reasonNoPurchase,
     purchaseOccasion: values.purchaseOccasion,
     metalKtPref: values.metalKtPref,
     budgetStated: values.budgetStated,
-    schemeEnrolled: values.schemeEnrolled,
-    ghsPolicy: values.ghsPolicy,
+    schemesPitched: values.schemesPitched,
+    enrollmentOutcome: values.enrollmentOutcome,
     followUpNeeded: values.followUpNeeded,
   };
 }
 
 export function getSectionFieldNames(
   sectionId: VisitFormSectionId,
+  purchaseStatus?: VisitFormValues["purchaseStatus"],
+  enrollmentOutcome?: VisitFormValues["enrollmentOutcome"],
 ): (keyof VisitFormValues)[] {
   switch (sectionId) {
     case "customer":
       return [
-        "customerName",
         "customerPhone",
+        "customerName",
         "customerType",
         "visitType",
         "inTime",
+        "outTime",
         "sourceChannel",
         "area",
         "gender",
@@ -143,22 +160,30 @@ export function getSectionFieldNames(
       ];
     case "visit":
       return [
-        "productsExplored",
         "purchaseStatus",
-        "productsPurchased",
-        "transactionAmount",
+        ...(purchaseStatus === "NOT_PURCHASED" ? (["productsExplored"] as const) : []),
+        ...(purchaseStatus === "PURCHASED"
+          ? (["productsPurchased", "transactionAmount"] as const)
+          : []),
+      ];
+    case "scheme":
+      return [
+        "schemesPitched",
+        "enrollmentOutcome",
+        ...(enrollmentOutcome === "ENROLLED_GHS" ||
+        enrollmentOutcome === "ENROLLED_GPP" ||
+        enrollmentOutcome === "ENROLLED_BOTH"
+          ? (["monthlyCommitment"] as const)
+          : []),
         "intentTier",
+        ...(enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK"
+          ? (["reasonNoEnrollment", "schemeCompetitorMention"] as const)
+          : []),
       ];
     case "noPurchase":
       return ["reasonNoPurchase", "competitorMention"];
     case "preferences":
-      return [
-        "purchaseOccasion",
-        "metalKtPref",
-        "budgetStated",
-        "schemeEnrolled",
-        "ghsPolicy",
-      ];
+      return ["purchaseOccasion", "metalKtPref", "budgetStated"];
     case "followUp":
       return ["followUpNeeded", "followUpDate", "staffNotes"];
   }
@@ -171,6 +196,7 @@ export function buildSections(
   const all: VisitFormSection[] = [
     { id: "customer", title: copy.sections.customer },
     { id: "visit", title: copy.sections.visit },
+    { id: "scheme", title: copy.sections.scheme },
     { id: "noPurchase", title: copy.sections.noPurchase },
     { id: "preferences", title: copy.sections.preferences },
     { id: "followUp", title: copy.sections.followUp },
@@ -181,4 +207,20 @@ export function buildSections(
   }
 
   return all;
+}
+
+export function getSchemePitchCopy(copy: VisitFormCopy) {
+  return {
+    schemeHint: copy.schemeHint,
+    schemesPitched: copy.fields.schemesPitched,
+    enrollmentOutcome: copy.fields.enrollmentOutcome,
+    monthlyCommitment: copy.fields.monthlyCommitment,
+    intentTier: {
+      label: copy.fields.intentTier.label,
+      placeholder: copy.fields.intentTier.placeholder,
+      options: copy.fields.intentTier.options,
+    },
+    reasonNoEnrollment: copy.fields.reasonNoEnrollment,
+    schemeCompetitorMention: copy.fields.schemeCompetitorMention,
+  };
 }

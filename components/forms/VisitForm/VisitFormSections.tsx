@@ -21,11 +21,14 @@ import { Label } from "@/components/ui/label";
 import { ChipMultiSelect } from "@/components/shared/ChipMultiSelect";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { calculateDurationMins, formatDurationMins } from "@/lib/utils/formatters";
 import { FormSection } from "./FormSection";
+import { SchemePitchOutcomeSection } from "@/components/forms/shared/SchemePitchOutcomeSection";
 import type { VisitFormCopy, VisitFormSectionId, VisitFormValues } from "./VisitForm.types";
 import {
   formatDateForInput,
   formatTimeForInput,
+  getSchemePitchCopy,
   parseDateInput,
   parseTimeInput,
 } from "./VisitForm.types";
@@ -36,6 +39,7 @@ interface VisitFormSectionsProps {
   watch: UseFormWatch<VisitFormValues>;
   activeSection?: VisitFormSectionId;
   mode: "wizard" | "full";
+  enrollmentOutcome?: VisitFormValues["enrollmentOutcome"];
 }
 
 function shouldShowSection(
@@ -53,33 +57,24 @@ export function VisitFormSections({
   watch,
   activeSection,
   mode,
+  enrollmentOutcome,
 }: VisitFormSectionsProps) {
   const purchaseStatus = watch("purchaseStatus");
   const followUpNeeded = watch("followUpNeeded");
+  const inTime = watch("inTime");
+  const outTime = watch("outTime");
   const fields = copy.fields;
+
+  const totalDurationLabel =
+    inTime && outTime && outTime > inTime
+      ? formatDurationMins(calculateDurationMins(inTime, outTime))
+      : null;
 
   return (
     <div className="space-y-4 lg:space-y-6">
       {shouldShowSection("customer", activeSection, mode) && (
         <FormSection title={copy.sections.customer} id="section-customer">
           <div className="grid gap-4 sm:grid-cols-2">
-            <FormField
-              control={control}
-              name="customerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{fields.customerName.label}</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder={fields.customerName.placeholder}
-                      autoComplete="off"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
             <FormField
               control={control}
               name="customerPhone"
@@ -91,6 +86,23 @@ export function VisitFormSections({
                       placeholder={fields.phone.placeholder}
                       inputMode="numeric"
                       maxLength={10}
+                      autoComplete="off"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={control}
+              name="customerName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{fields.customerName.label}</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder={fields.customerName.placeholder}
                       autoComplete="off"
                       {...field}
                     />
@@ -156,7 +168,7 @@ export function VisitFormSections({
             />
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-3">
             <FormField
               control={control}
               name="inTime"
@@ -176,6 +188,40 @@ export function VisitFormSections({
                 </FormItem>
               )}
             />
+            <FormField
+              control={control}
+              name="outTime"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{fields.outTime.label}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="time"
+                      value={field.value ? formatTimeForInput(field.value) : ""}
+                      onChange={(event) => {
+                        if (!event.target.value) {
+                          field.onChange(undefined);
+                          return;
+                        }
+                        field.onChange(
+                          parseTimeInput(event.target.value, inTime ?? new Date()),
+                        );
+                      }}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormItem>
+              <FormLabel>{fields.totalDuration.label}</FormLabel>
+              <div className="flex h-12 items-center rounded-input border border-border bg-surface-secondary px-3 text-sm text-text-primary">
+                {totalDurationLabel ?? "—"}
+              </div>
+            </FormItem>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <FormField
               control={control}
               name="sourceChannel"
@@ -284,24 +330,6 @@ export function VisitFormSections({
         <FormSection title={copy.sections.visit} id="section-visit">
           <FormField
             control={control}
-            name="productsExplored"
-            render={({ field, fieldState }) => (
-              <FormItem>
-                <FormControl>
-                  <ChipMultiSelect
-                    label={fields.productsExplored.label}
-                    options={fields.productsExplored.options}
-                    value={field.value}
-                    onChange={field.onChange}
-                    error={fieldState.error?.message}
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={control}
             name="purchaseStatus"
             render={({ field }) => (
               <FormItem>
@@ -309,8 +337,8 @@ export function VisitFormSections({
                 <FormControl>
                   <RadioGroup
                     onValueChange={field.onChange}
-                    value={field.value}
-                    className="grid gap-2 sm:grid-cols-3"
+                    value={field.value ?? ""}
+                    className="grid gap-2 sm:grid-cols-2"
                   >
                     {Object.entries(fields.purchaseStatus.options).map(
                       ([value, label]) => (
@@ -329,6 +357,26 @@ export function VisitFormSections({
               </FormItem>
             )}
           />
+
+          {purchaseStatus === "NOT_PURCHASED" && (
+            <FormField
+              control={control}
+              name="productsExplored"
+              render={({ field, fieldState }) => (
+                <FormItem>
+                  <FormControl>
+                    <ChipMultiSelect
+                      label={fields.productsExplored.label}
+                      options={fields.productsExplored.options}
+                      value={field.value}
+                      onChange={field.onChange}
+                      error={fieldState.error?.message}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          )}
 
           {purchaseStatus === "PURCHASED" && (
             <>
@@ -374,36 +422,20 @@ export function VisitFormSections({
             </>
           )}
 
-          <FormField
-            control={control}
-            name="intentTier"
-            render={({ field }) => (
-              <FormItem className="max-w-xs">
-                <FormLabel>{fields.intentTier.label}</FormLabel>
-                <Select
-                  onValueChange={field.onChange}
-                  value={field.value ?? ""}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="—" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {Object.entries(fields.intentTier.options).map(
-                      ([value, label]) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ),
-                    )}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </FormSection>
+      )}
+
+      {shouldShowSection("scheme", activeSection, mode) && (
+        <SchemePitchOutcomeSection
+          title={copy.sections.scheme}
+          copy={getSchemePitchCopy(copy)}
+          control={control}
+          enrollmentOutcome={enrollmentOutcome}
+          showNoEnrollmentFields={
+            enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK"
+          }
+          id="section-scheme"
+        />
       )}
 
       {purchaseStatus === "NOT_PURCHASED" &&
@@ -544,39 +576,6 @@ export function VisitFormSections({
                     </SelectContent>
                   </Select>
                   <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-
-          <div className="flex flex-col gap-4 sm:flex-row sm:gap-8">
-            <FormField
-              control={control}
-              name="schemeEnrolled"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between gap-4 rounded-input border border-border px-4 py-3 sm:w-64">
-                  <FormLabel className="mt-0">{fields.schemeEnrolled.label}</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={control}
-              name="ghsPolicy"
-              render={({ field }) => (
-                <FormItem className="flex items-center justify-between gap-4 rounded-input border border-border px-4 py-3 sm:w-64">
-                  <FormLabel className="mt-0">{fields.ghsPolicy.label}</FormLabel>
-                  <FormControl>
-                    <Switch
-                      checked={field.value}
-                      onCheckedChange={field.onChange}
-                    />
-                  </FormControl>
                 </FormItem>
               )}
             />

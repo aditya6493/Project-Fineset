@@ -15,9 +15,9 @@ export default function AdminLayout({
       navItems={[
         { href: "/admin/dashboard", label: nav.overview },
         { href: "/admin/dashboard/stores", label: nav.stores },
+        { href: "/admin/dashboard/calls", label: nav.calls },
+        { href: "/admin/dashboard/field-sales", label: nav.fieldSales },
         { href: "/admin/dashboard/staff", label: nav.staff },
-        { href: "/admin/dashboard/analytics", label: nav.insights },
-        { href: "/admin/dashboard/follow-up", label: nav.followUp },
       ]}
     >
       {children}

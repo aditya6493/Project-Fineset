@@ -1,10 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { clearVisitDraft } from "@/components/forms/VisitForm/useVisitDraft";
+import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface NavItem {
   href: string;
@@ -13,21 +17,45 @@ interface NavItem {
 
 interface PortalShellProps {
   title: string;
-  navItems: NavItem[];
+  navItems?: NavItem[];
   signOutLabel: string;
   children: React.ReactNode;
 }
 
 export function PortalShell({
   title,
-  navItems,
+  navItems = [],
   signOutLabel,
   children,
 }: PortalShellProps) {
   const pathname = usePathname();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  useRealtimeSync();
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+
+    setIsSigningOut(true);
+
+    try {
+      clearVisitDraft();
+      queryClient.clear();
+      await signOut({ redirect: false });
+      router.replace("/");
+      router.refresh();
+    } catch {
+      setIsSigningOut(false);
+    }
+  }
 
   function isActive(href: string): boolean {
-    if (href === "/store/dashboard" || href === "/admin/dashboard" || href === "/staff/dashboard") {
+    if (href === "/staff/dashboard") {
+      return pathname === href;
+    }
+    if (href === "/store/dashboard" || href === "/admin/dashboard") {
       return pathname === href;
     }
     return pathname.startsWith(href);
@@ -41,47 +69,52 @@ export function PortalShell({
             <Link href="/" className="font-display text-lg font-semibold text-brand-gold">
               {title}
             </Link>
-            <nav className="hidden gap-4 sm:flex">
-              {navItems.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "text-sm transition-colors",
-                    isActive(item.href)
-                      ? "font-medium text-brand-gold"
-                      : "text-text-secondary hover:text-brand-gold",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            {navItems.length > 0 && (
+              <nav className="hidden gap-4 sm:flex">
+                {navItems.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "text-sm transition-colors",
+                      isActive(item.href)
+                        ? "font-medium text-brand-gold"
+                        : "text-text-secondary hover:text-brand-gold",
+                    )}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </nav>
+            )}
           </div>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            disabled={isSigningOut}
+            onClick={() => void handleSignOut()}
           >
-            {signOutLabel}
+            {isSigningOut ? "Signing out…" : signOutLabel}
           </Button>
         </div>
-        <nav className="flex gap-2 overflow-x-auto border-t border-border px-page-x py-2 sm:hidden">
-          {navItems.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "whitespace-nowrap rounded-chip px-3 py-1 text-xs",
-                isActive(item.href)
-                  ? "bg-brand-gold text-white"
-                  : "bg-surface-secondary text-text-secondary",
-              )}
-            >
-              {item.label}
-            </Link>
-          ))}
-        </nav>
+        {navItems.length > 0 && (
+          <nav className="flex h-14 items-center gap-2 overflow-x-auto border-t border-border px-page-x sm:hidden">
+            {navItems.map((item) => (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "whitespace-nowrap rounded-chip px-3 py-2 text-xs",
+                  isActive(item.href)
+                    ? "bg-brand-gold text-white"
+                    : "bg-surface-secondary text-text-secondary",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </nav>
+        )}
       </header>
       <main className="mx-auto max-w-7xl px-page-x py-6 sm:px-page-md">{children}</main>
     </div>

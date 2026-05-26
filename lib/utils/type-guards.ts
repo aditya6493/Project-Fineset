@@ -1,9 +1,10 @@
-import type { AdminKPIs, StoreKPIs } from "@/types";
+import type { StoreKPIs } from "@/types";
 
-export function isStoreKPIs(kpis: StoreKPIs | AdminKPIs): kpis is StoreKPIs {
-  return "openFollowUps" in kpis;
-}
-
-export function isAdminKPIs(kpis: StoreKPIs | AdminKPIs): kpis is AdminKPIs {
-  return "activeStores" in kpis;
+export function isStoreKPIs(kpis: unknown): kpis is StoreKPIs {
+  return (
+    typeof kpis === "object" &&
+    kpis !== null &&
+    "openFollowUps" in kpis &&
+    "avgTransaction" in kpis
+  );
 }

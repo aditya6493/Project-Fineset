@@ -1,9 +1,15 @@
 import { z } from "zod";
 import { paginationQuerySchema, phoneSchema, sortOrderSchema } from "./common.schema";
+import {
+  fieldDeclineReasonSchema,
+  refineSchemeFields,
+  schemeEnrollmentOutcomeSchema,
+  schemeProductSchema,
+} from "./scheme.schema";
 
 const customerTypeSchema = z.enum(["NEW", "REPEAT", "VIP"]);
 const visitTypeSchema = z.enum(["WALK_IN", "APPOINTMENT"]);
-const purchaseStatusSchema = z.enum(["PURCHASED", "NOT_PURCHASED", "PENDING"]);
+const purchaseStatusSchema = z.enum(["PURCHASED", "NOT_PURCHASED"]);
 const intentTierSchema = z.enum(["HOT", "WARM", "COLD", "BROWSING"]);
 const budgetRangeSchema = z.enum([
   "UNDER_15K",
@@ -64,12 +70,13 @@ export const createVisitSchema = z
     customerType: customerTypeSchema,
     visitType: visitTypeSchema,
     inTime: z.coerce.date().optional(),
+    outTime: z.coerce.date().optional(),
     sourceChannel: sourceChannelSchema,
     area: z.string().max(100).optional(),
     gender: genderSchema.optional(),
     ageGroup: ageGroupSchema.optional(),
-    productsExplored: z.array(productCategorySchema).min(1),
-    purchaseStatus: purchaseStatusSchema,
+    productsExplored: z.array(productCategorySchema).default([]),
+    purchaseStatus: purchaseStatusSchema.optional(),
     productsPurchased: z.array(productCategorySchema).default([]),
     transactionAmount: z.coerce.number().positive().optional(),
     intentTier: intentTierSchema.optional(),
@@ -78,13 +85,25 @@ export const createVisitSchema = z
     purchaseOccasion: purchaseOccasionSchema.optional(),
     metalKtPref: metalKtPrefSchema.optional(),
     budgetStated: budgetRangeSchema.optional(),
-    schemeEnrolled: z.boolean().default(false),
-    ghsPolicy: z.boolean().default(false),
+    schemesPitched: z.array(schemeProductSchema).default([]),
+    enrollmentOutcome: schemeEnrollmentOutcomeSchema.optional(),
+    monthlyCommitment: z.coerce.number().positive().optional(),
+    reasonNoEnrollment: fieldDeclineReasonSchema.optional(),
+    schemeCompetitorMention: z.string().max(200).optional(),
     followUpNeeded: z.boolean().default(false),
     followUpDate: z.coerce.date().optional(),
     staffNotes: z.string().max(500).optional(),
   })
   .superRefine((data, ctx) => {
+    if (!data.purchaseStatus) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Purchase status is required",
+        path: ["purchaseStatus"],
+      });
+      return;
+    }
+
     if (data.purchaseStatus === "PURCHASED") {
       if (!data.transactionAmount) {
         ctx.addIssue({
@@ -102,6 +121,14 @@ export const createVisitSchema = z
       }
     }
 
+    if (data.purchaseStatus === "NOT_PURCHASED" && data.productsExplored.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "At least one explored product is required",
+        path: ["productsExplored"],
+      });
+    }
+
     if (data.purchaseStatus === "NOT_PURCHASED" && !data.reasonNoPurchase) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
@@ -117,6 +144,16 @@ export const createVisitSchema = z
         path: ["followUpDate"],
       });
     }
+
+    if (data.inTime && data.outTime && data.outTime <= data.inTime) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Out time must be after in time",
+        path: ["outTime"],
+      });
+    }
+
+    refineSchemeFields(data, ctx);
   });
 
 export const getVisitsQuerySchema = paginationQuerySchema.extend({

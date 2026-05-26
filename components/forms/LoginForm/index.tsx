@@ -55,7 +55,7 @@ export function LoginForm({
     for (const field of fields) {
       const value = formData.get(field.name);
       if (typeof value === "string") {
-        credentials[field.name] = value;
+        credentials[field.name] = value.trim();
       }
     }
 

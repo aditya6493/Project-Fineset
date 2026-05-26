@@ -1,5 +1,5 @@
 import { apiFetch, buildQueryString } from "@/lib/api/client";
-import type { FollowUpListItem, FollowUpStatus, AdminFollowUpOverview } from "@/types";
+import type { FollowUpListItem, FollowUpStatus } from "@/types";
 
 interface GetFollowUpsParams {
   status?: FollowUpStatus;
@@ -27,8 +27,4 @@ export async function updateFollowUpStatus(
       body: JSON.stringify({ status }),
     },
   );
-}
-
-export async function getAdminFollowUpOverview(): Promise<AdminFollowUpOverview> {
-  return apiFetch<AdminFollowUpOverview>("/api/follow-ups/admin");
 }

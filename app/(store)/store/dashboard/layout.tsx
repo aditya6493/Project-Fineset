@@ -15,9 +15,9 @@ export default function StoreLayout({
       navItems={[
         { href: "/store/dashboard", label: nav.overview },
         { href: "/store/dashboard/visits", label: nav.visits },
-        { href: "/store/dashboard/follow-up", label: nav.followUp },
+        { href: "/store/dashboard/calls", label: nav.calls },
+        { href: "/store/dashboard/field-sales", label: nav.fieldSales },
         { href: "/store/dashboard/staff", label: nav.staff },
-        { href: "/store/dashboard/analytics", label: nav.analytics },
       ]}
     >
       {children}

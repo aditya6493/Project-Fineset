@@ -1,11 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createStaff, getStaff, updateStaff } from "@/lib/api/staff";
+import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
+import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
 
 export function useStoreStaff() {
   return useQuery({
     queryKey: ["staff", "store"],
     queryFn: () => getStaff(),
+    ...LIVE_QUERY_OPTIONS,
   });
 }
 
@@ -15,7 +18,7 @@ export function useCreateStaff() {
   return useMutation({
     mutationFn: (payload: CreateStaffInput) => createStaff(payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["staff"] });
+      void invalidatePortalData(queryClient);
     },
   });
 }
@@ -32,7 +35,7 @@ export function useUpdateStaff() {
       payload: UpdateStaffInput;
     }) => updateStaff(staffId, payload),
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: ["staff"] });
+      void invalidatePortalData(queryClient);
     },
   });
 }

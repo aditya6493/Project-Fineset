@@ -29,7 +29,6 @@ function createLimiter(
 }
 
 const loginLimiter = createLimiter("fineset:login", 10, "15 m");
-const aiInsightsLimiter = createLimiter("fineset:ai-insights", 20, "1 h");
 
 export async function checkLoginRateLimit(
   identifier: string,
@@ -37,20 +36,6 @@ export async function checkLoginRateLimit(
   if (!loginLimiter) return { success: true };
 
   const result = await loginLimiter.limit(identifier);
-  if (result.success) return { success: true };
-
-  return {
-    success: false,
-    retryAfterSeconds: Math.ceil((result.reset - Date.now()) / 1000),
-  };
-}
-
-export async function checkAiInsightsRateLimit(
-  identifier: string,
-): Promise<RateLimitResult> {
-  if (!aiInsightsLimiter) return { success: true };
-
-  const result = await aiInsightsLimiter.limit(identifier);
   if (result.success) return { success: true };
 
   return {

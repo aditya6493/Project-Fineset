@@ -20,8 +20,35 @@ export function getPeriodRange(
     return { start, end };
   }
 
-  start.setDate(1);
-  return { start, end };
+  if (period === "month") {
+    start.setDate(1);
+    return { start, end };
+  }
+
+  if (period === "last3months") {
+    start.setMonth(start.getMonth() - 2);
+    start.setDate(1);
+    return { start, end };
+  }
+
+  if (period === "last6months") {
+    start.setMonth(start.getMonth() - 5);
+    start.setDate(1);
+    return { start, end };
+  }
+
+  throw new Error(`Unsupported analytics period: ${period}`);
+}
+
+export function calculateSalesGrowthPercent(
+  currentSales: number,
+  previousSales: number,
+): number {
+  if (previousSales === 0) {
+    return currentSales > 0 ? 100 : 0;
+  }
+
+  return Math.round(((currentSales - previousSales) / previousSales) * 100);
 }
 
 export function getPreviousPeriodRange(
@@ -49,11 +76,25 @@ export function getPreviousPeriodRange(
     return { start, end };
   }
 
-  const start = new Date(current.start);
-  start.setMonth(start.getMonth() - 1);
-  const end = new Date(current.start);
-  end.setMilliseconds(-1);
-  return { start, end };
+  if (period === "last3months" || period === "last6months") {
+    const months = period === "last3months" ? 3 : 6;
+    const prevEnd = new Date(current.start);
+    prevEnd.setMilliseconds(-1);
+    const prevStart = new Date(current.start);
+    prevStart.setMonth(prevStart.getMonth() - months);
+    prevStart.setHours(0, 0, 0, 0);
+    return { start: prevStart, end: prevEnd };
+  }
+
+  if (period === "month") {
+    const start = new Date(current.start);
+    start.setMonth(start.getMonth() - 1);
+    const end = new Date(current.start);
+    end.setMilliseconds(-1);
+    return { start, end };
+  }
+
+  throw new Error(`Unsupported analytics period: ${period}`);
 }
 
 export function calculateConversionRate(

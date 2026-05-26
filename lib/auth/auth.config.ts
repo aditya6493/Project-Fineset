@@ -20,6 +20,7 @@ export const authConfig = {
             staffId: appUser.staffId,
             storeId: appUser.storeId,
             name: appUser.name,
+            employeeId: appUser.employeeId,
           }),
           ...(appUser.role === "STORE_MANAGER" && {
             storeId: appUser.storeId,

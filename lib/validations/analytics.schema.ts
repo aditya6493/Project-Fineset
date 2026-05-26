@@ -11,12 +11,5 @@ export const getAnalyticsQuerySchema = z.object({
   storeId: z.string().optional(),
 });
 
-export const getInsightsQuerySchema = z.object({
-  period: periodQuerySchema,
-  storeId: z.string().optional(),
-  context: z.enum(["store", "admin"]),
-});
-
 export type GetCustomersQuery = z.infer<typeof getCustomersQuerySchema>;
 export type GetAnalyticsQuery = z.infer<typeof getAnalyticsQuerySchema>;
-export type GetInsightsQuery = z.infer<typeof getInsightsQuerySchema>;

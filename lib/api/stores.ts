@@ -1,17 +1,19 @@
 import { apiFetch, buildQueryString } from "@/lib/api/client";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
-import type { PaginatedResponse } from "@/types";
+import type { PaginatedResponse, StoreCategory } from "@/types";
 import type { Store } from "@prisma/client";
 
 interface StoreListItem {
   id: string;
   name: string;
+  category: StoreCategory;
   city: string;
   state: string;
   pincode: string;
   isActive: boolean;
   staffCount: number;
-  revenueMtd: number;
+  visits: number;
+  revenue: number;
   conversionRate: number;
   createdAt: string;
 }

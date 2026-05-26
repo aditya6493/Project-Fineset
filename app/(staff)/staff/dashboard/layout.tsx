@@ -10,9 +10,6 @@ export default function StaffLayout({
     <PortalShell
       title={content.staff.shell.title}
       signOutLabel={content.common.signOut}
-      navItems={[
-        { href: "/staff/dashboard", label: content.staff.nav.dashboard },
-      ]}
     >
       {children}
     </PortalShell>

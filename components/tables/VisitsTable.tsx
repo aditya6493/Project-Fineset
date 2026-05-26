@@ -9,11 +9,11 @@ import {
   type ColumnDef,
   type SortingState,
 } from "@tanstack/react-table";
-import { getVisitById } from "@/lib/api/visits";
 import {
   formatCurrency,
   formatDate,
   formatDateTime,
+  formatDurationMins,
   maskPhone,
 } from "@/lib/utils/formatters";
 import type { VisitListItem } from "@/types";
@@ -27,36 +27,19 @@ import {
 } from "@/components/ui/dialog";
 import { ExportButton, downloadCsv } from "@/components/shared/ExportButton";
 import { EmptyState } from "@/components/shared/EmptyState";
-import type { Visit } from "@prisma/client";
+import type { Content } from "@/content/en";
 
-interface VisitsTableCopy {
-  title: string;
-  columns: {
-    visitId: string;
-    date: string;
-    staff: string;
-    customer: string;
-    phone: string;
-    type: string;
-    status: string;
-    revenue: string;
-    products: string;
-    followUp: string;
-    notes: string;
-  };
-  detailTitle: string;
-  exportCsv: string;
-  showing: string;
-  page: string;
-}
+type VisitFormFields = Content["visitForm"]["fields"];
+type VisitsCopy = Content["store"]["visits"];
 
 interface VisitsTableProps {
-  copy: VisitsTableCopy;
+  copy: VisitsCopy & { showing: string; page: string };
   emptyMessage: string;
   searchPlaceholder: string;
   previousLabel: string;
   nextLabel: string;
   yesLabel: string;
+  noLabel: string;
   data: VisitListItem[];
   total: number;
   page: number;
@@ -64,9 +47,25 @@ interface VisitsTableProps {
   search: string;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
-  statusLabels: Record<string, string>;
-  typeLabels: Record<string, string>;
+  fieldLabels: VisitFormFields;
   isLoading?: boolean;
+}
+
+function labelFor(
+  options: Record<string, string> | undefined,
+  value: string | null | undefined,
+): string {
+  if (!value) return "—";
+  return options?.[value] ?? value;
+}
+
+function formatProducts(items: string[], options: Record<string, string>): string {
+  if (items.length === 0) return "—";
+  return items.map((item) => options[item] ?? item).join(", ");
+}
+
+function boolLabel(value: boolean, yesLabel: string, noLabel: string): string {
+  return value ? yesLabel : noLabel;
 }
 
 export function VisitsTable({
@@ -76,6 +75,7 @@ export function VisitsTable({
   previousLabel,
   nextLabel,
   yesLabel,
+  noLabel,
   data,
   total,
   page,
@@ -83,14 +83,13 @@ export function VisitsTable({
   search,
   onSearchChange,
   onPageChange,
-  statusLabels,
-  typeLabels,
+  fieldLabels,
   isLoading,
 }: VisitsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
-  const [selectedVisitId, setSelectedVisitId] = useState<string | null>(null);
-  const [visitDetail, setVisitDetail] = useState<Visit | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
+  const [selectedVisit, setSelectedVisit] = useState<VisitListItem | null>(null);
+
+  const productLabels = fieldLabels.productsExplored.options;
 
   const columns = useMemo<ColumnDef<VisitListItem>[]>(
     () => [
@@ -106,6 +105,26 @@ export function VisitsTable({
         header: copy.columns.date,
         cell: ({ row }) => formatDate(row.original.visitDate),
       },
+      {
+        accessorKey: "inTime",
+        header: copy.columns.inTime,
+        cell: ({ row }) =>
+          row.original.inTime ? formatDateTime(row.original.inTime) : "—",
+      },
+      {
+        accessorKey: "outTime",
+        header: copy.columns.outTime,
+        cell: ({ row }) =>
+          row.original.outTime ? formatDateTime(row.original.outTime) : "—",
+      },
+      {
+        accessorKey: "durationMins",
+        header: copy.columns.duration,
+        cell: ({ row }) =>
+          row.original.durationMins != null
+            ? formatDurationMins(row.original.durationMins)
+            : "—",
+      },
       { accessorKey: "staffName", header: copy.columns.staff },
       { accessorKey: "customerName", header: copy.columns.customer },
       {
@@ -114,15 +133,57 @@ export function VisitsTable({
         cell: ({ row }) => maskPhone(row.original.customerPhone),
       },
       {
+        accessorKey: "customerType",
+        header: copy.columns.customerType,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.customerType.options, row.original.customerType),
+      },
+      {
         accessorKey: "visitType",
         header: copy.columns.type,
-        cell: ({ row }) => typeLabels[row.original.visitType] ?? row.original.visitType,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.visitType.options, row.original.visitType),
+      },
+      {
+        accessorKey: "sourceChannel",
+        header: copy.columns.sourceChannel,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.sourceChannel.options, row.original.sourceChannel),
+      },
+      {
+        accessorKey: "area",
+        header: copy.columns.area,
+        cell: ({ row }) => row.original.area ?? "—",
+      },
+      {
+        accessorKey: "gender",
+        header: copy.columns.gender,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.gender.options, row.original.gender),
+      },
+      {
+        accessorKey: "ageGroup",
+        header: copy.columns.ageGroup,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.ageGroup.options, row.original.ageGroup),
       },
       {
         accessorKey: "purchaseStatus",
         header: copy.columns.status,
         cell: ({ row }) =>
-          statusLabels[row.original.purchaseStatus] ?? row.original.purchaseStatus,
+          labelFor(fieldLabels.purchaseStatus.options, row.original.purchaseStatus),
+      },
+      {
+        id: "productsExplored",
+        header: copy.columns.productsExplored,
+        cell: ({ row }) =>
+          formatProducts(row.original.productsExplored, productLabels),
+      },
+      {
+        id: "productsPurchased",
+        header: copy.columns.productsPurchased,
+        cell: ({ row }) =>
+          formatProducts(row.original.productsPurchased, productLabels),
       },
       {
         accessorKey: "transactionAmount",
@@ -133,20 +194,81 @@ export function VisitsTable({
             : "—",
       },
       {
-        id: "products",
-        header: copy.columns.products,
+        accessorKey: "intentTier",
+        header: copy.columns.intentTier,
         cell: ({ row }) =>
-          row.original.productsPurchased.length > 0
-            ? row.original.productsPurchased.join(", ")
-            : row.original.productsExplored.join(", ") || "—",
+          labelFor(fieldLabels.intentTier.options, row.original.intentTier),
+      },
+      {
+        accessorKey: "reasonNoPurchase",
+        header: copy.columns.reasonNoPurchase,
+        cell: ({ row }) =>
+          labelFor(
+            fieldLabels.reasonNoPurchase.options,
+            row.original.reasonNoPurchase,
+          ),
+      },
+      {
+        accessorKey: "competitorMention",
+        header: copy.columns.competitorMention,
+        cell: ({ row }) => row.original.competitorMention ?? "—",
+      },
+      {
+        accessorKey: "purchaseOccasion",
+        header: copy.columns.purchaseOccasion,
+        cell: ({ row }) =>
+          labelFor(
+            fieldLabels.purchaseOccasion.options,
+            row.original.purchaseOccasion,
+          ),
+      },
+      {
+        accessorKey: "metalKtPref",
+        header: copy.columns.metalKtPref,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.metalKtPref.options, row.original.metalKtPref),
+      },
+      {
+        accessorKey: "budgetStated",
+        header: copy.columns.budgetStated,
+        cell: ({ row }) =>
+          labelFor(fieldLabels.budgetStated.options, row.original.budgetStated),
+      },
+      {
+        accessorKey: "schemeEnrolled",
+        header: copy.columns.schemeEnrolled,
+        cell: ({ row }) =>
+          boolLabel(row.original.schemeEnrolled, yesLabel, noLabel),
+      },
+      {
+        accessorKey: "ghsPolicy",
+        header: copy.columns.ghsPolicy,
+        cell: ({ row }) => boolLabel(row.original.ghsPolicy, yesLabel, noLabel),
       },
       {
         accessorKey: "followUpNeeded",
         header: copy.columns.followUp,
-        cell: ({ row }) => (row.original.followUpNeeded ? yesLabel : "—"),
+        cell: ({ row }) =>
+          boolLabel(row.original.followUpNeeded, yesLabel, noLabel),
+      },
+      {
+        accessorKey: "followUpDate",
+        header: copy.columns.followUpDate,
+        cell: ({ row }) =>
+          row.original.followUpDate ? formatDate(row.original.followUpDate) : "—",
+      },
+      {
+        accessorKey: "followUpStatus",
+        header: copy.columns.followUpStatus,
+        cell: ({ row }) => row.original.followUpStatus ?? "—",
+      },
+      {
+        accessorKey: "staffNotes",
+        header: copy.columns.notes,
+        cell: ({ row }) => row.original.staffNotes ?? "—",
       },
     ],
-    [copy.columns, statusLabels, typeLabels, yesLabel],
+    [copy.columns, fieldLabels, productLabels, yesLabel, noLabel],
   );
 
   const table = useReactTable({
@@ -162,37 +284,41 @@ export function VisitsTable({
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
 
-  async function openDetail(visitId: string) {
-    setSelectedVisitId(visitId);
-    setDetailLoading(true);
-    try {
-      const detail = await getVisitById(visitId);
-      setVisitDetail(detail);
-    } finally {
-      setDetailLoading(false);
-    }
-  }
-
-  function closeDetail() {
-    setSelectedVisitId(null);
-    setVisitDetail(null);
-  }
-
   function handleExport() {
+    const headers = Object.values(copy.columns);
     downloadCsv(
       "visits-export.csv",
-      Object.values(copy.columns),
+      headers,
       data.map((visit) => [
         visit.id,
         formatDateTime(visit.visitDate),
+        visit.inTime ? formatDateTime(visit.inTime) : "",
+        visit.outTime ? formatDateTime(visit.outTime) : "",
+        visit.durationMins != null ? formatDurationMins(visit.durationMins) : "",
         visit.staffName,
         visit.customerName,
         maskPhone(visit.customerPhone),
-        typeLabels[visit.visitType] ?? visit.visitType,
-        statusLabels[visit.purchaseStatus] ?? visit.purchaseStatus,
+        labelFor(fieldLabels.customerType.options, visit.customerType),
+        labelFor(fieldLabels.visitType.options, visit.visitType),
+        labelFor(fieldLabels.sourceChannel.options, visit.sourceChannel),
+        visit.area ?? "",
+        labelFor(fieldLabels.gender.options, visit.gender),
+        labelFor(fieldLabels.ageGroup.options, visit.ageGroup),
+        labelFor(fieldLabels.purchaseStatus.options, visit.purchaseStatus),
+        formatProducts(visit.productsExplored, productLabels),
+        formatProducts(visit.productsPurchased, productLabels),
         visit.transactionAmount ? String(visit.transactionAmount) : "",
-        visit.productsPurchased.join("; "),
-        visit.followUpNeeded ? "Yes" : "No",
+        labelFor(fieldLabels.intentTier.options, visit.intentTier),
+        labelFor(fieldLabels.reasonNoPurchase.options, visit.reasonNoPurchase),
+        visit.competitorMention ?? "",
+        labelFor(fieldLabels.purchaseOccasion.options, visit.purchaseOccasion),
+        labelFor(fieldLabels.metalKtPref.options, visit.metalKtPref),
+        labelFor(fieldLabels.budgetStated.options, visit.budgetStated),
+        boolLabel(visit.schemeEnrolled, yesLabel, noLabel),
+        boolLabel(visit.ghsPolicy, yesLabel, noLabel),
+        boolLabel(visit.followUpNeeded, yesLabel, noLabel),
+        visit.followUpDate ? formatDate(visit.followUpDate) : "",
+        visit.followUpStatus ?? "",
         visit.staffNotes ?? "",
       ]),
     );
@@ -225,14 +351,14 @@ export function VisitsTable({
         <EmptyState message={emptyMessage} />
       ) : (
         <div className="overflow-x-auto rounded-card border border-border bg-surface-card shadow-card">
-          <table className="w-full min-w-[800px] text-left text-sm">
+          <table className="w-full min-w-[2400px] text-left text-sm">
             <thead className="border-b border-border bg-surface-secondary">
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr key={headerGroup.id}>
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
-                      className="px-4 py-3 font-medium text-text-secondary"
+                      className="whitespace-nowrap px-4 py-3 font-medium text-text-secondary"
                     >
                       {header.isPlaceholder
                         ? null
@@ -250,10 +376,13 @@ export function VisitsTable({
                 <tr
                   key={row.id}
                   className="cursor-pointer border-b border-border last:border-0 hover:bg-surface-secondary/50"
-                  onClick={() => openDetail(row.original.id)}
+                  onClick={() => setSelectedVisit(row.original)}
                 >
                   {row.getVisibleCells().map((cell) => (
-                    <td key={cell.id} className="px-4 py-3 text-text-primary">
+                    <td
+                      key={cell.id}
+                      className="whitespace-nowrap px-4 py-3 text-text-primary"
+                    >
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
@@ -296,46 +425,229 @@ export function VisitsTable({
         </div>
       </div>
 
-      <Dialog open={selectedVisitId !== null} onOpenChange={(open) => !open && closeDetail()}>
-        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-lg">
+      <Dialog
+        open={selectedVisit !== null}
+        onOpenChange={(open) => !open && setSelectedVisit(null)}
+      >
+        <DialogContent className="max-h-[85vh] overflow-y-auto sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{copy.detailTitle}</DialogTitle>
           </DialogHeader>
-          {detailLoading || !visitDetail ? (
-            <div className="h-32 animate-pulse rounded-card bg-surface-secondary" />
-          ) : (
-            <dl className="grid gap-3 text-sm">
-              <DetailRow label={copy.columns.date} value={formatDateTime(visitDetail.visitDate)} />
-              <DetailRow label={copy.columns.customer} value={visitDetail.customerName} />
-              <DetailRow label={copy.columns.phone} value={maskPhone(visitDetail.customerPhone)} />
-              <DetailRow
-                label={copy.columns.status}
-                value={statusLabels[visitDetail.purchaseStatus] ?? visitDetail.purchaseStatus}
-              />
-              <DetailRow
-                label={copy.columns.revenue}
-                value={
-                  visitDetail.transactionAmount
-                    ? formatCurrency(visitDetail.transactionAmount)
-                    : "—"
-                }
-              />
-              <DetailRow
-                label={copy.columns.products}
-                value={
-                  visitDetail.productsPurchased.length > 0
-                    ? visitDetail.productsPurchased.join(", ")
-                    : visitDetail.productsExplored.join(", ")
-                }
-              />
-              {visitDetail.staffNotes && (
-                <DetailRow label={copy.columns.notes} value={visitDetail.staffNotes} />
+          {selectedVisit && (
+            <div className="space-y-6 text-sm">
+              <DetailSection title={copy.sections.customer}>
+                <DetailRow
+                  label={copy.columns.date}
+                  value={formatDateTime(selectedVisit.visitDate)}
+                />
+                <DetailRow
+                  label={copy.columns.customer}
+                  value={selectedVisit.customerName}
+                />
+                <DetailRow
+                  label={copy.columns.phone}
+                  value={maskPhone(selectedVisit.customerPhone)}
+                />
+                <DetailRow
+                  label={copy.columns.customerType}
+                  value={labelFor(
+                    fieldLabels.customerType.options,
+                    selectedVisit.customerType,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.type}
+                  value={labelFor(
+                    fieldLabels.visitType.options,
+                    selectedVisit.visitType,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.inTime}
+                  value={
+                    selectedVisit.inTime
+                      ? formatDateTime(selectedVisit.inTime)
+                      : "—"
+                  }
+                />
+                <DetailRow
+                  label={copy.columns.outTime}
+                  value={
+                    selectedVisit.outTime
+                      ? formatDateTime(selectedVisit.outTime)
+                      : "—"
+                  }
+                />
+                <DetailRow
+                  label={copy.columns.duration}
+                  value={
+                    selectedVisit.durationMins != null
+                      ? formatDurationMins(selectedVisit.durationMins)
+                      : "—"
+                  }
+                />
+                <DetailRow
+                  label={copy.columns.sourceChannel}
+                  value={labelFor(
+                    fieldLabels.sourceChannel.options,
+                    selectedVisit.sourceChannel,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.area}
+                  value={selectedVisit.area ?? "—"}
+                />
+                <DetailRow
+                  label={copy.columns.gender}
+                  value={labelFor(fieldLabels.gender.options, selectedVisit.gender)}
+                />
+                <DetailRow
+                  label={copy.columns.ageGroup}
+                  value={labelFor(
+                    fieldLabels.ageGroup.options,
+                    selectedVisit.ageGroup,
+                  )}
+                />
+                <DetailRow label={copy.columns.staff} value={selectedVisit.staffName} />
+              </DetailSection>
+
+              <DetailSection title={copy.sections.visit}>
+                <DetailRow
+                  label={copy.columns.status}
+                  value={labelFor(
+                    fieldLabels.purchaseStatus.options,
+                    selectedVisit.purchaseStatus,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.productsExplored}
+                  value={formatProducts(
+                    selectedVisit.productsExplored,
+                    productLabels,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.productsPurchased}
+                  value={formatProducts(
+                    selectedVisit.productsPurchased,
+                    productLabels,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.revenue}
+                  value={
+                    selectedVisit.transactionAmount
+                      ? formatCurrency(selectedVisit.transactionAmount)
+                      : "—"
+                  }
+                />
+                <DetailRow
+                  label={copy.columns.intentTier}
+                  value={labelFor(
+                    fieldLabels.intentTier.options,
+                    selectedVisit.intentTier,
+                  )}
+                />
+              </DetailSection>
+
+              {selectedVisit.purchaseStatus === "NOT_PURCHASED" && (
+                <DetailSection title={copy.sections.noPurchase}>
+                  <DetailRow
+                    label={copy.columns.reasonNoPurchase}
+                    value={labelFor(
+                      fieldLabels.reasonNoPurchase.options,
+                      selectedVisit.reasonNoPurchase,
+                    )}
+                  />
+                  <DetailRow
+                    label={copy.columns.competitorMention}
+                    value={selectedVisit.competitorMention ?? "—"}
+                  />
+                </DetailSection>
               )}
-            </dl>
+
+              <DetailSection title={copy.sections.preferences}>
+                <DetailRow
+                  label={copy.columns.purchaseOccasion}
+                  value={labelFor(
+                    fieldLabels.purchaseOccasion.options,
+                    selectedVisit.purchaseOccasion,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.metalKtPref}
+                  value={labelFor(
+                    fieldLabels.metalKtPref.options,
+                    selectedVisit.metalKtPref,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.budgetStated}
+                  value={labelFor(
+                    fieldLabels.budgetStated.options,
+                    selectedVisit.budgetStated,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.schemeEnrolled}
+                  value={boolLabel(
+                    selectedVisit.schemeEnrolled,
+                    yesLabel,
+                    noLabel,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.ghsPolicy}
+                  value={boolLabel(selectedVisit.ghsPolicy, yesLabel, noLabel)}
+                />
+              </DetailSection>
+
+              <DetailSection title={copy.sections.followUp}>
+                <DetailRow
+                  label={copy.columns.followUp}
+                  value={boolLabel(
+                    selectedVisit.followUpNeeded,
+                    yesLabel,
+                    noLabel,
+                  )}
+                />
+                <DetailRow
+                  label={copy.columns.followUpDate}
+                  value={
+                    selectedVisit.followUpDate
+                      ? formatDate(selectedVisit.followUpDate)
+                      : "—"
+                  }
+                />
+                <DetailRow
+                  label={copy.columns.followUpStatus}
+                  value={selectedVisit.followUpStatus ?? "—"}
+                />
+                <DetailRow
+                  label={copy.columns.notes}
+                  value={selectedVisit.staffNotes ?? "—"}
+                />
+              </DetailSection>
+            </div>
           )}
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+function DetailSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <h3 className="mb-3 font-medium text-text-primary">{title}</h3>
+      <dl className="grid gap-2">{children}</dl>
+    </section>
   );
 }
 

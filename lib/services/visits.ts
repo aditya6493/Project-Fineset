@@ -8,6 +8,8 @@ import {
   hashPhone,
   prepareCustomerPii,
 } from "@/lib/services/pii";
+import { calculateDurationMins } from "@/lib/utils/formatters";
+import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
 
 interface CreateVisitParams extends CreateVisitInput {
   storeId: string;
@@ -23,12 +25,18 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
     area,
     gender,
     ageGroup,
-    schemeEnrolled,
     followUpNeeded,
     followUpDate,
+    purchaseStatus,
+    enrollmentOutcome,
     ...visitData
   } = params;
 
+  if (!purchaseStatus) {
+    throw new Error("Purchase status is required");
+  }
+
+  const schemeFlags = resolveSchemeEnrollmentFlags(enrollmentOutcome);
   const customerPii = prepareCustomerPii(customerName, customerPhone);
 
   return prisma.$transaction(async (tx) => {
@@ -44,7 +52,8 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         area,
         gender,
         ageGroup,
-        ghsEnrolled: params.ghsPolicy,
+        ghsEnrolled: schemeFlags.ghsPolicy,
+        activeScheme: schemeFlags.activeScheme,
         storeId,
       },
       update: {
@@ -53,24 +62,37 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         area,
         gender,
         ageGroup,
-        ghsEnrolled: params.ghsPolicy,
+        ...(schemeFlags.ghsPolicy ? { ghsEnrolled: true } : {}),
+        ...(schemeFlags.activeScheme ? { activeScheme: schemeFlags.activeScheme } : {}),
       },
     });
+
+    const inTime = visitData.inTime ?? new Date();
+    const outTime = visitData.outTime ?? null;
+    const durationMins =
+      outTime !== null ? calculateDurationMins(inTime, outTime) : null;
 
     const visit = await tx.visit.create({
       data: {
         ...visitData,
+        purchaseStatus,
         customerName: customerPii.name,
         customerPhone: customerPii.phone,
         customerPhoneHash: customerPii.phoneHash,
+        area,
+        gender,
+        ageGroup,
         storeId,
         staffId,
         customerId: customer.id,
-        inTime: visitData.inTime ?? new Date(),
+        inTime,
+        outTime,
+        durationMins,
         followUpNeeded,
         followUpDate: followUpNeeded ? followUpDate : null,
-        schemeEnrolled,
-        ghsPolicy: params.ghsPolicy,
+        enrollmentOutcome,
+        schemeEnrolled: schemeFlags.schemeEnrolled,
+        ghsPolicy: schemeFlags.ghsPolicy,
       },
     });
 
@@ -150,7 +172,11 @@ export async function listVisits(
       orderBy,
       skip: (params.page - 1) * params.pageSize,
       take: params.pageSize,
-      include: { staff: { select: { name: true } } },
+      include: {
+        staff: { select: { name: true } },
+        customer: { select: { area: true, gender: true, ageGroup: true } },
+        followUp: { select: { status: true } },
+      },
     }),
     prisma.visit.count({ where }),
   ]);
@@ -160,17 +186,34 @@ export async function listVisits(
     return {
       id: visit.id,
       visitDate: visit.visitDate.toISOString(),
+      inTime: visit.inTime?.toISOString() ?? null,
+      outTime: visit.outTime?.toISOString() ?? null,
+      durationMins: visit.durationMins,
       staffName: visit.staff.name,
       customerName: decrypted.customerName,
       customerPhone: decrypted.customerPhone,
       customerType: visit.customerType,
       visitType: visit.visitType,
+      sourceChannel: visit.sourceChannel,
+      area: visit.area ?? visit.customer?.area ?? null,
+      gender: visit.gender ?? visit.customer?.gender ?? null,
+      ageGroup: visit.ageGroup ?? visit.customer?.ageGroup ?? null,
       purchaseStatus: visit.purchaseStatus,
-      transactionAmount: visit.transactionAmount,
-      productsPurchased: visit.productsPurchased,
       productsExplored: visit.productsExplored,
+      productsPurchased: visit.productsPurchased,
+      transactionAmount: visit.transactionAmount,
+      intentTier: visit.intentTier,
+      reasonNoPurchase: visit.reasonNoPurchase,
+      competitorMention: visit.competitorMention,
+      purchaseOccasion: visit.purchaseOccasion,
+      metalKtPref: visit.metalKtPref,
+      budgetStated: visit.budgetStated,
+      schemeEnrolled: visit.schemeEnrolled,
+      ghsPolicy: visit.ghsPolicy,
       followUpNeeded: visit.followUpNeeded,
+      followUpDate: visit.followUpDate?.toISOString() ?? null,
       staffNotes: visit.staffNotes,
+      followUpStatus: visit.followUp?.status ?? null,
     };
   });
 

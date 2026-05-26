@@ -5,7 +5,9 @@ export const paginationQuerySchema = z.object({
   pageSize: z.coerce.number().int().min(1).max(100).default(20),
 });
 
-export const periodQuerySchema = z.enum(["today", "week", "month"]).default("week");
+export const periodQuerySchema = z
+  .enum(["today", "week", "month", "last3months", "last6months"])
+  .default("week");
 
 export const sortOrderSchema = z.enum(["asc", "desc"]).default("desc");
 

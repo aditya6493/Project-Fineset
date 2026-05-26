@@ -1,8 +1,11 @@
 import { z } from "zod";
-import { paginationQuerySchema } from "./common.schema";
+import { paginationQuerySchema, periodQuerySchema } from "./common.schema";
+
+const storeCategorySchema = z.enum(["JEWELRY", "HANDBAGS", "WATCHES", "OTHER"]);
 
 export const createStoreSchema = z.object({
   name: z.string().min(1).max(100),
+  category: storeCategorySchema.default("JEWELRY"),
   city: z.string().min(1).max(100),
   state: z.string().min(1).max(100),
   pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
@@ -11,6 +14,7 @@ export const createStoreSchema = z.object({
 export const updateStoreSchema = z.object({
   isActive: z.boolean().optional(),
   name: z.string().min(1).max(100).optional(),
+  category: storeCategorySchema.optional(),
   city: z.string().min(1).max(100).optional(),
   state: z.string().min(1).max(100).optional(),
   pincode: z.string().regex(/^\d{6}$/).optional(),
@@ -18,6 +22,7 @@ export const updateStoreSchema = z.object({
 
 export const getStoresQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
+  period: periodQuerySchema.optional(),
   activeOnly: z
     .enum(["true", "false"])
     .optional()

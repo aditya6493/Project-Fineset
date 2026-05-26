@@ -10,10 +10,11 @@ import { updateStaff } from "@/lib/services/staff";
 import { updateStaffSchema } from "@/lib/validations/staff.schema";
 
 interface RouteParams {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function PATCH(req: Request, { params }: RouteParams) {
+  const { id } = await params;
   const session = await getServerSession();
   if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
 
@@ -21,7 +22,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   const parsed = updateStaffSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
-  const result = await updateStaff(params.id, session.storeId, parsed.data);
+  const result = await updateStaff(id, session.storeId, parsed.data);
   if (result.count === 0) return notFound("Staff member not found");
 
   return NextResponse.json({ count: result.count });

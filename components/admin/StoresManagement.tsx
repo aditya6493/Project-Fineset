@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store.schema";
 import { useCreateStore, useStores, useUpdateStore } from "@/hooks/useStores";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
+import { getStoreCategoryLabel } from "@/lib/utils/store-category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,8 +24,16 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/EmptyState";
 import type { Content } from "@/content/en";
+import type { StoreCategory } from "@/types";
 
 type AdminContent = Content["admin"];
 type ErrorsContent = Content["errors"];
@@ -48,14 +58,26 @@ export function StoresManagement({
 
   const form = useForm<CreateStoreInput>({
     resolver: zodResolver(createStoreSchema),
-    defaultValues: { name: "", city: "", state: "", pincode: "" },
+    defaultValues: {
+      name: "",
+      category: "JEWELRY",
+      city: "",
+      state: "",
+      pincode: "",
+    },
   });
 
   async function onSubmit(values: CreateStoreInput) {
     setSubmitError(null);
     try {
       await createStoreMutation.mutateAsync(values);
-      form.reset();
+      form.reset({
+        name: "",
+        category: "JEWELRY",
+        city: "",
+        state: "",
+        pincode: "",
+      });
       setModalOpen(false);
     } catch {
       setSubmitError(errors.generic);
@@ -79,11 +101,14 @@ export function StoresManagement({
         <EmptyState message={emptyMessage} />
       ) : (
         <div className="overflow-x-auto rounded-card border border-border bg-surface-card shadow-card">
-          <table className="w-full min-w-[720px] text-left text-sm">
+          <table className="w-full min-w-[880px] text-left text-sm">
             <thead className="border-b border-border bg-surface-secondary">
               <tr>
                 <th className="px-4 py-3 font-medium text-text-secondary">
                   {admin.stores.columns.name}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
+                  {admin.stores.columns.category}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
                   {admin.stores.columns.city}
@@ -95,7 +120,7 @@ export function StoresManagement({
                   {admin.stores.columns.staffCount}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.revenueMtd}
+                  {admin.stores.columns.revenue}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
                   {admin.stores.columns.status}
@@ -105,11 +130,21 @@ export function StoresManagement({
             <tbody>
               {data.data.map((store) => (
                 <tr key={store.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">{store.name}</td>
+                  <td className="px-4 py-3">
+                    <Link
+                      href={`/admin/dashboard/stores/${store.id}`}
+                      className="font-medium text-text-primary hover:text-brand-gold"
+                    >
+                      {store.name}
+                    </Link>
+                  </td>
+                  <td className="px-4 py-3">
+                    {getStoreCategoryLabel(store.category as StoreCategory)}
+                  </td>
                   <td className="px-4 py-3">{store.city}</td>
                   <td className="px-4 py-3">{store.pincode}</td>
                   <td className="px-4 py-3">{store.staffCount}</td>
-                  <td className="px-4 py-3">{formatCurrency(store.revenueMtd)}</td>
+                  <td className="px-4 py-3">{formatCurrency(store.revenue)}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="text-text-secondary">
@@ -154,6 +189,30 @@ export function StoresManagement({
                     <FormControl>
                       <Input {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="category"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{admin.stores.modal.categoryLabel}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {Object.entries(admin.categories).map(([key, label]) => (
+                          <SelectItem key={key} value={key}>
+                            {label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

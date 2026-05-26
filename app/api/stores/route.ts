@@ -23,6 +23,7 @@ export async function GET(req: Request) {
     pageSize: query.data.pageSize,
     search: query.data.search,
     activeOnly: query.data.activeOnly,
+    period: query.data.period,
   });
 
   return NextResponse.json({

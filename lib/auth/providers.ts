@@ -22,12 +22,15 @@ export const authProviders: NextAuthConfig["providers"] = [
     async authorize(credentials) {
       if (!(await enforceLoginRateLimit())) return null;
 
-      const name = credentials?.name?.trim();
-      const employeeId = credentials?.employeeId?.trim();
+      const rawName = credentials?.name;
+      const rawEmployeeId = credentials?.employeeId;
 
-      if (typeof name !== "string" || typeof employeeId !== "string") {
+      if (typeof rawName !== "string" || typeof rawEmployeeId !== "string") {
         return null;
       }
+
+      const name = rawName.trim();
+      const employeeId = rawEmployeeId.trim();
 
       const staff = await prisma.staff.findFirst({
         where: {
@@ -46,6 +49,7 @@ export const authProviders: NextAuthConfig["providers"] = [
         staffId: staff.id,
         storeId: staff.storeId,
         name: staff.name,
+        employeeId: staff.employeeId,
       };
     },
   }),
@@ -66,10 +70,15 @@ export const authProviders: NextAuthConfig["providers"] = [
         return null;
       }
 
+      const normalizedName = storeName.trim();
+      const normalizedPincode = pincode.trim();
+
+      if (!normalizedName || !normalizedPincode) return null;
+
       const store = await prisma.store.findFirst({
         where: {
-          name: { equals: storeName, mode: "insensitive" },
-          pincode,
+          name: { equals: normalizedName, mode: "insensitive" },
+          pincode: normalizedPincode,
           isActive: true,
         },
       });

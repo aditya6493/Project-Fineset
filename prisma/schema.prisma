@@ -7,19 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum StoreCategory {
+  JEWELRY
+  HANDBAGS
+  WATCHES
+  OTHER
+}
+
 model Store {
-  id        String   @id @default(cuid())
+  id        String        @id @default(cuid())
   name      String
+  category  StoreCategory @default(JEWELRY)
   pincode   String
   city      String
   state     String
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  isActive  Boolean       @default(true)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   staff     Staff[]
   visits    Visit[]
   customers Customer[]
+  fieldSales FieldSale[]
 }
 
 model Staff {
@@ -31,8 +40,10 @@ model Staff {
   storeId    String
   createdAt  DateTime  @default(now())
 
-  store  Store   @relation(fields: [storeId], references: [id])
-  visits Visit[]
+  store      Store          @relation(fields: [storeId], references: [id])
+  visits     Visit[]
+  callLogs   StaffCallLog[]
+  fieldSales FieldSale[]
 }
 
 enum StaffRole {
@@ -56,8 +67,9 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  store  Store   @relation(fields: [storeId], references: [id])
-  visits Visit[]
+  store      Store       @relation(fields: [storeId], references: [id])
+  visits     Visit[]
+  fieldSales FieldSale[]
 
   @@unique([phoneHash, storeId])
 }
@@ -76,6 +88,9 @@ model Visit {
   customerPhoneHash String?
   customerType      CustomerType
   visitType         VisitType
+  area              String?
+  gender            String?
+  ageGroup          String?
   purchaseStatus    PurchaseStatus
   productsPurchased String[]
   productsExplored  String[]
@@ -88,6 +103,11 @@ model Visit {
   budgetStated      BudgetRange?
   schemeEnrolled    Boolean        @default(false)
   ghsPolicy         Boolean        @default(false)
+  schemesPitched    SchemeProduct[] @default([])
+  enrollmentOutcome SchemeEnrollmentOutcome?
+  monthlyCommitment Float?
+  reasonNoEnrollment FieldDeclineReason?
+  schemeCompetitorMention String?
   followUpNeeded    Boolean        @default(false)
   followUpDate      DateTime?
   staffNotes        String?
@@ -99,6 +119,7 @@ model Visit {
   staff    Staff     @relation(fields: [staffId], references: [id])
   customer Customer? @relation(fields: [customerId], references: [id])
   followUp FollowUp?
+  callLogs StaffCallLog[]
 }
 
 enum CustomerType {
@@ -166,4 +187,96 @@ enum FollowUpStatus {
   CLOSED
   CONVERTED
   NO_RESPONSE
+}
+
+enum CallAnswerStatus {
+  ANSWERED
+  NOT_ANSWERED
+}
+
+model StaffCallLog {
+  id        String           @id @default(cuid())
+  visitId   String
+  staffId   String
+  answered  CallAnswerStatus
+  feedback  String?
+  createdAt DateTime         @default(now())
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([visitId, staffId, createdAt(sort: Desc)])
+  @@index([staffId, createdAt(sort: Desc)])
+}
+
+enum FieldActivityType {
+  DOOR_TO_DOOR
+  HOUSING_SOCIETY
+  CORPORATE
+  EVENT_EXHIBITION
+  MARKET_STALL
+  REFERRAL_MEET
+  OTHER
+}
+
+enum SchemeProduct {
+  GHS
+  GPP
+}
+
+enum SchemeEnrollmentOutcome {
+  ENROLLED_GHS
+  ENROLLED_GPP
+  ENROLLED_BOTH
+  INTERESTED
+  DECLINED
+  CALLBACK
+}
+
+enum FieldDeclineReason {
+  BUDGET
+  ALREADY_ENROLLED
+  NOT_INTERESTED
+  NEEDS_TIME
+  TRUST_CONCERNS
+  COMPETITOR_SCHEME
+}
+
+model FieldSale {
+  id                  String                  @id @default(cuid())
+  activityDate        DateTime                @default(now())
+  startTime           DateTime?
+  endTime             DateTime?
+  durationMins        Int?
+  storeId             String
+  staffId             String
+  customerId          String?
+  customerName        String
+  customerPhone       String
+  customerPhoneHash   String?
+  customerType        CustomerType
+  area                String?
+  gender              String?
+  ageGroup            String?
+  profession          String?
+  activityType        FieldActivityType
+  locationLabel       String?
+  schemesPitched      SchemeProduct[]
+  enrollmentOutcome   SchemeEnrollmentOutcome
+  monthlyCommitment   Float?
+  intentTier          IntentTier?
+  reasonNoEnrollment  FieldDeclineReason?
+  competitorMention   String?
+  followUpNeeded      Boolean                 @default(false)
+  followUpDate        DateTime?
+  staffNotes          String?
+  createdAt           DateTime                @default(now())
+  updatedAt           DateTime                @updatedAt
+
+  store    Store     @relation(fields: [storeId], references: [id])
+  staff    Staff     @relation(fields: [staffId], references: [id])
+  customer Customer? @relation(fields: [customerId], references: [id])
+
+  @@index([staffId, activityDate(sort: Desc)])
+  @@index([storeId, activityDate(sort: Desc)])
 }

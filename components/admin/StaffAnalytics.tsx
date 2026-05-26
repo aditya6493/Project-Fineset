@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getStaffPerformance } from "@/lib/api/staff";
 import { getStores } from "@/lib/api/stores";
+import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import {
   Select,
@@ -23,6 +24,7 @@ interface StaffAnalyticsProps {
   common: CommonContent;
   emptyMessage: string;
   allStoresLabel: string;
+  initialStoreId?: string;
 }
 
 export function StaffAnalytics({
@@ -30,18 +32,21 @@ export function StaffAnalytics({
   common,
   emptyMessage,
   allStoresLabel,
+  initialStoreId,
 }: StaffAnalyticsProps) {
-  const [storeFilter, setStoreFilter] = useState<string>("all");
+  const [storeFilter, setStoreFilter] = useState<string>(initialStoreId ?? "all");
 
   const { data: stores } = useQuery({
     queryKey: ["stores", "filter"],
     queryFn: () => getStores({ page: 1, pageSize: 100 }),
+    ...LIVE_QUERY_OPTIONS,
   });
 
   const { data, isLoading } = useQuery({
     queryKey: ["staff", "performance", storeFilter],
     queryFn: () =>
       getStaffPerformance(storeFilter === "all" ? undefined : storeFilter),
+    ...LIVE_QUERY_OPTIONS,
   });
 
   const leaderboard = useMemo(() => {

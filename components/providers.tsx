@@ -3,6 +3,7 @@
 import { SessionProvider } from "next-auth/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState } from "react";
+import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 
 interface ProvidersProps {
   children: React.ReactNode;
@@ -14,8 +15,7 @@ export function Providers({ children }: ProvidersProps) {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 60 * 1000,
-            refetchOnWindowFocus: false,
+            ...LIVE_QUERY_OPTIONS,
           },
         },
       }),

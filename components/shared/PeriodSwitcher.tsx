@@ -3,7 +3,12 @@
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-export type PeriodValue = "today" | "week" | "month";
+export type PeriodValue =
+  | "today"
+  | "week"
+  | "month"
+  | "last3months"
+  | "last6months";
 
 interface PeriodOption {
   value: PeriodValue;
