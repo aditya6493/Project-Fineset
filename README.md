@@ -30,10 +30,17 @@ Required for local development:
 - `AUTH_SECRET` or `NEXTAUTH_SECRET`
 - `ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
 
-Required for production:
+Required for production (Vercel → Settings → Environment Variables):
 
-- All of the above, plus `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (rate limiting)
-- `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` for admin login
+- `DATABASE_URL`
+- `AUTH_SECRET` or `NEXTAUTH_SECRET` — generate with `openssl rand -base64 32`
+- `ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
+
+Recommended for production:
+
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` — rate limiting ([Upstash Console](https://console.upstash.com/))
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` — admin portal login
+- `AUTH_URL` — your deployed URL (e.g. `https://your-app.vercel.app`)
 
 Generate admin password hash (store as base64 in `.env.local`):
 

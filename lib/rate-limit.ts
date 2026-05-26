@@ -14,17 +14,14 @@ function createRedisClient(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
-    if (
-      isProduction() &&
-      !isNextBuild() &&
-      process.env.SKIP_ENV_VALIDATION !== "true"
-    ) {
-      throw new Error(
-        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production",
+    if (isProduction() && !isNextBuild()) {
+      console.warn(
+        "[rate-limit] Upstash Redis not configured — rate limiting disabled in production",
       );
-    }
-    if (!isProduction()) {
-      console.warn("[rate-limit] Upstash Redis not configured — rate limiting disabled in development");
+    } else if (!isProduction()) {
+      console.warn(
+        "[rate-limit] Upstash Redis not configured — rate limiting disabled in development",
+      );
     }
     return null;
   }

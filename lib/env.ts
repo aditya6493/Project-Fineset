@@ -27,6 +27,11 @@ export type Env = z.infer<typeof envSchema>;
 
 let validated = false;
 
+function hasEnv(name: string): boolean {
+  const value = process.env[name];
+  return typeof value === "string" && value.trim() !== "";
+}
+
 export function validateEnv(): void {
   if (validated) return;
   if (process.env.SKIP_ENV_VALIDATION === "true") {
@@ -45,19 +50,29 @@ export function validateEnv(): void {
   if (isProduction) {
     const missing: string[] = [];
 
-    if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
-    if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
+    if (!hasEnv("DATABASE_URL")) missing.push("DATABASE_URL");
+    if (!hasEnv("AUTH_SECRET") && !hasEnv("NEXTAUTH_SECRET")) {
       missing.push("AUTH_SECRET or NEXTAUTH_SECRET");
     }
-    if (!process.env.ENCRYPTION_KEY) missing.push("ENCRYPTION_KEY");
-    if (!process.env.UPSTASH_REDIS_REST_URL) missing.push("UPSTASH_REDIS_REST_URL");
-    if (!process.env.UPSTASH_REDIS_REST_TOKEN) {
-      missing.push("UPSTASH_REDIS_REST_TOKEN");
-    }
+    if (!hasEnv("ENCRYPTION_KEY")) missing.push("ENCRYPTION_KEY");
 
     if (missing.length > 0) {
-      throw new Error(
-        `Missing required production environment variables: ${missing.join(", ")}`,
+      const message = `Missing required production environment variables: ${missing.join(", ")}. Add them in your Vercel project settings (Settings → Environment Variables), then redeploy.`;
+      console.error(`[env] ${message}`);
+      throw new Error(message);
+    }
+
+    const recommended: string[] = [];
+    if (!hasEnv("UPSTASH_REDIS_REST_URL")) recommended.push("UPSTASH_REDIS_REST_URL");
+    if (!hasEnv("UPSTASH_REDIS_REST_TOKEN")) {
+      recommended.push("UPSTASH_REDIS_REST_TOKEN");
+    }
+    if (!hasEnv("ADMIN_EMAIL")) recommended.push("ADMIN_EMAIL");
+    if (!hasEnv("ADMIN_PASSWORD_HASH")) recommended.push("ADMIN_PASSWORD_HASH");
+
+    if (recommended.length > 0) {
+      console.warn(
+        `[env] Optional production variables not set (app will run with reduced functionality): ${recommended.join(", ")}`,
       );
     }
   }
