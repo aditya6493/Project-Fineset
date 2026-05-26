@@ -23,23 +23,23 @@ test.describe("Public routes", () => {
 });
 
 test.describe("Protected dashboard routes", () => {
-  test("store visits redirects unauthenticated users to login", async ({ page }) => {
+  test("store visits redirects unauthenticated users to sign-in", async ({ page }) => {
     await page.goto("/store/dashboard/visits");
-    await expect(page).toHaveURL(/\/store\/login/);
+    await expect(page).toHaveURL(/\/?callbackUrl=.*store%2Fdashboard%2Fvisits/);
   });
 
-  test("admin overview redirects unauthenticated users to login", async ({ page }) => {
+  test("admin overview redirects unauthenticated users to sign-in", async ({ page }) => {
     await page.goto("/admin/dashboard");
-    await expect(page).toHaveURL(/\/admin\/login/);
+    await expect(page).toHaveURL(/\/?callbackUrl=.*admin%2Fdashboard/);
   });
 
-  test("staff calls redirects unauthenticated users to login", async ({ page }) => {
+  test("staff calls redirects unauthenticated users to sign-in", async ({ page }) => {
     await page.goto("/staff/dashboard/calls");
-    await expect(page).toHaveURL(/\/staff\/login/);
+    await expect(page).toHaveURL(/\/?callbackUrl=.*staff%2Fdashboard%2Fcalls/);
   });
 
-  test("staff visit form redirects unauthenticated users to login", async ({ page }) => {
-    await page.goto("/staff/dashboard/visit");
-    await expect(page).toHaveURL(/\/staff\/login/);
+  test("staff visit form redirects unauthenticated users to sign-in", async ({ page }) => {
+    await page.goto("/staff/dashboard/visits");
+    await expect(page).toHaveURL(/\/?callbackUrl=.*staff%2Fdashboard%2Fvisits/);
   });
 });
