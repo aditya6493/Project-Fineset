@@ -16,11 +16,11 @@ import {
   useAdminStoreDetailAnalytics,
 } from "@/hooks/useAnalytics";
 import { KPICard } from "@/components/analytics/KPICard";
-import { BreakdownBarChart } from "@/components/charts/BreakdownBarChart";
-import { SalesLineChart } from "@/components/charts/SalesLineChart";
+import { BreakdownBarChart, SalesLineChart } from "@/components/charts/lazy";
 import { PeriodSwitcher, type PeriodValue } from "@/components/shared/PeriodSwitcher";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getStoreCategoryLabel } from "@/lib/utils/store-category";
 import type { Content } from "@/content/en";
@@ -34,17 +34,23 @@ interface AdminStoreDetailProps {
   storeId: string;
   admin: AdminContent;
   storeCopy: StoreContent;
+  initialDetail?: import("@/types").StoreDetailAnalytics;
+  initialParams?: import("@/types").GetAnalyticsParams;
 }
 
 export function AdminStoreDetail({
   storeId,
   admin,
   storeCopy,
+  initialDetail,
+  initialParams,
 }: AdminStoreDetailProps) {
   const [period, setPeriod] = useState<PeriodValue>("week");
-  const { data, isLoading, isError } = useAdminStoreDetailAnalytics(storeId, {
-    period,
-  });
+  const { data, isLoading, isError } = useAdminStoreDetailAnalytics(
+    storeId,
+    { period },
+    { initialData: initialDetail, initialParams },
+  );
 
   const periodOptions = [
     { value: "today" as const, label: admin.period.today },
@@ -72,9 +78,9 @@ export function AdminStoreDetail({
         <div className="space-y-3">
           <BackLink label={admin.storeDetail.backToPortfolio} />
           {isLoading ? (
-            <div className="space-y-2">
-              <div className="h-8 w-64 animate-pulse rounded-input bg-surface-secondary" />
-              <div className="h-4 w-48 animate-pulse rounded-input bg-surface-secondary" />
+            <div aria-live="polite" aria-busy="true" className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-48" />
             </div>
           ) : (
             <>

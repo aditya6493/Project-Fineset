@@ -1,12 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
 import { getFieldSalesList } from "@/lib/api/field-sales";
+import { fieldSalesParamsMatch } from "@/lib/query/initial-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
-import type { GetFieldSalesListParams } from "@/types";
+import type { FieldSaleListResponse, GetFieldSalesListParams } from "@/types";
 
-export function useFieldSalesList(params: GetFieldSalesListParams = {}) {
+interface UseFieldSalesListOptions {
+  initialData?: FieldSaleListResponse;
+  initialParams?: GetFieldSalesListParams;
+}
+
+export function useFieldSalesList(
+  params: GetFieldSalesListParams = {},
+  options?: UseFieldSalesListOptions,
+) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    fieldSalesParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["field-sales", "list", params],
     queryFn: () => getFieldSalesList(params),
+    initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
   });
 }

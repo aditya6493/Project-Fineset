@@ -22,11 +22,20 @@ type StoreContent = Content["store"];
 
 interface StoreOverviewProps {
   store: StoreContent;
+  initialAnalytics?: import("@/types").AnalyticsData;
+  initialAnalyticsParams?: import("@/types").GetAnalyticsParams;
 }
 
-export function StoreOverview({ store }: StoreOverviewProps) {
+export function StoreOverview({
+  store,
+  initialAnalytics,
+  initialAnalyticsParams,
+}: StoreOverviewProps) {
   const [period, setPeriod] = useState<PeriodValue>("week");
-  const { data, isLoading } = useStoreAnalytics({ period });
+  const { data, isLoading } = useStoreAnalytics(
+    { period },
+    { initialData: initialAnalytics, initialParams: initialAnalyticsParams },
+  );
 
   const kpis = data && isStoreKPIs(data.kpis) ? data.kpis : null;
   const deltas = data?.kpiDeltas as StoreKPIDeltas | undefined;

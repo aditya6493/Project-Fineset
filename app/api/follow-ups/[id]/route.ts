@@ -10,7 +10,7 @@ import {
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { updateFollowUpStatus } from "@/lib/services/follow-ups";
 
-const updateFollowUpSchema = z.object({
+const patchFollowUpSchema = z.object({
   status: z.enum(["OPEN", "CLOSED", "CONVERTED", "NO_RESPONSE"]),
 });
 
@@ -24,7 +24,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
   if (!requireRole(session, ["STORE_MANAGER", "STAFF"])) return unauthorized();
 
   const body: unknown = await req.json();
-  const parsed = updateFollowUpSchema.safeParse(body);
+  const parsed = patchFollowUpSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   const staff =

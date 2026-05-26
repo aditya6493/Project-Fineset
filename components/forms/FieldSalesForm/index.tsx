@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createFieldSaleSchema } from "@/lib/validations/field-sale.schema";
 import { useCreateFieldSale } from "@/hooks/useFieldSales";
+import { toast } from "@/hooks/useToast";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { ProgressIndicator } from "@/components/forms/VisitForm/FormSection";
@@ -81,9 +82,11 @@ export function FieldSalesForm({ copy, common, errors }: FieldSalesFormProps) {
 
     try {
       await createFieldSaleMutation.mutateAsync(values);
+      toast({ title: copy.actions.successTitle, description: copy.actions.successMessage });
       setIsSuccess(true);
     } catch {
       setSubmitError(errors.generic);
+      toast({ title: errors.generic });
     }
   }
 

@@ -3,24 +3,31 @@
 @tailwind utilities;
 
 :root {
-  --surface-primary: #faf7f2;
-  --surface-secondary: #f5efe6;
+  --brand-gold: #b8972e;
+  --brand-gold-light: #d4af37;
+  --brand-gold-dark: #8b6914;
+  --brand-charcoal: #1c1c1e;
+  --brand-ivory: #faf7f2;
+  --brand-cream: #f5efe6;
+
+  --surface-primary: var(--brand-ivory);
+  --surface-secondary: var(--brand-cream);
   --surface-card: #ffffff;
-  --text-primary: #1c1c1e;
+  --text-primary: var(--brand-charcoal);
   --text-secondary: #4b4b4b;
   --text-muted: #9ca3af;
   --border: #e5e0d8;
   --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
-}
 
-[data-theme="dark"] {
-  --surface-primary: #1c1c1e;
-  --surface-secondary: #2c2c2e;
-  --surface-card: #3a3a3c;
-  --text-primary: #faf7f2;
-  --text-secondary: #d1d1d1;
-  --text-muted: #6b6b6b;
-  --border: #3a3a3c;
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-error: #ef4444;
+  --status-info: #3b82f6;
+
+  --chart-primary: var(--brand-gold);
+  --chart-secondary: var(--brand-gold-light);
+  --chart-axis: var(--text-muted);
+  --chart-grid: var(--border);
 }
 
 @layer base {
@@ -43,5 +50,16 @@
 
   .progress-bar-fill {
     width: var(--progress, 0%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

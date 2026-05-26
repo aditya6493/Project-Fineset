@@ -1,5 +1,6 @@
 import { Ratelimit } from "@upstash/ratelimit";
 import { Redis } from "@upstash/redis";
+import { isProduction } from "@/lib/env";
 
 type RateLimitResult =
   | { success: true }
@@ -8,7 +9,17 @@ type RateLimitResult =
 function createRedisClient(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
+  if (!url || !token) {
+    if (isProduction() && process.env.SKIP_ENV_VALIDATION !== "true") {
+      throw new Error(
+        "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production",
+      );
+    }
+    if (!isProduction()) {
+      console.warn("[rate-limit] Upstash Redis not configured — rate limiting disabled in development");
+    }
+    return null;
+  }
   return new Redis({ url, token });
 }
 
@@ -29,19 +40,40 @@ function createLimiter(
 }
 
 const loginLimiter = createLimiter("fineset:login", 10, "15 m");
+const writeLimiter = createLimiter("fineset:write", 60, "15 m");
+const sseLimiter = createLimiter("fineset:sse", 30, "15 m");
 
-export async function checkLoginRateLimit(
+async function checkLimit(
+  limiter: Ratelimit | null,
   identifier: string,
 ): Promise<RateLimitResult> {
-  if (!loginLimiter) return { success: true };
+  if (!limiter) return { success: true };
 
-  const result = await loginLimiter.limit(identifier);
+  const result = await limiter.limit(identifier);
   if (result.success) return { success: true };
 
   return {
     success: false,
     retryAfterSeconds: Math.ceil((result.reset - Date.now()) / 1000),
   };
+}
+
+export async function checkLoginRateLimit(
+  identifier: string,
+): Promise<RateLimitResult> {
+  return checkLimit(loginLimiter, identifier);
+}
+
+export async function checkWriteRateLimit(
+  identifier: string,
+): Promise<RateLimitResult> {
+  return checkLimit(writeLimiter, identifier);
+}
+
+export async function checkSseRateLimit(
+  identifier: string,
+): Promise<RateLimitResult> {
+  return checkLimit(sseLimiter, identifier);
 }
 
 export async function getRequestIdentifier(): Promise<string> {

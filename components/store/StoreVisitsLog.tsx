@@ -3,10 +3,12 @@
 import { useState } from "react";
 import { useVisits } from "@/hooks/useVisits";
 import { VisitsTable } from "@/components/tables/VisitsTable";
-import { Button } from "@/components/ui/button";
+import { QueryLoadState } from "@/components/shared/QueryLoadState";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Content } from "@/content/en";
+import type { GetVisitsParams, PaginatedResponse, VisitListItem } from "@/types";
 
 type StoreContent = Content["store"];
 type VisitFormFields = Content["visitForm"]["fields"];
@@ -17,6 +19,8 @@ interface StoreVisitsLogProps {
   visitFields: VisitFormFields;
   common: CommonContent;
   emptyMessage: string;
+  initialVisits?: PaginatedResponse<VisitListItem>;
+  initialVisitsParams?: GetVisitsParams;
 }
 
 type VisitFilter = "all" | "followUpOnly";
@@ -26,6 +30,8 @@ export function StoreVisitsLog({
   visitFields,
   common,
   emptyMessage,
+  initialVisits,
+  initialVisitsParams,
 }: StoreVisitsLogProps) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -33,13 +39,18 @@ export function StoreVisitsLog({
   const [endDate, setEndDate] = useState("");
   const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
 
-  const { data, isLoading } = useVisits({
+  const queryParams = {
     page: String(page),
     pageSize: "20",
     search: search || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
     followUpOnly: visitFilter === "followUpOnly" ? "true" : undefined,
+  };
+
+  const { data, isLoading, isError, refetch } = useVisits(queryParams, {
+    initialData: initialVisits,
+    initialParams: initialVisitsParams,
   });
 
   const filters: Array<{ key: VisitFilter; label: string }> = [
@@ -49,22 +60,21 @@ export function StoreVisitsLog({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {filters.map((item) => (
-          <Button
-            key={item.key}
-            type="button"
-            size="sm"
-            variant={visitFilter === item.key ? "default" : "outline"}
-            onClick={() => {
-              setVisitFilter(item.key);
-              setPage(1);
-            }}
-          >
-            {item.label}
-          </Button>
-        ))}
-      </div>
+      <Tabs
+        value={visitFilter}
+        onValueChange={(value) => {
+          setVisitFilter(value as VisitFilter);
+          setPage(1);
+        }}
+      >
+        <TabsList aria-label={store.visits.title}>
+          {filters.map((item) => (
+            <TabsTrigger key={item.key} value={item.key}>
+              {item.label}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="space-y-1">
@@ -93,31 +103,39 @@ export function StoreVisitsLog({
         </div>
       </div>
 
-      <VisitsTable
-        copy={{
-          ...store.visits,
-          showing: store.table.showing,
-          page: store.table.page,
-        }}
-        emptyMessage={emptyMessage}
-        searchPlaceholder={common.search}
-        previousLabel={common.previous}
-        nextLabel={common.next}
-        yesLabel={store.table.yes}
-        noLabel="No"
-        data={data?.data ?? []}
-        total={data?.total ?? 0}
-        page={page}
-        pageSize={20}
-        search={search}
-        onSearchChange={(value) => {
-          setSearch(value);
-          setPage(1);
-        }}
-        onPageChange={setPage}
-        fieldLabels={visitFields}
+      <QueryLoadState
         isLoading={isLoading}
-      />
+        isError={isError}
+        errorLabel={common.noResults}
+        retryLabel={common.confirm}
+        onRetry={() => void refetch()}
+      >
+        <VisitsTable
+          copy={{
+            ...store.visits,
+            showing: store.table.showing,
+            page: store.table.page,
+          }}
+          emptyMessage={emptyMessage}
+          searchPlaceholder={common.search}
+          previousLabel={common.previous}
+          nextLabel={common.next}
+          yesLabel={store.table.yes}
+          noLabel="No"
+          data={data?.data ?? []}
+          total={data?.total ?? 0}
+          page={page}
+          pageSize={20}
+          search={search}
+          onSearchChange={(value) => {
+            setSearch(value);
+            setPage(1);
+          }}
+          onPageChange={setPage}
+          fieldLabels={visitFields}
+          isLoading={false}
+        />
+      </QueryLoadState>
     </div>
   );
 }

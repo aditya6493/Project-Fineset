@@ -14,7 +14,10 @@ export async function listFollowUps(
   params: ListFollowUpsParams,
 ): Promise<FollowUpListItem[]> {
   const where: Prisma.FollowUpWhereInput = {
-    visit: { storeId: params.storeId },
+    OR: [
+      { visit: { storeId: params.storeId } },
+      { fieldSale: { storeId: params.storeId } },
+    ],
   };
 
   if (params.staffId) {
@@ -40,6 +43,12 @@ export async function listFollowUps(
           customerPhone: true,
         },
       },
+      fieldSale: {
+        select: {
+          customerName: true,
+          customerPhone: true,
+        },
+      },
     },
   });
 
@@ -51,10 +60,14 @@ export async function listFollowUps(
   const staffMap = new Map(staffMembers.map((s) => [s.id, s.name]));
 
   return followUps.map((f) => {
-    const decrypted = decryptVisitPii({
-      customerName: f.visit.customerName,
-      customerPhone: f.visit.customerPhone,
-    });
+    const source = f.visit ?? f.fieldSale;
+    const decrypted = source
+      ? decryptVisitPii({
+          customerName: source.customerName,
+          customerPhone: source.customerPhone,
+        })
+      : { customerName: "Unknown", customerPhone: "" };
+
     return {
       id: f.id,
       visitId: f.visitId,
@@ -78,7 +91,10 @@ export async function updateFollowUpStatus(
   const followUp = await prisma.followUp.findFirst({
     where: {
       id: followUpId,
-      visit: { storeId },
+      OR: [
+        { visit: { storeId } },
+        { fieldSale: { storeId } },
+      ],
       ...(staffId ? { assignedStaffId: staffId } : {}),
     },
   });

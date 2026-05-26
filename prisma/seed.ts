@@ -1,7 +1,40 @@
 import { PrismaClient } from "@prisma/client";
+import { hashCredential } from "../lib/auth/credentials";
 import { prepareCustomerPii } from "../lib/services/pii";
 
 const prisma = new PrismaClient();
+
+async function seedStore(data: {
+  name: string;
+  category: "JEWELRY" | "HANDBAGS" | "WATCHES" | "OTHER";
+  city: string;
+  state: string;
+  pincode: string;
+}) {
+  const { pincode, ...rest } = data;
+  return prisma.store.create({
+    data: {
+      ...rest,
+      pincodeHash: await hashCredential(pincode),
+    },
+  });
+}
+
+async function seedStaff(data: {
+  name: string;
+  employeeId: string;
+  storeId: string;
+}) {
+  return prisma.staff.create({
+    data: {
+      name: data.name,
+      employeeId: data.employeeId,
+      passwordHash: await hashCredential(data.employeeId),
+      role: "STAFF",
+      storeId: data.storeId,
+    },
+  });
+}
 
 function daysAgo(days: number): Date {
   const date = new Date();
@@ -34,51 +67,38 @@ async function main(): Promise<void> {
   await prisma.staff.deleteMany();
   await prisma.store.deleteMany();
 
-  const storeAlpha = await prisma.store.create({
-    data: {
-      name: "Store Alpha",
-      category: "JEWELRY",
-      city: "Hyderabad",
-      state: "Telangana",
-      pincode: "500001",
-    },
+  const storeAlpha = await seedStore({
+    name: "Store Alpha",
+    category: "JEWELRY",
+    city: "Hyderabad",
+    state: "Telangana",
+    pincode: "500001",
   });
 
-  const storeBeta = await prisma.store.create({
-    data: {
-      name: "Store Beta",
-      category: "HANDBAGS",
-      city: "Bengaluru",
-      state: "Karnataka",
-      pincode: "560001",
-    },
+  const storeBeta = await seedStore({
+    name: "Store Beta",
+    category: "HANDBAGS",
+    city: "Bengaluru",
+    state: "Karnataka",
+    pincode: "560001",
   });
 
-  const staffA = await prisma.staff.create({
-    data: {
-      name: "Staff Member A",
-      employeeId: "EMP001",
-      role: "STAFF",
-      storeId: storeAlpha.id,
-    },
+  const staffA = await seedStaff({
+    name: "Staff Member A",
+    employeeId: "EMP001",
+    storeId: storeAlpha.id,
   });
 
-  const staffB = await prisma.staff.create({
-    data: {
-      name: "Staff Member B",
-      employeeId: "EMP002",
-      role: "STAFF",
-      storeId: storeAlpha.id,
-    },
+  const staffB = await seedStaff({
+    name: "Staff Member B",
+    employeeId: "EMP002",
+    storeId: storeAlpha.id,
   });
 
-  const staffC = await prisma.staff.create({
-    data: {
-      name: "Staff Member C",
-      employeeId: "EMP003",
-      role: "STAFF",
-      storeId: storeBeta.id,
-    },
+  const staffC = await seedStaff({
+    name: "Staff Member C",
+    employeeId: "EMP003",
+    storeId: storeBeta.id,
   });
 
   // ── Customers (Store Alpha) ──────────────────────────────────────────────

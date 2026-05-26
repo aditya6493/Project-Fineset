@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import {
   badRequest,
   getServerSession,
@@ -8,14 +7,7 @@ import {
 } from "@/lib/auth/session";
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { listFollowUps } from "@/lib/services/follow-ups";
-
-const followUpQuerySchema = z.object({
-  status: z.enum(["OPEN", "CLOSED", "CONVERTED", "NO_RESPONSE"]).optional(),
-  overdue: z
-    .enum(["true", "false"])
-    .optional()
-    .transform((v) => v === "true"),
-});
+import { followUpQuerySchema } from "@/lib/validations/follow-ups.schema";
 
 export async function GET(req: Request) {
   const session = await getServerSession();

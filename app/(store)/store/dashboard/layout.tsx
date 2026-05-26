@@ -1,5 +1,12 @@
+import type { Metadata } from "next";
 import { content } from "@/content/en";
 import { PortalShell } from "@/components/layout/PortalShell";
+import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
+
+export const metadata: Metadata = {
+  title: "Store Dashboard | FineSet",
+  robots: { index: false, follow: false },
+};
 
 export default function StoreLayout({
   children,
@@ -20,7 +27,7 @@ export default function StoreLayout({
         { href: "/store/dashboard/staff", label: nav.staff },
       ]}
     >
-      {children}
+      <RealtimeSyncProvider>{children}</RealtimeSyncProvider>
     </PortalShell>
   );
 }

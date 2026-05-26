@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Phone } from "lucide-react";
 import {
   Dialog,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -47,14 +48,19 @@ export function CallFeedbackDialog({
   const [scheduleFollowUp, setScheduleFollowUp] = useState(false);
   const [followUpDate, setFollowUpDate] = useState("");
 
-  useEffect(() => {
-    if (!open) {
-      setAnswered(null);
-      setFeedback("");
-      setScheduleFollowUp(false);
-      setFollowUpDate("");
+  function resetForm() {
+    setAnswered(null);
+    setFeedback("");
+    setScheduleFollowUp(false);
+    setFollowUpDate("");
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      resetForm();
     }
-  }, [open]);
+    onOpenChange(nextOpen);
+  }
 
   function handleSubmit() {
     if (!answered) return;
@@ -71,7 +77,7 @@ export function CallFeedbackDialog({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{copy.dialog.title}</DialogTitle>
@@ -106,22 +112,22 @@ export function CallFeedbackDialog({
 
           <div className="space-y-2">
             <Label>{copy.dialog.outcomeLabel}</Label>
-            <div className="grid grid-cols-2 gap-2">
-              <Button
-                type="button"
-                variant={answered === "ANSWERED" ? "default" : "outline"}
-                onClick={() => setAnswered("ANSWERED")}
-              >
-                {copy.dialog.answered}
-              </Button>
-              <Button
-                type="button"
-                variant={answered === "NOT_ANSWERED" ? "default" : "outline"}
-                onClick={() => setAnswered("NOT_ANSWERED")}
-              >
-                {copy.dialog.notAnswered}
-              </Button>
-            </div>
+            <RadioGroup
+              value={answered ?? ""}
+              onValueChange={(value) =>
+                setAnswered(value as "ANSWERED" | "NOT_ANSWERED")
+              }
+              className="grid grid-cols-2 gap-2"
+            >
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="ANSWERED" id="outcome-answered" />
+                <Label htmlFor="outcome-answered">{copy.dialog.answered}</Label>
+              </div>
+              <div className="flex items-center gap-2">
+                <RadioGroupItem value="NOT_ANSWERED" id="outcome-not-answered" />
+                <Label htmlFor="outcome-not-answered">{copy.dialog.notAnswered}</Label>
+              </div>
+            </RadioGroup>
           </div>
 
           {answered === "ANSWERED" && (

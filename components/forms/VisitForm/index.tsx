@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createVisitSchema } from "@/lib/validations/visit.schema";
 import { useCreateVisit } from "@/hooks/useVisits";
+import { toast } from "@/hooks/useToast";
 import { Form } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { ProgressIndicator } from "./FormSection";
@@ -83,9 +84,11 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
     try {
       await createVisitMutation.mutateAsync(values);
       clearVisitDraft();
+      toast({ title: copy.actions.successTitle, description: copy.actions.successMessage });
       setIsSuccess(true);
     } catch {
       setSubmitError(errors.generic);
+      toast({ title: errors.generic });
     }
   }
 

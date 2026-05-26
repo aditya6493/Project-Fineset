@@ -5,9 +5,11 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createStaffSchema, type CreateStaffInput } from "@/lib/validations/staff.schema";
 import { useCreateStaff, useStoreStaff, useUpdateStaff } from "@/hooks/useStaff";
+import { toast } from "@/hooks/useToast";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -32,13 +34,19 @@ interface StaffManagementProps {
   store: StoreContent;
   emptyMessage: string;
   errors: ErrorsContent;
+  initialStaff?: Awaited<ReturnType<typeof import("@/lib/api/staff").getStaff>>;
 }
 
-export function StaffManagement({ store, emptyMessage, errors }: StaffManagementProps) {
+export function StaffManagement({
+  store,
+  emptyMessage,
+  errors,
+  initialStaff,
+}: StaffManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { data, isLoading } = useStoreStaff();
+  const { data, isLoading } = useStoreStaff({ initialData: initialStaff });
   const createStaffMutation = useCreateStaff();
   const updateStaffMutation = useUpdateStaff();
 
@@ -51,10 +59,12 @@ export function StaffManagement({ store, emptyMessage, errors }: StaffManagement
     setSubmitError(null);
     try {
       await createStaffMutation.mutateAsync(values);
+      toast({ title: store.staff.addStaff });
       form.reset();
       setModalOpen(false);
     } catch {
       setSubmitError(errors.generic);
+      toast({ title: errors.generic });
     }
   }
 
@@ -70,7 +80,9 @@ export function StaffManagement({ store, emptyMessage, errors }: StaffManagement
       </div>
 
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-card bg-surface-secondary" />
+        <div aria-live="polite" aria-busy="true">
+          <Skeleton className="h-48 rounded-card" />
+        </div>
       ) : !data || data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
@@ -113,10 +125,22 @@ export function StaffManagement({ store, emptyMessage, errors }: StaffManagement
                       variant={member.isActive ? "outline" : "secondary"}
                       disabled={updateStaffMutation.isPending}
                       onClick={() =>
-                        updateStaffMutation.mutate({
-                          staffId: member.id,
-                          payload: { isActive: !member.isActive },
-                        })
+                        updateStaffMutation.mutate(
+                          {
+                            staffId: member.id,
+                            payload: { isActive: !member.isActive },
+                          },
+                          {
+                            onSuccess: () => {
+                              toast({
+                                title: member.isActive
+                                  ? store.staff.inactive
+                                  : store.staff.active,
+                              });
+                            },
+                            onError: () => toast({ title: errors.generic }),
+                          },
+                        )
                       }
                     >
                       {member.isActive ? store.staff.active : store.staff.inactive}

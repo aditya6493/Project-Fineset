@@ -2,7 +2,6 @@ import type { Config } from "tailwindcss";
 import tailwindcssAnimate from "tailwindcss-animate";
 
 const config: Config = {
-  darkMode: ["class", '[data-theme="dark"]'],
   content: [
     "./pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -12,12 +11,12 @@ const config: Config = {
     extend: {
       colors: {
         brand: {
-          gold: "#B8972E",
-          "gold-light": "#D4AF37",
-          "gold-dark": "#8B6914",
-          charcoal: "#1C1C1E",
-          ivory: "#FAF7F2",
-          cream: "#F5EFE6",
+          gold: "var(--brand-gold)",
+          "gold-light": "var(--brand-gold-light)",
+          "gold-dark": "var(--brand-gold-dark)",
+          charcoal: "var(--brand-charcoal)",
+          ivory: "var(--brand-ivory)",
+          cream: "var(--brand-cream)",
         },
         surface: {
           primary: "var(--surface-primary)",
@@ -30,12 +29,18 @@ const config: Config = {
           muted: "var(--text-muted)",
         },
         status: {
-          success: "#22C55E",
-          warning: "#F59E0B",
-          error: "#EF4444",
-          info: "#3B82F6",
+          success: "var(--status-success)",
+          warning: "var(--status-warning)",
+          error: "var(--status-error)",
+          info: "var(--status-info)",
         },
         border: "var(--border)",
+        chart: {
+          primary: "var(--chart-primary)",
+          secondary: "var(--chart-secondary)",
+          axis: "var(--chart-axis)",
+          grid: "var(--chart-grid)",
+        },
       },
       fontFamily: {
         sans: ["var(--font-inter)", "Inter", "system-ui", "sans-serif"],

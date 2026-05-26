@@ -211,7 +211,7 @@ export interface VisitListItem {
 
 export interface FollowUpListItem {
   id: string;
-  visitId: string;
+  visitId: string | null;
   customerName: string;
   customerPhone: string;
   assignedStaffName: string;

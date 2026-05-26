@@ -15,35 +15,41 @@ enum StoreCategory {
 }
 
 model Store {
-  id        String        @id @default(cuid())
-  name      String
-  category  StoreCategory @default(JEWELRY)
-  pincode   String
-  city      String
-  state     String
-  isActive  Boolean       @default(true)
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id          String        @id @default(cuid())
+  name        String
+  category    StoreCategory @default(JEWELRY)
+  pincodeHash String
+  city        String
+  state       String
+  isActive    Boolean       @default(true)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
-  staff     Staff[]
-  visits    Visit[]
-  customers Customer[]
+  staff      Staff[]
+  visits     Visit[]
+  customers  Customer[]
   fieldSales FieldSale[]
 }
 
 model Staff {
-  id         String    @id @default(cuid())
-  name       String
-  employeeId String    @unique
-  role       StaffRole @default(STAFF)
-  isActive   Boolean   @default(true)
-  storeId    String
-  createdAt  DateTime  @default(now())
+  id           String    @id @default(cuid())
+  name         String
+  employeeId   String    @unique
+  passwordHash String
+  role         StaffRole @default(STAFF)
+  isActive     Boolean   @default(true)
+  storeId      String
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
-  store      Store          @relation(fields: [storeId], references: [id])
-  visits     Visit[]
-  callLogs   StaffCallLog[]
-  fieldSales FieldSale[]
+  store           Store            @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  visits          Visit[]
+  callLogs        StaffCallLog[]
+  fieldSales      FieldSale[]
+  assignedFollowUps FollowUp[]
+  phoneRevealLogs PhoneRevealLog[]
+
+  @@index([storeId, isActive])
 }
 
 enum StaffRole {
@@ -67,16 +73,17 @@ model Customer {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  store      Store       @relation(fields: [storeId], references: [id])
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Restrict)
   visits     Visit[]
   fieldSales FieldSale[]
 
   @@unique([phoneHash, storeId])
+  @@index([storeId, updatedAt(sort: Desc)])
 }
 
 model Visit {
-  id                String         @id @default(cuid())
-  visitDate         DateTime       @default(now())
+  id                String                   @id @default(cuid())
+  visitDate         DateTime                 @default(now())
   inTime            DateTime?
   outTime           DateTime?
   durationMins      Int?
@@ -85,7 +92,7 @@ model Visit {
   customerId        String?
   customerName      String
   customerPhone     String
-  customerPhoneHash String?
+  customerPhoneHash String
   customerType      CustomerType
   visitType         VisitType
   area              String?
@@ -101,25 +108,30 @@ model Visit {
   purchaseOccasion  String?
   metalKtPref       String?
   budgetStated      BudgetRange?
-  schemeEnrolled    Boolean        @default(false)
-  ghsPolicy         Boolean        @default(false)
-  schemesPitched    SchemeProduct[] @default([])
+  schemeEnrolled    Boolean                  @default(false)
+  ghsPolicy         Boolean                  @default(false)
+  schemesPitched    SchemeProduct[]          @default([])
   enrollmentOutcome SchemeEnrollmentOutcome?
   monthlyCommitment Float?
   reasonNoEnrollment FieldDeclineReason?
   schemeCompetitorMention String?
-  followUpNeeded    Boolean        @default(false)
+  followUpNeeded    Boolean                  @default(false)
   followUpDate      DateTime?
   staffNotes        String?
   sourceChannel     SourceChannel
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
 
-  store    Store     @relation(fields: [storeId], references: [id])
-  staff    Staff     @relation(fields: [staffId], references: [id])
-  customer Customer? @relation(fields: [customerId], references: [id])
-  followUp FollowUp?
-  callLogs StaffCallLog[]
+  store           Store            @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  staff           Staff            @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  customer        Customer?        @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  followUp        FollowUp?
+  callLogs        StaffCallLog[]
+  phoneRevealLogs PhoneRevealLog[]
+
+  @@index([storeId, visitDate(sort: Desc)])
+  @@index([staffId, storeId, visitDate(sort: Desc)])
+  @@index([storeId, customerPhoneHash])
 }
 
 enum CustomerType {
@@ -167,7 +179,8 @@ enum SourceChannel {
 
 model FollowUp {
   id              String         @id @default(cuid())
-  visitId         String         @unique
+  visitId         String?        @unique
+  fieldSaleId     String?        @unique
   assignedStaffId String
   followUpDate    DateTime
   reason          String?
@@ -179,7 +192,11 @@ model FollowUp {
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 
-  visit Visit @relation(fields: [visitId], references: [id])
+  visit         Visit?     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  fieldSale     FieldSale? @relation(fields: [fieldSaleId], references: [id], onDelete: Cascade)
+  assignedStaff Staff      @relation(fields: [assignedStaffId], references: [id], onDelete: Restrict)
+
+  @@index([assignedStaffId, status, followUpDate])
 }
 
 enum FollowUpStatus {
@@ -207,6 +224,18 @@ model StaffCallLog {
 
   @@index([visitId, staffId, createdAt(sort: Desc)])
   @@index([staffId, createdAt(sort: Desc)])
+}
+
+model PhoneRevealLog {
+  id        String   @id @default(cuid())
+  visitId   String
+  staffId   String
+  createdAt DateTime @default(now())
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+
+  @@index([visitId, staffId, createdAt(sort: Desc)])
 }
 
 enum FieldActivityType {
@@ -273,9 +302,10 @@ model FieldSale {
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
-  store    Store     @relation(fields: [storeId], references: [id])
-  staff    Staff     @relation(fields: [staffId], references: [id])
-  customer Customer? @relation(fields: [customerId], references: [id])
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  staff    Staff     @relation(fields: [staffId], references: [id], onDelete: Restrict)
+  customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  followUp FollowUp?
 
   @@index([staffId, activityDate(sort: Desc)])
   @@index([storeId, activityDate(sort: Desc)])

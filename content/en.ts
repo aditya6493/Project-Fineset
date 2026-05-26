@@ -494,6 +494,7 @@ export const content = {
         notAnsweredHint: "This customer will move to your follow-up call queue.",
         saveOutcome: "Save outcome",
         saving: "Saving…",
+        feedbackSaved: "Call outcome saved",
       },
     },
     fieldSales: {

@@ -4,10 +4,17 @@ import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
 
-export function useStoreStaff() {
+type StoreStaffList = Awaited<ReturnType<typeof getStaff>>;
+
+interface UseStoreStaffOptions {
+  initialData?: StoreStaffList;
+}
+
+export function useStoreStaff(options?: UseStoreStaffOptions) {
   return useQuery({
     queryKey: ["staff", "store"],
     queryFn: () => getStaff(),
+    initialData: options?.initialData,
     ...LIVE_QUERY_OPTIONS,
   });
 }

@@ -1,14 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createVisit, getVisits } from "@/lib/api/visits";
+import { visitsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import type { CreateVisitInput } from "@/lib/validations/visit.schema";
-import type { GetVisitsParams } from "@/types";
+import type { GetVisitsParams, PaginatedResponse, VisitListItem } from "@/types";
 
-export function useVisits(params: GetVisitsParams = {}) {
+interface UseVisitsOptions {
+  initialData?: PaginatedResponse<VisitListItem>;
+  initialParams?: GetVisitsParams;
+}
+
+export function useVisits(params: GetVisitsParams = {}, options?: UseVisitsOptions) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    visitsParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["visits", params],
     queryFn: () => getVisits(params),
+    initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
   });
 }

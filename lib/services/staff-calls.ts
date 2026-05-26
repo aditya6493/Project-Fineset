@@ -12,7 +12,9 @@ import type {
 } from "@/types";
 import type { BudgetRange, CustomerType, Prisma, PurchaseStatus } from "@prisma/client";
 import { decryptVisitPii } from "@/lib/services/pii";
+import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
 import { formatCurrency, formatDate } from "@/lib/utils/formatters";
+import { maskCustomerDisplayName } from "@/lib/utils/pii-display";
 
 interface ListStaffCallsParams {
   staffId: string;
@@ -67,16 +69,7 @@ const visitListSelect = (staffId: string): Prisma.VisitSelect => ({
   },
 });
 
-export function maskCustomerDisplayName(name: string): string {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "Customer";
-  if (parts.length === 1) {
-    const part = parts[0];
-    return part.length <= 2 ? `${part.charAt(0)}*` : `${part.slice(0, 2)}***`;
-  }
-
-  return `${parts[0]} ${parts[parts.length - 1].charAt(0)}.`;
-}
+export { maskCustomerDisplayName } from "@/lib/utils/pii-display";
 
 export function computeVisitValueTier(visit: {
   transactionAmount: number | null;
@@ -248,11 +241,19 @@ function toListItem(
   };
 }
 
-async function fetchStaffVisits(staffId: string, storeId: string) {
+async function fetchStaffVisits(
+  staffId: string,
+  storeId: string,
+  year: number,
+) {
+  const yearStart = new Date(year, 0, 1);
+  const yearEnd = new Date(year, 11, 31, 23, 59, 59, 999);
+
   return prisma.visit.findMany({
     where: {
       staffId,
       storeId,
+      visitDate: { gte: yearStart, lte: yearEnd },
     },
     orderBy: { visitDate: "desc" },
     select: visitListSelect(staffId),
@@ -326,7 +327,11 @@ function countFilters(
 export async function listStaffCalls(
   params: ListStaffCallsParams,
 ): Promise<StaffCallListResponse> {
-  const visits = await fetchStaffVisits(params.staffId, params.storeId);
+  const visits = await fetchStaffVisits(
+    params.staffId,
+    params.storeId,
+    params.year,
+  );
 
   const filtered = visits.filter(
     (visit) =>
@@ -375,6 +380,13 @@ export async function revealStaffCallPhone(params: {
   });
 
   if (!visit) return null;
+
+  await prisma.phoneRevealLog.create({
+    data: {
+      visitId: params.visitId,
+      staffId: params.staffId,
+    },
+  });
 
   const decrypted = decryptVisitPii(visit);
   const digits = decrypted.customerPhone.replace(/\D/g, "");
@@ -517,5 +529,8 @@ export async function recordStaffCallOutcome(
             ? "Follow-up scheduled"
             : "Call feedback saved",
     };
+  }).then((result) => {
+    broadcastSyncEvent(params.storeId, ["callLogs", "followUps", "visits"]);
+    return result;
   });
 }

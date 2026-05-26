@@ -6,6 +6,7 @@ import {
   unauthorized,
 } from "@/lib/auth/session";
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
+import { checkWriteRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { createVisit, listVisits } from "@/lib/services/visits";
 import {
   createVisitSchema,
@@ -18,6 +19,15 @@ export async function POST(req: Request) {
 
   const staff = await requireStaffContext(session);
   if (!staff) return unauthorized();
+
+  const identifier = await getRequestIdentifier();
+  const writeLimit = await checkWriteRateLimit(identifier);
+  if (!writeLimit.success) {
+    return NextResponse.json(
+      { message: "Too many requests" },
+      { status: 429 },
+    );
+  }
 
   const body: unknown = await req.json();
   const parsed = createVisitSchema.safeParse(body);

@@ -8,6 +8,10 @@ import {
   matchesCallValueTier,
   matchesVisitPeriod,
 } from "@/lib/services/call-list-utils";
+import {
+  maskCustomerDisplayName,
+  maskCustomerPhone,
+} from "@/lib/utils/pii-display";
 import { decryptVisitPii } from "@/lib/services/pii";
 import { formatDate } from "@/lib/utils/formatters";
 import type {
@@ -84,6 +88,10 @@ function getLastCallForStaff(visit: PortalVisitRow) {
   );
 }
 
+function maskCustomerPhoneForPortal(phone: string): string {
+  return maskCustomerPhone(phone);
+}
+
 function toPortalCallItem(visit: PortalVisitRow): PortalCallListItem {
   const decrypted = decryptVisitPii(visit);
   const valueTier = computeVisitValueTier(visit);
@@ -100,8 +108,8 @@ function toPortalCallItem(visit: PortalVisitRow): PortalCallListItem {
   return {
     visitId: visit.id,
     followUpId: visit.followUp?.id ?? null,
-    customerName: decrypted.customerName,
-    customerPhone: decrypted.customerPhone,
+    customerName: maskCustomerDisplayName(decrypted.customerName),
+    customerPhone: maskCustomerPhoneForPortal(decrypted.customerPhone),
     staffId: visit.staff.id,
     staffName: visit.staff.name,
     storeId: visit.store.id,

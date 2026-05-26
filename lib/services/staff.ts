@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { hashCredential } from "@/lib/auth/credentials";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
 import type { StaffPerformanceRow } from "@/types";
 import type { Prisma } from "@prisma/client";
@@ -59,9 +60,12 @@ export async function listStaff(storeId: string) {
 }
 
 export async function createStaff(storeId: string, input: CreateStaffInput) {
+  const passwordHash = await hashCredential(input.employeeId);
   return prisma.staff.create({
     data: {
-      ...input,
+      name: input.name,
+      employeeId: input.employeeId,
+      passwordHash,
       storeId,
       role: "STAFF",
     },
@@ -85,11 +89,14 @@ export async function getStaffPerformance(
   const where: Prisma.StaffWhereInput = { isActive: true };
   if (storeId) where.storeId = storeId;
 
+  const { start, end } = getPeriodRange("month");
+
   const staff = await prisma.staff.findMany({
     where,
     include: {
       store: { select: { name: true } },
       visits: {
+        where: { visitDate: { gte: start, lte: end } },
         select: {
           purchaseStatus: true,
           transactionAmount: true,

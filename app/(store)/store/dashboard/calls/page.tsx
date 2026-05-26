@@ -1,7 +1,10 @@
 import { content } from "@/content/en";
 import { PortalCallsLog } from "@/components/portal/PortalCallsLog";
+import { fetchInitialPortalCalls } from "@/lib/data/portal-calls";
 
-export default function StoreCallsPage() {
+export default async function StoreCallsPage() {
+  const initial = await fetchInitialPortalCalls();
+
   return (
     <PortalCallsLog
       copy={content.portal.calls}
@@ -9,6 +12,8 @@ export default function StoreCallsPage() {
       emptyMessage={content.empty.portalCalls}
       allStoresLabel={content.portal.allStores}
       allStaffLabel={content.portal.allStaff}
+      initialPortalCalls={initial?.data}
+      initialPortalCallsParams={initial?.params}
     />
   );
 }

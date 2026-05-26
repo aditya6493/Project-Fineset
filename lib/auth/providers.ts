@@ -2,6 +2,7 @@ import Credentials from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db/prisma";
 import type { NextAuthConfig } from "next-auth";
+import { verifyCredential } from "@/lib/auth/credentials";
 import { checkLoginRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { getAdminPasswordHash } from "@/lib/auth/admin-credentials";
 
@@ -9,6 +10,13 @@ async function enforceLoginRateLimit(): Promise<boolean> {
   const identifier = await getRequestIdentifier();
   const result = await checkLoginRateLimit(identifier);
   return result.success;
+}
+
+async function verifyStaffPassword(
+  employeeId: string,
+  passwordHash: string,
+): Promise<boolean> {
+  return verifyCredential(employeeId, passwordHash);
 }
 
 export const authProviders: NextAuthConfig["providers"] = [
@@ -35,13 +43,15 @@ export const authProviders: NextAuthConfig["providers"] = [
       const staff = await prisma.staff.findFirst({
         where: {
           name: { equals: name, mode: "insensitive" },
-          employeeId,
           isActive: true,
           role: "STAFF",
         },
       });
 
       if (!staff) return null;
+
+      const valid = await verifyStaffPassword(employeeId, staff.passwordHash);
+      if (!valid) return null;
 
       return {
         id: staff.id,
@@ -78,12 +88,14 @@ export const authProviders: NextAuthConfig["providers"] = [
       const store = await prisma.store.findFirst({
         where: {
           name: { equals: normalizedName, mode: "insensitive" },
-          pincode: normalizedPincode,
           isActive: true,
         },
       });
 
       if (!store) return null;
+
+      const valid = await verifyCredential(normalizedPincode, store.pincodeHash);
+      if (!valid) return null;
 
       return {
         id: store.id,

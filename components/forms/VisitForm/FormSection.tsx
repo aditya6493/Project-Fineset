@@ -41,7 +41,14 @@ export function ProgressIndicator({ label, current, total }: ProgressIndicatorPr
           {current}/{total}
         </span>
       </div>
-      <div className="h-2 overflow-hidden rounded-chip bg-surface-secondary">
+      <div
+        className="h-2 overflow-hidden rounded-chip bg-surface-secondary"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={percent}
+        aria-label={label}
+      >
         <div
           className="progress-bar-fill h-full bg-brand-gold transition-all duration-300"
           style={{ ["--progress" as string]: `${percent}%` }}

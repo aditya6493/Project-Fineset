@@ -5,40 +5,70 @@ import {
   getAdminStoreRsoPerformance,
   getStoreAnalytics,
 } from "@/lib/api/analytics";
-import { LIVE_QUERY_OPTIONS, SYNC_POLL_INTERVAL_MS } from "@/lib/sync/constants";
-import type { GetAnalyticsParams } from "@/types";
+import { analyticsParamsMatch } from "@/lib/query/initial-data";
+import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import type {
+  AdminDashboardOverview,
+  AnalyticsData,
+  GetAnalyticsParams,
+  StoreDetailAnalytics,
+} from "@/types";
 
-const liveDashboardOptions = {
-  ...LIVE_QUERY_OPTIONS,
-  refetchInterval: SYNC_POLL_INTERVAL_MS,
-  refetchIntervalInBackground: true,
-};
+interface UseAnalyticsOptions<T> {
+  initialData?: T;
+  initialParams?: GetAnalyticsParams;
+}
 
-export function useStoreAnalytics(params: GetAnalyticsParams = {}) {
+export function useStoreAnalytics(
+  params: GetAnalyticsParams = {},
+  options?: UseAnalyticsOptions<AnalyticsData>,
+) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    analyticsParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["analytics", "store", params],
     queryFn: () => getStoreAnalytics(params),
-    ...liveDashboardOptions,
+    initialData: useInitialData ? options.initialData : undefined,
+    ...LIVE_QUERY_OPTIONS,
   });
 }
 
-export function useAdminDashboardOverview(params: GetAnalyticsParams = {}) {
+export function useAdminDashboardOverview(
+  params: GetAnalyticsParams = {},
+  options?: UseAnalyticsOptions<AdminDashboardOverview>,
+) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    analyticsParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["analytics", "admin", "overview", params],
     queryFn: () => getAdminDashboardOverview(params),
-    ...liveDashboardOptions,
+    initialData: useInitialData ? options.initialData : undefined,
+    ...LIVE_QUERY_OPTIONS,
   });
 }
 
 export function useAdminStoreDetailAnalytics(
   storeId: string,
   params: GetAnalyticsParams = {},
+  options?: UseAnalyticsOptions<StoreDetailAnalytics>,
 ) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    analyticsParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["analytics", "admin", "store", storeId, params],
     queryFn: () => getAdminStoreDetailAnalytics(storeId, params),
     enabled: Boolean(storeId),
-    ...liveDashboardOptions,
+    initialData: useInitialData ? options.initialData : undefined,
+    ...LIVE_QUERY_OPTIONS,
   });
 }
 
@@ -50,11 +80,6 @@ export function useAdminStoreRsoPerformance(
     queryKey: ["analytics", "admin", "store", storeId, "rso-performance", params],
     queryFn: () => getAdminStoreRsoPerformance(storeId, params),
     enabled: Boolean(storeId),
-    ...liveDashboardOptions,
+    ...LIVE_QUERY_OPTIONS,
   });
-}
-
-/** @deprecated Use useAdminDashboardOverview */
-export function useAdminAnalytics(params: GetAnalyticsParams = {}) {
-  return useAdminDashboardOverview(params);
 }

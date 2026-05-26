@@ -10,6 +10,7 @@ import {
 } from "@/lib/services/pii";
 import { calculateDurationMins } from "@/lib/utils/formatters";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
+import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
 
 interface CreateVisitParams extends CreateVisitInput {
   storeId: string;
@@ -109,6 +110,9 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
     }
 
     return decryptVisitPii(visit);
+  }).then((visit) => {
+    broadcastSyncEvent(storeId, ["visits", "customers", "followUps"]);
+    return visit;
   });
 }
 

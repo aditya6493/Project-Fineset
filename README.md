@@ -4,12 +4,11 @@ Multi-tenant SaaS platform for jewelry store chains with Staff, Store, and Maste
 
 ## Tech Stack
 
-- Next.js 14 (App Router) + TypeScript (strict)
+- Next.js 16 (App Router) + TypeScript (strict)
 - Tailwind CSS + shadcn/ui design system
-- Prisma + PostgreSQL
+- Prisma + PostgreSQL (versioned migrations)
 - NextAuth.js v5 (three credential providers)
-- Google Gemini API (server-side analytics)
-- React Query + Zustand
+- React Query + Server-Sent Events for live sync
 
 ## Getting Started
 
@@ -25,7 +24,16 @@ npm install
 cp .env.example .env.local
 ```
 
-Fill in `DATABASE_URL`, `NEXTAUTH_SECRET`, and optionally `ADMIN_PASSWORD_HASH`.
+Required for local development:
+
+- `DATABASE_URL`
+- `AUTH_SECRET` or `NEXTAUTH_SECRET`
+- `ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
+
+Required for production:
+
+- All of the above, plus `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (rate limiting)
+- `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` for admin login
 
 Generate admin password hash (store as base64 in `.env.local`):
 
@@ -41,11 +49,17 @@ Start PostgreSQL (Docker):
 docker compose up -d
 ```
 
-Then apply schema and seed data:
+Apply migrations and seed data:
+
+```bash
+npm run db:migrate
+npm run db:seed
+```
+
+For local prototyping only (no migration history):
 
 ```bash
 npm run db:push
-npm run db:seed
 ```
 
 ### 4. Run development server
@@ -66,20 +80,17 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Project Structure
 
-See the master prompt for full architecture. Key directories:
-
 - `app/` — Routes and API handlers
 - `components/` — UI, forms, charts, layouts
-- `lib/` — API clients, auth, db, validations
+- `lib/` — API clients, auth, db, validations, sync
 - `content/en.ts` — All UI strings
-- `prisma/` — Schema and seed data
+- `prisma/` — Schema, migrations, and seed data
 
-## Build Phases
+## Scripts
 
-- [x] Phase 1 — Foundation
-- [x] Phase 2 — API Layer
-- [x] Phase 3 — Staff Portal
-- [x] Phase 4 — Store Portal
-- [x] Phase 5 — Admin Portal
-- [x] Phase 6 — AI Integration
-- [x] Phase 7 — Polish & Hardening
+| Script | Description |
+|--------|-------------|
+| `npm run db:migrate` | Apply migrations (production/CI) |
+| `npm run db:migrate:dev` | Create and apply migrations (development) |
+| `npm run test:integration` | Run integration tests (requires Postgres) |
+| `npm run test:e2e` | Playwright smoke and auth flows |

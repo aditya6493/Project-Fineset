@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatPercent } from "@/lib/utils/formatters";
 import { TrendingDown, TrendingUp } from "lucide-react";
 
@@ -42,7 +43,7 @@ export function KPICard({
         )}
       </div>
       {isLoading ? (
-        <div className="mt-2 h-7 w-20 animate-pulse rounded-input bg-surface-secondary sm:mt-3 sm:h-8 sm:w-24" />
+        <Skeleton className="mt-2 h-7 w-20 sm:mt-3 sm:h-8 sm:w-24" />
       ) : (
         <>
           <p className="mt-1.5 break-words font-numeric text-lg font-bold leading-tight text-text-primary sm:mt-2 sm:text-2xl lg:text-3xl">

@@ -6,10 +6,12 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store.schema";
 import { useCreateStore, useStores, useUpdateStore } from "@/hooks/useStores";
+import { toast } from "@/hooks/useToast";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import { getStoreCategoryLabel } from "@/lib/utils/store-category";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -42,17 +44,37 @@ interface StoresManagementProps {
   admin: AdminContent;
   emptyMessage: string;
   errors: ErrorsContent;
+  initialStores?: import("@/types").PaginatedResponse<{
+    id: string;
+    name: string;
+    category: StoreCategory;
+    city: string;
+    state: string;
+    isActive: boolean;
+    staffCount: number;
+    visits: number;
+    revenue: number;
+    conversionRate: number;
+    createdAt: string;
+  }>;
+  initialStoresParams?: { page?: number; pageSize?: number; search?: string };
 }
 
 export function StoresManagement({
   admin,
   emptyMessage,
   errors,
+  initialStores,
+  initialStoresParams,
 }: StoresManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const { data, isLoading } = useStores({ page: 1, pageSize: 50 });
+  const storesParams = { page: 1, pageSize: 50 };
+  const { data, isLoading } = useStores(storesParams, {
+    initialData: initialStores,
+    initialParams: initialStoresParams ?? storesParams,
+  });
   const createStoreMutation = useCreateStore();
   const updateStoreMutation = useUpdateStore();
 
@@ -71,6 +93,7 @@ export function StoresManagement({
     setSubmitError(null);
     try {
       await createStoreMutation.mutateAsync(values);
+      toast({ title: admin.stores.addStore, description: admin.stores.modal.title });
       form.reset({
         name: "",
         category: "JEWELRY",
@@ -81,6 +104,7 @@ export function StoresManagement({
       setModalOpen(false);
     } catch {
       setSubmitError(errors.generic);
+      toast({ title: errors.generic });
     }
   }
 
@@ -96,7 +120,9 @@ export function StoresManagement({
       </div>
 
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-card bg-surface-secondary" />
+        <div aria-live="polite" aria-busy="true" className="space-y-3">
+          <Skeleton className="h-48 rounded-card" />
+        </div>
       ) : !data || data.data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
@@ -112,9 +138,6 @@ export function StoresManagement({
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
                   {admin.stores.columns.city}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.pincode}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
                   {admin.stores.columns.staffCount}
@@ -142,7 +165,6 @@ export function StoresManagement({
                     {getStoreCategoryLabel(store.category as StoreCategory)}
                   </td>
                   <td className="px-4 py-3">{store.city}</td>
-                  <td className="px-4 py-3">{store.pincode}</td>
                   <td className="px-4 py-3">{store.staffCount}</td>
                   <td className="px-4 py-3">{formatCurrency(store.revenue)}</td>
                   <td className="px-4 py-3">
@@ -156,10 +178,22 @@ export function StoresManagement({
                         variant={store.isActive ? "outline" : "secondary"}
                         disabled={updateStoreMutation.isPending}
                         onClick={() =>
-                          updateStoreMutation.mutate({
-                            storeId: store.id,
-                            payload: { isActive: !store.isActive },
-                          })
+                          updateStoreMutation.mutate(
+                            {
+                              storeId: store.id,
+                              payload: { isActive: !store.isActive },
+                            },
+                            {
+                              onSuccess: () => {
+                                toast({
+                                  title: store.isActive
+                                    ? admin.table.inactive
+                                    : admin.table.active,
+                                });
+                              },
+                              onError: () => toast({ title: errors.generic }),
+                            },
+                          )
                         }
                       >
                         {store.isActive ? admin.table.active : admin.table.inactive}

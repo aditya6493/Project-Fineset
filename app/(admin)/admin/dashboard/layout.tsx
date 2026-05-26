@@ -1,5 +1,13 @@
 import { content } from "@/content/en";
 import { PortalShell } from "@/components/layout/PortalShell";
+import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
+
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Admin Dashboard | FineSet",
+  robots: { index: false, follow: false },
+};
 
 export default function AdminLayout({
   children,
@@ -20,7 +28,7 @@ export default function AdminLayout({
         { href: "/admin/dashboard/staff", label: nav.staff },
       ]}
     >
-      {children}
+      <RealtimeSyncProvider>{children}</RealtimeSyncProvider>
     </PortalShell>
   );
 }

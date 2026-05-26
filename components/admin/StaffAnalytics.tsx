@@ -2,8 +2,8 @@
 
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { getStaffPerformance } from "@/lib/api/staff";
 import { getStores } from "@/lib/api/stores";
+import { useStaffPerformance } from "@/hooks/useStaffPerformance";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import {
@@ -14,7 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Content } from "@/content/en";
+import type { PaginatedResponse, StaffPerformanceRow } from "@/types";
 
 type AdminContent = Content["admin"];
 type CommonContent = Content["common"];
@@ -25,6 +27,21 @@ interface StaffAnalyticsProps {
   emptyMessage: string;
   allStoresLabel: string;
   initialStoreId?: string;
+  initialPerformance?: StaffPerformanceRow[];
+  initialStoreFilter?: string;
+  initialStores?: PaginatedResponse<{
+    id: string;
+    name: string;
+    category: string;
+    city: string;
+    state: string;
+    isActive: boolean;
+    staffCount: number;
+    visits: number;
+    revenue: number;
+    conversionRate: number;
+    createdAt: string;
+  }>;
 }
 
 export function StaffAnalytics({
@@ -33,20 +50,22 @@ export function StaffAnalytics({
   emptyMessage,
   allStoresLabel,
   initialStoreId,
+  initialPerformance,
+  initialStoreFilter,
+  initialStores,
 }: StaffAnalyticsProps) {
   const [storeFilter, setStoreFilter] = useState<string>(initialStoreId ?? "all");
 
   const { data: stores } = useQuery({
     queryKey: ["stores", "filter"],
     queryFn: () => getStores({ page: 1, pageSize: 100 }),
+    initialData: initialStores,
     ...LIVE_QUERY_OPTIONS,
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["staff", "performance", storeFilter],
-    queryFn: () =>
-      getStaffPerformance(storeFilter === "all" ? undefined : storeFilter),
-    ...LIVE_QUERY_OPTIONS,
+  const { data, isLoading } = useStaffPerformance(storeFilter, {
+    initialData: initialPerformance,
+    initialStoreFilter: initialStoreFilter ?? initialStoreId ?? "all",
   });
 
   const leaderboard = useMemo(() => {
@@ -105,7 +124,9 @@ export function StaffAnalytics({
       )}
 
       {isLoading ? (
-        <div className="h-48 animate-pulse rounded-card bg-surface-secondary" />
+        <div aria-live="polite" aria-busy="true">
+          <Skeleton className="h-48 rounded-card" />
+        </div>
       ) : !data || data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (

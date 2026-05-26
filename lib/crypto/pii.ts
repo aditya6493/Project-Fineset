@@ -1,11 +1,17 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
+import { isProduction } from "@/lib/env";
 
 const ALGORITHM = "aes-256-gcm";
 const PREFIX = "enc:";
 
 function getEncryptionKey(): Buffer | null {
   const key = process.env.ENCRYPTION_KEY;
-  if (!key || key.length < 64) return null;
+  if (!key || key.length < 64) {
+    if (isProduction()) {
+      throw new Error("ENCRYPTION_KEY is required in production");
+    }
+    return null;
+  }
   return Buffer.from(key.slice(0, 64), "hex");
 }
 

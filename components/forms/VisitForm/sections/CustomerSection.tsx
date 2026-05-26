@@ -1,0 +1,290 @@
+import type { Control } from "react-hook-form";
+import {
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
+import { calculateDurationMins, formatDurationMins } from "@/lib/utils/formatters";
+import { FormSection } from "../FormSection";
+import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
+import {
+  formatTimeForInput,
+  parseTimeInput,
+} from "../VisitForm.types";
+
+interface CustomerSectionProps {
+  copy: VisitFormCopy;
+  control: Control<VisitFormValues>;
+  inTime: Date | undefined;
+  outTime: Date | undefined;
+}
+
+export function CustomerSection({
+  copy,
+  control,
+  inTime,
+  outTime,
+}: CustomerSectionProps) {
+  const fields = copy.fields;
+
+  const totalDurationLabel =
+    inTime && outTime && outTime > inTime
+      ? formatDurationMins(calculateDurationMins(inTime, outTime))
+      : null;
+
+  return (
+    <FormSection title={copy.sections.customer} id="section-customer">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={control}
+          name="customerPhone"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.phone.label}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={fields.phone.placeholder}
+                  inputMode="numeric"
+                  maxLength={10}
+                  autoComplete="off"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="customerName"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.customerName.label}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={fields.customerName.placeholder}
+                  autoComplete="off"
+                  {...field}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={control}
+          name="customerType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.customerType.label}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(fields.customerType.options).map(
+                    ([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="visitType"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.visitType.label}</FormLabel>
+              <FormControl>
+                <RadioGroup
+                  onValueChange={field.onChange}
+                  value={field.value}
+                  className="flex gap-4 pt-1"
+                >
+                  {Object.entries(fields.visitType.options).map(
+                    ([value, label]) => (
+                      <div key={value} className="flex items-center gap-2">
+                        <RadioGroupItem value={value} id={`visit-type-${value}`} />
+                        <Label htmlFor={`visit-type-${value}`}>{label}</Label>
+                      </div>
+                    ),
+                  )}
+                </RadioGroup>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField
+          control={control}
+          name="inTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.inTime.label}</FormLabel>
+              <FormControl>
+                <Input
+                  type="time"
+                  value={field.value ? formatTimeForInput(field.value) : ""}
+                  onChange={(event) => {
+                    field.onChange(parseTimeInput(event.target.value));
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="outTime"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.outTime.label}</FormLabel>
+              <FormControl>
+                <Input
+                  type="time"
+                  value={field.value ? formatTimeForInput(field.value) : ""}
+                  onChange={(event) => {
+                    if (!event.target.value) {
+                      field.onChange(undefined);
+                      return;
+                    }
+                    field.onChange(
+                      parseTimeInput(event.target.value, inTime ?? new Date()),
+                    );
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormItem>
+          <FormLabel>{fields.totalDuration.label}</FormLabel>
+          <div className="flex h-12 items-center rounded-input border border-border bg-surface-secondary px-3 text-sm text-text-primary">
+            {totalDurationLabel ?? "—"}
+          </div>
+        </FormItem>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={control}
+          name="sourceChannel"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.sourceChannel.label}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(fields.sourceChannel.options).map(
+                    ([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ),
+                  )}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        <FormField
+          control={control}
+          name="area"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.area.label}</FormLabel>
+              <FormControl>
+                <Input placeholder={fields.area.placeholder} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="gender"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.gender.label}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(fields.gender.options).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="ageGroup"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.ageGroup.label}</FormLabel>
+              <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder="—" />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {Object.entries(fields.ageGroup.options).map(([value, label]) => (
+                    <SelectItem key={value} value={value}>
+                      {label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+    </FormSection>
+  );
+}

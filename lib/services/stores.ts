@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { hashCredential } from "@/lib/auth/credentials";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
 import type { Prisma } from "@prisma/client";
@@ -56,7 +57,6 @@ export async function listStores(params: {
       category: store.category,
       city: store.city,
       state: store.state,
-      pincode: store.pincode,
       isActive: store.isActive,
       staffCount: store._count.staff,
       visits: store.visits.length,
@@ -69,13 +69,21 @@ export async function listStores(params: {
 }
 
 export async function createStore(input: CreateStoreInput) {
-  return prisma.store.create({ data: input });
+  const { pincode, ...rest } = input;
+  const pincodeHash = await hashCredential(pincode);
+  return prisma.store.create({
+    data: { ...rest, pincodeHash },
+  });
 }
 
 export async function updateStore(storeId: string, input: UpdateStoreInput) {
+  const { pincode, ...rest } = input;
+  const data = pincode
+    ? { ...rest, pincodeHash: await hashCredential(pincode) }
+    : rest;
   return prisma.store.update({
     where: { id: storeId },
-    data: input,
+    data,
   });
 }
 

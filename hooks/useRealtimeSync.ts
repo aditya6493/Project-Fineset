@@ -1,35 +1,78 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { getSyncState } from "@/lib/api/sync";
-import { SYNC_POLL_INTERVAL_MS } from "@/lib/sync/constants";
-import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  SSE_RECONNECT_BASE_MS,
+  SSE_RECONNECT_MAX_MS,
+} from "@/lib/sync/constants";
+import { invalidateEntities } from "@/lib/sync/invalidate-portal-data";
+import type { SyncEntity, SyncVersionPayload } from "@/lib/sync/version";
 
 /**
- * Polls backend sync state and refetches all portal data when another
- * session (staff / store / admin) changes shared records.
+ * Subscribes to SSE sync events and invalidates targeted React Query caches
+ * when another session changes shared records.
  */
 export function useRealtimeSync(): void {
   const queryClient = useQueryClient();
   const lastVersionRef = useRef<string | null>(null);
-
-  const { data } = useQuery({
-    queryKey: ["sync", "state"],
-    queryFn: getSyncState,
-    refetchInterval: SYNC_POLL_INTERVAL_MS,
-    refetchIntervalInBackground: true,
-    staleTime: 0,
-    retry: 1,
-  });
+  const retryDelayRef = useRef(SSE_RECONNECT_BASE_MS);
 
   useEffect(() => {
-    if (!data) return;
+    let source: EventSource | null = null;
+    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let disposed = false;
 
-    if (lastVersionRef.current !== null && lastVersionRef.current !== data.version) {
-      void invalidatePortalData(queryClient);
+    function connect(): void {
+      if (disposed) return;
+
+      source = new EventSource("/api/sync/events");
+
+      source.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as SyncVersionPayload;
+
+          if (
+            lastVersionRef.current !== null &&
+            lastVersionRef.current !== data.version
+          ) {
+            void invalidateEntities(
+              queryClient,
+              data.entities.length > 0
+                ? data.entities
+                : (["visits", "fieldSales", "staff", "callLogs", "stores"] as SyncEntity[]),
+            );
+          }
+
+          lastVersionRef.current = data.version;
+          retryDelayRef.current = SSE_RECONNECT_BASE_MS;
+        } catch {
+          // ignore malformed events
+        }
+      };
+
+      source.onerror = () => {
+        source?.close();
+        source = null;
+
+        if (disposed) return;
+
+        const delay = retryDelayRef.current;
+        retryDelayRef.current = Math.min(
+          delay * 2,
+          SSE_RECONNECT_MAX_MS,
+        );
+
+        retryTimer = setTimeout(connect, delay);
+      };
     }
 
-    lastVersionRef.current = data.version;
-  }, [data, queryClient]);
+    connect();
+
+    return () => {
+      disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
+      source?.close();
+    };
+  }, [queryClient]);
 }

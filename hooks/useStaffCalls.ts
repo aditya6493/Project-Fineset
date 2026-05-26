@@ -4,15 +4,27 @@ import {
   revealStaffCallPhone,
   submitStaffCallOutcome,
 } from "@/lib/api/staff-calls";
+import { staffCallsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
-import type { GetStaffCallsParams } from "@/types";
+import type { GetStaffCallsParams, StaffCallListResponse } from "@/types";
 import type { StaffCallOutcomeInput } from "@/lib/validations/staff-calls.schema";
 
-export function useStaffCalls(params: GetStaffCallsParams) {
+interface UseStaffCallsOptions {
+  initialData?: StaffCallListResponse;
+  initialParams?: GetStaffCallsParams;
+}
+
+export function useStaffCalls(params: GetStaffCallsParams, options?: UseStaffCallsOptions) {
+  const useInitialData =
+    options?.initialData &&
+    options.initialParams &&
+    staffCallsParamsMatch(params, options.initialParams);
+
   return useQuery({
     queryKey: ["staff-calls", params],
     queryFn: () => getStaffCalls(params),
+    initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
   });
 }

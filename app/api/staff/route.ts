@@ -7,6 +7,7 @@ import {
 } from "@/lib/auth/session";
 import { createStaff, getStaffPerformance, listStaff } from "@/lib/services/staff";
 import { createStaffSchema } from "@/lib/validations/staff.schema";
+import { getStaffQuerySchema } from "@/lib/validations/staff-query.schema";
 
 export async function GET(req: Request) {
   const session = await getServerSession();
@@ -15,13 +16,16 @@ export async function GET(req: Request) {
   }
 
   const { searchParams } = new URL(req.url);
-  const performance = searchParams.get("performance");
+  const query = getStaffQuerySchema.safeParse(
+    Object.fromEntries(searchParams.entries()),
+  );
+  if (!query.success) return badRequest(query.error.flatten());
 
-  if (performance === "true") {
+  if (query.data.performance === "true") {
     const storeId =
       session.role === "STORE_MANAGER"
         ? session.storeId
-        : searchParams.get("storeId") ?? undefined;
+        : query.data.storeId ?? undefined;
     const data = await getStaffPerformance(storeId);
     return NextResponse.json(data);
   }
@@ -31,7 +35,7 @@ export async function GET(req: Request) {
     return NextResponse.json(data);
   }
 
-  const storeId = searchParams.get("storeId");
+  const storeId = query.data.storeId;
   if (!storeId) {
     const data = await getStaffPerformance();
     return NextResponse.json(data);

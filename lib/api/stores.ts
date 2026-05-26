@@ -9,7 +9,6 @@ interface StoreListItem {
   category: StoreCategory;
   city: string;
   state: string;
-  pincode: string;
   isActive: boolean;
   staffCount: number;
   visits: number;

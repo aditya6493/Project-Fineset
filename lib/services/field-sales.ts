@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import type { FieldSale, Prisma } from "@prisma/client";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
+import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
 import {
   decryptVisitPii,
   prepareCustomerPii,
@@ -104,7 +105,22 @@ export async function createFieldSale(
       },
     });
 
+    if (followUpNeeded && followUpDate) {
+      await tx.followUp.create({
+        data: {
+          fieldSaleId: fieldSale.id,
+          assignedStaffId: staffId,
+          followUpDate,
+          reason: "Field activity follow-up",
+          status: "OPEN",
+        },
+      });
+    }
+
     return decryptFieldSalePii(fieldSale);
+  }).then((fieldSale) => {
+    broadcastSyncEvent(storeId, ["fieldSales", "customers", "followUps"]);
+    return fieldSale;
   });
 }
 

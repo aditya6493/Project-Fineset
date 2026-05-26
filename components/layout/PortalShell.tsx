@@ -8,7 +8,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { clearVisitDraft } from "@/components/forms/VisitForm/useVisitDraft";
-import { useRealtimeSync } from "@/hooks/useRealtimeSync";
 
 interface NavItem {
   href: string;
@@ -32,8 +31,6 @@ export function PortalShell({
   const router = useRouter();
   const queryClient = useQueryClient();
   const [isSigningOut, setIsSigningOut] = useState(false);
-
-  useRealtimeSync();
 
   async function handleSignOut() {
     if (isSigningOut) return;
@@ -63,6 +60,12 @@ export function PortalShell({
 
   return (
     <div className="min-h-screen bg-surface-primary">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-input focus:bg-brand-gold focus:px-4 focus:py-2 focus:text-white"
+      >
+        Skip to main content
+      </a>
       <header className="sticky top-0 z-10 border-b border-border bg-surface-card shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-page-x py-4 sm:px-page-md">
           <div className="flex items-center gap-6">
@@ -70,11 +73,12 @@ export function PortalShell({
               {title}
             </Link>
             {navItems.length > 0 && (
-              <nav className="hidden gap-4 sm:flex">
+              <nav className="hidden gap-4 sm:flex" aria-label="Main navigation">
                 {navItems.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
+                    aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
                       "text-sm transition-colors",
                       isActive(item.href)
@@ -98,11 +102,15 @@ export function PortalShell({
           </Button>
         </div>
         {navItems.length > 0 && (
-          <nav className="flex h-14 items-center gap-2 overflow-x-auto border-t border-border px-page-x sm:hidden">
+          <nav
+            className="flex h-14 items-center gap-2 overflow-x-auto border-t border-border px-page-x sm:hidden"
+            aria-label="Main navigation"
+          >
             {navItems.map((item) => (
               <Link
                 key={item.href}
                 href={item.href}
+                aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "whitespace-nowrap rounded-chip px-3 py-2 text-xs",
                   isActive(item.href)
@@ -116,7 +124,9 @@ export function PortalShell({
           </nav>
         )}
       </header>
-      <main className="mx-auto max-w-7xl px-page-x py-6 sm:px-page-md">{children}</main>
+      <main id="main-content" className="mx-auto max-w-7xl px-page-x py-6 sm:px-page-md">
+        {children}
+      </main>
     </div>
   );
 }
