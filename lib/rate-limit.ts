@@ -6,11 +6,19 @@ type RateLimitResult =
   | { success: true }
   | { success: false; retryAfterSeconds: number };
 
+function isNextBuild(): boolean {
+  return process.env.NEXT_PHASE === "phase-production-build";
+}
+
 function createRedisClient(): Redis | null {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) {
-    if (isProduction() && process.env.SKIP_ENV_VALIDATION !== "true") {
+    if (
+      isProduction() &&
+      !isNextBuild() &&
+      process.env.SKIP_ENV_VALIDATION !== "true"
+    ) {
       throw new Error(
         "UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are required in production",
       );
@@ -39,9 +47,24 @@ function createLimiter(
   });
 }
 
-const loginLimiter = createLimiter("fineset:login", 10, "15 m");
-const writeLimiter = createLimiter("fineset:write", 60, "15 m");
-const sseLimiter = createLimiter("fineset:sse", 30, "15 m");
+let loginLimiter: Ratelimit | null | undefined;
+let writeLimiter: Ratelimit | null | undefined;
+let sseLimiter: Ratelimit | null | undefined;
+
+function getLoginLimiter(): Ratelimit | null {
+  loginLimiter ??= createLimiter("fineset:login", 10, "15 m");
+  return loginLimiter;
+}
+
+function getWriteLimiter(): Ratelimit | null {
+  writeLimiter ??= createLimiter("fineset:write", 60, "15 m");
+  return writeLimiter;
+}
+
+function getSseLimiter(): Ratelimit | null {
+  sseLimiter ??= createLimiter("fineset:sse", 30, "15 m");
+  return sseLimiter;
+}
 
 async function checkLimit(
   limiter: Ratelimit | null,
@@ -61,19 +84,19 @@ async function checkLimit(
 export async function checkLoginRateLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
-  return checkLimit(loginLimiter, identifier);
+  return checkLimit(getLoginLimiter(), identifier);
 }
 
 export async function checkWriteRateLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
-  return checkLimit(writeLimiter, identifier);
+  return checkLimit(getWriteLimiter(), identifier);
 }
 
 export async function checkSseRateLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
-  return checkLimit(sseLimiter, identifier);
+  return checkLimit(getSseLimiter(), identifier);
 }
 
 export async function getRequestIdentifier(): Promise<string> {
