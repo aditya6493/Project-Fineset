@@ -2,6 +2,7 @@ import type { NextAuthConfig } from "next-auth";
 import type { AppSession } from "@/types";
 
 export const authConfig = {
+  trustHost: true,
   pages: {
     signIn: "/",
   },

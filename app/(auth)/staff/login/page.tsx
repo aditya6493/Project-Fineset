@@ -1,8 +1,13 @@
 import { content } from "@/content/en";
 import { LoginForm } from "@/components/forms/LoginForm";
 
-export default function StaffLoginPage() {
+interface StaffLoginPageProps {
+  searchParams: Promise<{ name?: string; employeeId?: string }>;
+}
+
+export default async function StaffLoginPage({ searchParams }: StaffLoginPageProps) {
   const c = content.auth.staff;
+  const { name, employeeId } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-surface-primary px-page-x py-12">
@@ -12,6 +17,7 @@ export default function StaffLoginPage() {
         subtitle={c.subtitle}
         submitLabel={c.submitLabel}
         errorMessage={c.errorInvalid}
+        defaultValues={{ name, employeeId }}
         fields={[
           {
             name: "name",

@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Logo } from "@/components/shared/Logo";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import type { AppSession } from "@/types";
 
@@ -30,6 +31,7 @@ interface LoginFormProps {
   fields: LoginField[];
   submitLabel: string;
   errorMessage: string;
+  defaultValues?: Partial<Record<string, string>>;
 }
 
 export function LoginForm({
@@ -39,6 +41,7 @@ export function LoginForm({
   fields,
   submitLabel,
   errorMessage,
+  defaultValues = {},
 }: LoginFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
@@ -84,6 +87,9 @@ export function LoginForm({
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
+        <div className="mb-2 flex justify-center">
+          <Logo size={48} linked={false} />
+        </div>
         <CardTitle>{title}</CardTitle>
         <CardDescription>{subtitle}</CardDescription>
       </CardHeader>
@@ -97,6 +103,7 @@ export function LoginForm({
                 name={field.name}
                 type={field.type ?? "text"}
                 placeholder={field.placeholder}
+                defaultValue={defaultValues[field.name] ?? ""}
                 required
                 autoComplete={field.type === "password" ? "current-password" : "username"}
               />

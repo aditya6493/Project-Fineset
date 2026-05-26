@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { content } from "@/content/en";
+import { Logo } from "@/components/shared/Logo";
 import {
   Card,
   CardContent,
@@ -32,9 +33,9 @@ export default function HomePage() {
     <main className="min-h-screen bg-surface-primary px-page-x py-12 sm:px-page-md">
       <div className="mx-auto max-w-4xl space-y-10">
         <header className="space-y-3 text-center">
-          <p className="text-sm font-medium uppercase tracking-widest text-brand-gold">
-            {content.common.appName}
-          </p>
+          <div className="flex justify-center">
+            <Logo size={56} />
+          </div>
           <h1 className="font-display text-3xl font-bold text-text-primary sm:text-4xl">
             {content.home.title}
           </h1>
