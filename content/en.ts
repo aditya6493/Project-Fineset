@@ -68,6 +68,8 @@ export const content = {
     fields: {
       customerName: { label: "Customer Name", placeholder: "Full name" },
       phone: { label: "Phone Number", placeholder: "10-digit mobile" },
+      existingCustomerHint: "Existing customer — details prefilled",
+      lookingUpCustomer: "Looking up customer…",
       customerType: {
         label: "Customer Type",
         options: { NEW: "New", REPEAT: "Repeat", VIP: "VIP" },

@@ -23,6 +23,7 @@ export function Logo({
       height={size}
       className={cn("shrink-0", className)}
       priority
+      unoptimized
     />
   );
 

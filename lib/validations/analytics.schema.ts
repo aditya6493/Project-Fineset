@@ -1,9 +1,17 @@
 import { z } from "zod";
-import { paginationQuerySchema, periodQuerySchema } from "./common.schema";
+import {
+  paginationQuerySchema,
+  periodQuerySchema,
+  phoneSchema,
+} from "./common.schema";
 
 export const getCustomersQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   storeId: z.string().optional(),
+});
+
+export const lookupCustomerQuerySchema = z.object({
+  phone: phoneSchema,
 });
 
 export const getAnalyticsQuerySchema = z.object({
@@ -12,4 +20,5 @@ export const getAnalyticsQuerySchema = z.object({
 });
 
 export type GetCustomersQuery = z.infer<typeof getCustomersQuerySchema>;
+export type LookupCustomerQuery = z.infer<typeof lookupCustomerQuerySchema>;
 export type GetAnalyticsQuery = z.infer<typeof getAnalyticsQuerySchema>;

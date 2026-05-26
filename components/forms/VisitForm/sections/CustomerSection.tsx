@@ -1,4 +1,7 @@
+"use client";
+
 import type { Control } from "react-hook-form";
+import { useFormContext } from "react-hook-form";
 import {
   FormControl,
   FormField,
@@ -17,6 +20,7 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { calculateDurationMins, formatDurationMins } from "@/lib/utils/formatters";
+import { useCustomerLookupPrefill } from "@/hooks/useCustomerLookupPrefill";
 import { FormSection } from "../FormSection";
 import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
 import {
@@ -38,6 +42,8 @@ export function CustomerSection({
   outTime,
 }: CustomerSectionProps) {
   const fields = copy.fields;
+  const { setValue, watch } = useFormContext<VisitFormValues>();
+  const { lookupStatus } = useCustomerLookupPrefill({ watch, setValue });
 
   const totalDurationLabel =
     inTime && outTime && outTime > inTime
@@ -62,6 +68,16 @@ export function CustomerSection({
                   {...field}
                 />
               </FormControl>
+              {lookupStatus === "loading" && (
+                <p className="text-xs text-text-muted" aria-live="polite">
+                  {fields.lookingUpCustomer}
+                </p>
+              )}
+              {lookupStatus === "found" && (
+                <p className="text-xs text-status-success" aria-live="polite">
+                  {fields.existingCustomerHint}
+                </p>
+              )}
               <FormMessage />
             </FormItem>
           )}
