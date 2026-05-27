@@ -2,6 +2,47 @@ import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
 import { decryptCustomerFields, hashPhone } from "@/lib/services/pii";
 
+export interface CustomerLookupResult {
+  id: string;
+  name: string;
+  phone: string;
+  area: string | null;
+  gender: string | null;
+  ageGroup: string | null;
+  visitCount: number;
+}
+
+export async function lookupCustomerByPhone(
+  storeId: string,
+  phone: string,
+): Promise<CustomerLookupResult | null> {
+  const customer = await prisma.customer.findUnique({
+    where: {
+      phoneHash_storeId: {
+        phoneHash: hashPhone(phone),
+        storeId,
+      },
+    },
+    include: {
+      _count: { select: { visits: true } },
+    },
+  });
+
+  if (!customer) return null;
+
+  const decrypted = decryptCustomerFields(customer);
+
+  return {
+    id: customer.id,
+    name: decrypted.name,
+    phone: decrypted.phone,
+    area: customer.area,
+    gender: customer.gender,
+    ageGroup: customer.ageGroup,
+    visitCount: customer._count.visits,
+  };
+}
+
 interface ListCustomersParams {
   storeId?: string;
   page: number;

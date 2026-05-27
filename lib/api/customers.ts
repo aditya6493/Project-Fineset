@@ -1,4 +1,6 @@
 import { apiFetch, buildQueryString } from "@/lib/api/client";
+import type { CustomerLookupResult } from "@/lib/services/customers";
+import { ApiError } from "@/types";
 import type { PaginatedResponse } from "@/types";
 
 interface CustomerListItem {
@@ -25,4 +27,18 @@ export async function getCustomers(
 ): Promise<PaginatedResponse<CustomerListItem>> {
   const qs = buildQueryString(params);
   return apiFetch<PaginatedResponse<CustomerListItem>>(`/api/customers${qs}`);
+}
+
+export async function lookupCustomerByPhone(
+  phone: string,
+): Promise<CustomerLookupResult | null> {
+  try {
+    const qs = buildQueryString({ phone });
+    return await apiFetch<CustomerLookupResult>(`/api/customers/lookup${qs}`);
+  } catch (error) {
+    if (error instanceof ApiError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }

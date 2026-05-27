@@ -9,7 +9,7 @@ const PROTECTED_PREFIXES = [
   { prefix: "/admin/dashboard", role: "MASTER_ADMIN" },
 ] as const;
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
   const { pathname } = request.nextUrl;
 

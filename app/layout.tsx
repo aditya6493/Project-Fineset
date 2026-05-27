@@ -16,6 +16,10 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "FineSet — Jewelry Store SaaS",
   description: "Multi-tenant SaaS platform for jewelry store chains",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 export default function RootLayout({

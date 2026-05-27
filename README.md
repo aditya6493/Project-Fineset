@@ -35,8 +35,23 @@ Fill in:
 
 In Supabase Dashboard → Authentication → URL configuration, add:
 
-- Site URL: `http://localhost:3000`
-- Redirect URLs: `http://localhost:3000/auth/callback`
+- Site URL: `http://localhost:3000` (use your production URL on Vercel)
+- Redirect URLs:
+  - `http://localhost:3000/auth/callback`
+  - `https://project-fineset.vercel.app/auth/callback` (production)
+
+**Production (Vercel → Settings → Environment Variables)** — required:
+
+- `DATABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `NEXT_PUBLIC_APP_URL` — e.g. `https://project-fineset.vercel.app`
+- `ENCRYPTION_KEY` — `openssl rand -hex 32`
+
+Recommended:
+
+- `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` — rate limiting ([Upstash Console](https://console.upstash.com/))
 
 ### 3. Set up database
 

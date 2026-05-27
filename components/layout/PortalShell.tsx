@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { clearVisitDraft } from "@/components/forms/VisitForm/useVisitDraft";
+import { Logo } from "@/components/shared/Logo";
 
 interface NavItem {
   href: string;
@@ -71,8 +72,11 @@ export function PortalShell({
       <header className="sticky top-0 z-10 border-b border-border bg-surface-card shadow-sm">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-page-x py-4 sm:px-page-md">
           <div className="flex items-center gap-6">
-            <Link href="/" className="font-display text-lg font-semibold text-brand-gold">
-              {title}
+            <Link href="/" className="flex items-center gap-2.5">
+              <Logo size={28} linked={false} />
+              <span className="font-display text-lg font-semibold text-brand-gold">
+                {title}
+              </span>
             </Link>
             {navItems.length > 0 && (
               <nav className="hidden gap-4 sm:flex" aria-label="Main navigation">
