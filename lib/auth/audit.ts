@@ -1,0 +1,39 @@
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db/prisma";
+
+export type AuthAuditEvent =
+  | "LOGIN_SUCCESS"
+  | "LOGIN_FAILED"
+  | "LOGOUT"
+  | "INVITE_SENT"
+  | "INVITE_FAILED"
+  | "USER_ACTIVATED"
+  | "USER_DEACTIVATED"
+  | "PASSWORD_RESET_REQUESTED"
+  | "UNAUTHORIZED_ACCESS";
+
+interface LogAuthEventParams {
+  event: AuthAuditEvent;
+  authId?: string | null;
+  email?: string | null;
+  ip?: string | null;
+  userAgent?: string | null;
+  metadata?: Record<string, unknown>;
+}
+
+export async function logAuthEvent(params: LogAuthEventParams): Promise<void> {
+  try {
+    await prisma.authAuditLog.create({
+      data: {
+        event: params.event,
+        authId: params.authId ?? undefined,
+        email: params.email ?? undefined,
+        ip: params.ip ?? undefined,
+        userAgent: params.userAgent ?? undefined,
+        metadata: (params.metadata ?? undefined) as Prisma.InputJsonValue | undefined,
+      },
+    });
+  } catch (error) {
+    console.error("[auth-audit]", params.event, error);
+  }
+}

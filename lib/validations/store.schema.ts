@@ -8,7 +8,6 @@ export const createStoreSchema = z.object({
   category: storeCategorySchema.default("JEWELRY"),
   city: z.string().min(1).max(100),
   state: z.string().min(1).max(100),
-  pincode: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
 });
 
 export const updateStoreSchema = z.object({
@@ -17,7 +16,6 @@ export const updateStoreSchema = z.object({
   category: storeCategorySchema.optional(),
   city: z.string().min(1).max(100).optional(),
   state: z.string().min(1).max(100).optional(),
-  pincode: z.string().regex(/^\d{6}$/).optional(),
 });
 
 export const getStoresQuerySchema = paginationQuerySchema.extend({

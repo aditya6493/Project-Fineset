@@ -1,0 +1,57 @@
+import { z } from "zod";
+
+const appRoleSchema = z.enum(["MASTER_ADMIN", "STORE_MANAGER", "STAFF"]);
+
+export const inviteUserSchema = z
+  .object({
+    name: z.string().min(1).max(100),
+    email: z.string().email().max(255),
+    role: appRoleSchema,
+    storeId: z.string().cuid().optional(),
+    employeeId: z
+      .string()
+      .min(3)
+      .max(20)
+      .regex(/^[A-Z0-9]+$/)
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (data.role === "STAFF" && !data.employeeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Employee ID is required for staff invites",
+        path: ["employeeId"],
+      });
+    }
+    if (
+      (data.role === "STAFF" || data.role === "STORE_MANAGER") &&
+      !data.storeId
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Store is required for this role",
+        path: ["storeId"],
+      });
+    }
+    if (data.role === "MASTER_ADMIN" && data.storeId) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Admin users cannot be assigned to a store",
+        path: ["storeId"],
+      });
+    }
+  });
+
+export type InviteUserInput = z.infer<typeof inviteUserSchema>;
+
+export const storeInviteUserSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email().max(255),
+  employeeId: z
+    .string()
+    .min(3)
+    .max(20)
+    .regex(/^[A-Z0-9]+$/, "Employee ID must be uppercase alphanumeric"),
+});
+
+export type StoreInviteUserInput = z.infer<typeof storeInviteUserSchema>;

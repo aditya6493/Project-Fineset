@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -40,8 +40,10 @@ export function PortalShell({
     try {
       clearVisitDraft();
       queryClient.clear();
-      await signOut({ redirect: false });
-      router.replace("/");
+      await fetch("/api/auth/signout", { method: "POST" });
+      const supabase = createClient();
+      await supabase.auth.signOut();
+      router.replace("/login");
       router.refresh();
     } catch {
       setIsSigningOut(false);

@@ -2,17 +2,20 @@ import type { Metadata } from "next";
 import { content } from "@/content/en";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
+import { requirePortalSession } from "@/lib/auth/require-portal-session";
 
 export const metadata: Metadata = {
   title: "Store Dashboard | FineSet",
   robots: { index: false, follow: false },
 };
 
-export default function StoreLayout({
+export default async function StoreLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requirePortalSession("STORE_MANAGER");
+
   const nav = content.store.nav;
 
   return (

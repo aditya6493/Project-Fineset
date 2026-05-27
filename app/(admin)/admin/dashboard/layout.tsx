@@ -1,6 +1,7 @@
 import { content } from "@/content/en";
 import { PortalShell } from "@/components/layout/PortalShell";
 import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
+import { requirePortalSession } from "@/lib/auth/require-portal-session";
 
 import type { Metadata } from "next";
 
@@ -9,11 +10,13 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  await requirePortalSession("MASTER_ADMIN");
+
   const nav = content.admin.nav;
 
   return (

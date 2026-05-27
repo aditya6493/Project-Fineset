@@ -24,7 +24,12 @@ export type {
 
 export type UserRole = "STAFF" | "STORE_MANAGER" | "MASTER_ADMIN";
 
-export interface StaffSession {
+interface SessionBase {
+  userId: string;
+  email: string;
+}
+
+export interface StaffSession extends SessionBase {
   role: "STAFF";
   staffId: string;
   storeId: string;
@@ -32,13 +37,13 @@ export interface StaffSession {
   employeeId?: string;
 }
 
-export interface StoreSession {
+export interface StoreSession extends SessionBase {
   role: "STORE_MANAGER";
   storeId: string;
   storeName: string;
 }
 
-export interface AdminSession {
+export interface AdminSession extends SessionBase {
   role: "MASTER_ADMIN";
 }
 

@@ -12,17 +12,17 @@ import { Button } from "@/components/ui/button";
 export default function HomePage() {
   const portals = [
     {
-      href: "/staff/login",
+      href: "/login",
       label: content.home.portals.staff.label,
       description: content.home.portals.staff.description,
     },
     {
-      href: "/store/login",
+      href: "/login",
       label: content.home.portals.store.label,
       description: content.home.portals.store.description,
     },
     {
-      href: "/admin/login",
+      href: "/login",
       label: content.home.portals.admin.label,
       description: content.home.portals.admin.description,
     },

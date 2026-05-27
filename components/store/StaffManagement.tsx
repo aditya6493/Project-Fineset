@@ -52,14 +52,17 @@ export function StaffManagement({
 
   const form = useForm<CreateStaffInput>({
     resolver: zodResolver(createStaffSchema),
-    defaultValues: { name: "", employeeId: "" },
+    defaultValues: { name: "", email: "", employeeId: "" },
   });
 
   async function onSubmit(values: CreateStaffInput) {
     setSubmitError(null);
     try {
       await createStaffMutation.mutateAsync(values);
-      toast({ title: store.staff.addStaff });
+      toast({
+        title: store.staff.addStaff,
+        description: store.staff.inviteSent,
+      });
       form.reset();
       setModalOpen(false);
     } catch {
@@ -168,6 +171,19 @@ export function StaffManagement({
                     <FormLabel>{store.staff.modal.nameLabel}</FormLabel>
                     <FormControl>
                       <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.emailLabel}</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" autoComplete="email" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -1,7 +1,12 @@
 import { apiFetch } from "@/lib/api/client";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
 import type { StaffPerformanceRow } from "@/types";
-import type { Staff } from "@prisma/client";
+
+interface InviteStaffResponse {
+  appUserId: string;
+  email: string;
+  role: string;
+}
 
 interface StaffListItem {
   id: string;
@@ -19,8 +24,10 @@ export async function getStaff(): Promise<StaffListItem[]> {
   return apiFetch<StaffListItem[]>("/api/staff");
 }
 
-export async function createStaff(payload: CreateStaffInput): Promise<Staff> {
-  return apiFetch<Staff>("/api/staff", {
+export async function createStaff(
+  payload: CreateStaffInput,
+): Promise<InviteStaffResponse> {
+  return apiFetch<InviteStaffResponse>("/api/staff", {
     method: "POST",
     body: JSON.stringify(payload),
   });

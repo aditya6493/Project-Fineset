@@ -6,8 +6,8 @@ Multi-tenant SaaS platform for jewelry store chains with Staff, Store, and Maste
 
 - Next.js 16 (App Router) + TypeScript (strict)
 - Tailwind CSS + shadcn/ui design system
-- Prisma + PostgreSQL (versioned migrations)
-- NextAuth.js v5 (three credential providers)
+- Prisma + PostgreSQL (Supabase)
+- Supabase Auth (email/password, invite onboarding)
 - React Query + Server-Sent Events for live sync
 
 ## Getting Started
@@ -24,43 +24,38 @@ npm install
 cp .env.example .env.local
 ```
 
-Required for local development:
+Fill in:
 
-- `DATABASE_URL`
-- `AUTH_SECRET` or `NEXTAUTH_SECRET`
-- `ENCRYPTION_KEY` — generate with `openssl rand -hex 32`
+- `DATABASE_URL` — Supabase Postgres connection string
+- `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
+- `SUPABASE_SERVICE_ROLE_KEY` — server-only (invites, bootstrap)
+- `ENCRYPTION_KEY` — `openssl rand -hex 32`
+- `MASTER_ADMIN_EMAIL` / `MASTER_ADMIN_PASSWORD` — first admin bootstrap
 
-Required for production:
+In Supabase Dashboard → Authentication → URL configuration, add:
 
-- All of the above, plus `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` (rate limiting)
-- `ADMIN_EMAIL` and `ADMIN_PASSWORD_HASH` for admin login
-
-Generate admin password hash (store as base64 in `.env.local`):
-
-```bash
-node -e "const b=require('bcryptjs'); b.hash('your-password', 12).then(h=>console.log(Buffer.from(h).toString('base64')))"
-```
+- Site URL: `http://localhost:3000`
+- Redirect URLs: `http://localhost:3000/auth/callback`
 
 ### 3. Set up database
-
-Start PostgreSQL (Docker):
-
-```bash
-docker compose up -d
-```
-
-Apply migrations and seed data:
 
 ```bash
 npm run db:migrate
 npm run db:seed
+npm run auth:bootstrap
+npm run auth:bootstrap-dev
 ```
 
-For local prototyping only (no migration history):
+`auth:bootstrap` creates the production admin from `MASTER_ADMIN_*` env vars.
 
-```bash
-npm run db:push
-```
+`auth:bootstrap-dev` creates dev accounts (after seed) with password `FineSet#1dev`:
+
+| Email | Role |
+|-------|------|
+| admin@fineset.local | MASTER_ADMIN |
+| manager@store-alpha.local | STORE_MANAGER |
+| staff-a@store-alpha.local | STAFF |
 
 ### 4. Run development server
 
@@ -68,21 +63,22 @@ npm run db:push
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000/login](http://localhost:3000/login).
 
-## Seed Credentials
+## Auth model
 
-| Portal | Username | Password |
-|--------|----------|----------|
-| Staff | Staff Member A | EMP001 |
-| Store | Store Alpha | 500001 |
-| Admin | Set via `ADMIN_EMAIL` | Set via env hash |
+- **Supabase Auth** stores passwords and sessions only.
+- **Prisma `AppUser`** stores role, store assignment, and active status.
+- **Staff** table remains for visit attribution (`employeeId`, metrics).
+- Admins invite users by email; users set their own password via invite link.
 
 ## Project Structure
 
 - `app/` — Routes and API handlers
 - `components/` — UI, forms, charts, layouts
 - `lib/` — API clients, auth, db, validations, sync
+- `lib/supabase/` — Supabase SSR clients
+- `lib/auth/` — Session, invites, audit, RBAC helpers
 - `content/en.ts` — All UI strings
 - `prisma/` — Schema, migrations, and seed data
 
@@ -90,7 +86,8 @@ Open [http://localhost:3000](http://localhost:3000).
 
 | Script | Description |
 |--------|-------------|
-| `npm run db:migrate` | Apply migrations (production/CI) |
-| `npm run db:migrate:dev` | Create and apply migrations (development) |
-| `npm run test:integration` | Run integration tests (requires Postgres) |
-| `npm run test:e2e` | Playwright smoke and auth flows |
+| `npm run db:migrate` | Apply migrations |
+| `npm run db:seed` | Seed demo stores, staff, visits |
+| `npm run auth:bootstrap` | Create MASTER_ADMIN (Supabase + AppUser) |
+| `npm run auth:bootstrap-dev` | Dev login accounts for seeded data |
+| `npm run test:e2e` | Playwright smoke tests |

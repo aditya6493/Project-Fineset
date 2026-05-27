@@ -85,7 +85,6 @@ export function StoresManagement({
       category: "JEWELRY",
       city: "",
       state: "",
-      pincode: "",
     },
   });
 
@@ -99,7 +98,6 @@ export function StoresManagement({
         category: "JEWELRY",
         city: "",
         state: "",
-        pincode: "",
       });
       setModalOpen(false);
     } catch {
@@ -272,19 +270,6 @@ export function StoresManagement({
                     <FormLabel>{admin.stores.modal.stateLabel}</FormLabel>
                     <FormControl>
                       <Input {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="pincode"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{admin.stores.modal.pincodeLabel}</FormLabel>
-                    <FormControl>
-                      <Input {...field} maxLength={6} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

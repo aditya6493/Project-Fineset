@@ -18,13 +18,13 @@ model Store {
   id          String        @id @default(cuid())
   name        String
   category    StoreCategory @default(JEWELRY)
-  pincodeHash String
   city        String
   state       String
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
+  appUsers   AppUser[]
   staff      Staff[]
   visits     Visit[]
   customers  Customer[]
@@ -35,19 +35,19 @@ model Staff {
   id           String    @id @default(cuid())
   name         String
   employeeId   String    @unique
-  passwordHash String
   role         StaffRole @default(STAFF)
   isActive     Boolean   @default(true)
   storeId      String
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
-  store           Store            @relation(fields: [storeId], references: [id], onDelete: Restrict)
-  visits          Visit[]
-  callLogs        StaffCallLog[]
-  fieldSales      FieldSale[]
+  appUser           AppUser?
+  store             Store              @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  visits            Visit[]
+  callLogs          StaffCallLog[]
+  fieldSales        FieldSale[]
   assignedFollowUps FollowUp[]
-  phoneRevealLogs PhoneRevealLog[]
+  phoneRevealLogs   PhoneRevealLog[]
 
   @@index([storeId, isActive])
 }
@@ -56,6 +56,48 @@ enum StaffRole {
   STAFF
   STORE_MANAGER
   MASTER_ADMIN
+}
+
+enum AppRole {
+  MASTER_ADMIN
+  STORE_MANAGER
+  STAFF
+}
+
+model AppUser {
+  id          String    @id @default(cuid())
+  authId      String    @unique
+  email       String    @unique
+  name        String
+  role        AppRole
+  storeId     String?
+  staffId     String?   @unique
+  isActive    Boolean   @default(false)
+  invitedAt   DateTime?
+  activatedAt DateTime?
+  lastLoginAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: Restrict)
+  staff Staff? @relation(fields: [staffId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, role, isActive])
+  @@index([email])
+}
+
+model AuthAuditLog {
+  id        String   @id @default(cuid())
+  authId    String?
+  email     String?
+  event     String
+  ip        String?
+  userAgent String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([email, createdAt(sort: Desc)])
+  @@index([event, createdAt(sort: Desc)])
 }
 
 model Customer {

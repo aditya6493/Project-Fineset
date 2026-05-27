@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
-import { hashCredential } from "@/lib/auth/credentials";
+import { inviteUser } from "@/lib/auth/invite-user";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
 import type { StaffPerformanceRow } from "@/types";
 import type { Prisma } from "@prisma/client";
@@ -60,15 +60,12 @@ export async function listStaff(storeId: string) {
 }
 
 export async function createStaff(storeId: string, input: CreateStaffInput) {
-  const passwordHash = await hashCredential(input.employeeId);
-  return prisma.staff.create({
-    data: {
-      name: input.name,
-      employeeId: input.employeeId,
-      passwordHash,
-      storeId,
-      role: "STAFF",
-    },
+  return inviteUser({
+    name: input.name,
+    email: input.email,
+    role: "STAFF",
+    storeId,
+    employeeId: input.employeeId,
   });
 }
 

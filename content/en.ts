@@ -20,6 +20,16 @@ export const content = {
     signOut: "Sign out",
   },
   auth: {
+    login: {
+      title: "Sign in to FineSet",
+      subtitle: "Use your work email and password",
+      submitLabel: "Sign In",
+      errorInvalid: "Invalid email or password",
+      errorInactive:
+        "Your account is not active. Open your invite email or contact your administrator.",
+      errorGeneric: "You do not have access to this portal.",
+      forgotPassword: "Forgot password?",
+    },
     staff: {
       title: "Staff Login",
       subtitle: "Sign in to access the staff portal",
@@ -608,6 +618,7 @@ export const content = {
     staff: {
       title: "Staff Management",
       addStaff: "Add Staff",
+      inviteSent: "Invitation email sent. They will set their own password.",
       columns: {
         name: "Name",
         employeeId: "Employee ID",
@@ -619,6 +630,7 @@ export const content = {
       modal: {
         title: "Add Staff Member",
         nameLabel: "Name",
+        emailLabel: "Work email",
         employeeIdLabel: "Employee ID",
       },
       active: "Active",

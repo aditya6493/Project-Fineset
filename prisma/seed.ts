@@ -1,5 +1,4 @@
 import { PrismaClient } from "@prisma/client";
-import { hashCredential } from "../lib/auth/credentials";
 import { prepareCustomerPii } from "../lib/services/pii";
 
 const prisma = new PrismaClient();
@@ -9,15 +8,8 @@ async function seedStore(data: {
   category: "JEWELRY" | "HANDBAGS" | "WATCHES" | "OTHER";
   city: string;
   state: string;
-  pincode: string;
 }) {
-  const { pincode, ...rest } = data;
-  return prisma.store.create({
-    data: {
-      ...rest,
-      pincodeHash: await hashCredential(pincode),
-    },
-  });
+  return prisma.store.create({ data });
 }
 
 async function seedStaff(data: {
@@ -29,7 +21,6 @@ async function seedStaff(data: {
     data: {
       name: data.name,
       employeeId: data.employeeId,
-      passwordHash: await hashCredential(data.employeeId),
       role: "STAFF",
       storeId: data.storeId,
     },
@@ -59,6 +50,8 @@ function customerPii(name: string, phone: string) {
 }
 
 async function main(): Promise<void> {
+  await prisma.authAuditLog.deleteMany();
+  await prisma.appUser.deleteMany();
   await prisma.followUp.deleteMany();
   await prisma.staffCallLog.deleteMany();
   await prisma.fieldSale.deleteMany();
@@ -72,7 +65,6 @@ async function main(): Promise<void> {
     category: "JEWELRY",
     city: "Hyderabad",
     state: "Telangana",
-    pincode: "500001",
   });
 
   const storeBeta = await seedStore({
@@ -80,7 +72,6 @@ async function main(): Promise<void> {
     category: "HANDBAGS",
     city: "Bengaluru",
     state: "Karnataka",
-    pincode: "560001",
   });
 
   const staffA = await seedStaff({
@@ -588,7 +579,7 @@ async function main(): Promise<void> {
     fieldSalesForStaffA: 2,
     followUps: 3,
     callLogs: 2,
-    loginHint: "Staff A → name: Staff Member A, ID: EMP001",
+    loginHint: "Run npm run auth:bootstrap-dev after seed for Supabase login accounts",
     sampleVisitId: visitAnita.id,
   });
 }

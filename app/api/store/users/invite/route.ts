@@ -1,0 +1,34 @@
+import { NextResponse } from "next/server";
+import { InviteError, inviteUser } from "@/lib/auth/invite-user";
+import {
+  badRequest,
+  forbidden,
+  getServerSession,
+  requireRole,
+  unauthorized,
+} from "@/lib/auth/session";
+import { storeInviteUserSchema } from "@/lib/validations/user-invite.schema";
+
+export async function POST(req: Request) {
+  const session = await getServerSession();
+  if (!session) return unauthorized();
+  if (!requireRole(session, ["STORE_MANAGER"])) return forbidden();
+
+  const body: unknown = await req.json();
+  const parsed = storeInviteUserSchema.safeParse(body);
+  if (!parsed.success) return badRequest(parsed.error.flatten());
+
+  try {
+    const result = await inviteUser({
+      ...parsed.data,
+      role: "STAFF",
+      storeId: session.storeId,
+    });
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    if (error instanceof InviteError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+    throw error;
+  }
+}

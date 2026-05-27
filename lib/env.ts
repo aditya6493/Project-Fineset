@@ -13,13 +13,18 @@ const envSchema = z.object({
     .enum(["development", "production", "test"])
     .default("development"),
   DATABASE_URL: optionalEnv(z.string().min(1).optional()),
+  NEXT_PUBLIC_SUPABASE_URL: optionalEnv(z.string().url().optional()),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: optionalEnv(z.string().min(1).optional()),
+  SUPABASE_SERVICE_ROLE_KEY: optionalEnv(z.string().min(1).optional()),
+  NEXT_PUBLIC_APP_URL: optionalEnv(z.string().url().optional()),
   AUTH_SECRET: optionalEnv(z.string().min(1).optional()),
   NEXTAUTH_SECRET: optionalEnv(z.string().min(1).optional()),
   ENCRYPTION_KEY: optionalEnv(z.string().length(64).optional()),
   UPSTASH_REDIS_REST_URL: optionalEnv(z.string().url().optional()),
   UPSTASH_REDIS_REST_TOKEN: optionalEnv(z.string().min(1).optional()),
-  ADMIN_EMAIL: optionalEnv(z.string().email().optional()),
-  ADMIN_PASSWORD_HASH: optionalEnv(z.string().min(1).optional()),
+  MASTER_ADMIN_EMAIL: optionalEnv(z.string().email().optional()),
+  MASTER_ADMIN_PASSWORD: optionalEnv(z.string().min(8).optional()),
+  MASTER_ADMIN_NAME: optionalEnv(z.string().min(1).optional()),
   SKIP_ENV_VALIDATION: optionalEnv(z.string().optional()),
 });
 
@@ -46,8 +51,14 @@ export function validateEnv(): void {
     const missing: string[] = [];
 
     if (!process.env.DATABASE_URL) missing.push("DATABASE_URL");
-    if (!process.env.AUTH_SECRET && !process.env.NEXTAUTH_SECRET) {
-      missing.push("AUTH_SECRET or NEXTAUTH_SECRET");
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
+      missing.push("NEXT_PUBLIC_SUPABASE_URL");
+    }
+    if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      missing.push("NEXT_PUBLIC_SUPABASE_ANON_KEY");
+    }
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      missing.push("SUPABASE_SERVICE_ROLE_KEY");
     }
     if (!process.env.ENCRYPTION_KEY) missing.push("ENCRYPTION_KEY");
     if (!process.env.UPSTASH_REDIS_REST_URL) missing.push("UPSTASH_REDIS_REST_URL");

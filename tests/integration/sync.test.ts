@@ -6,7 +6,11 @@ describe.skipIf(!process.env.DATABASE_URL)("sync version with database", () => {
   it("builds a version string for admin scope", async () => {
     await prisma.$connect();
     const payload = await computeSyncVersion(
-      { role: "MASTER_ADMIN" },
+      {
+        role: "MASTER_ADMIN",
+        userId: "test-admin",
+        email: "admin@test.local",
+      },
       ["stores"],
     );
     expect(payload.scope).toBe("all");
