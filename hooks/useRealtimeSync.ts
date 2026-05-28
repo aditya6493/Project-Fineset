@@ -25,8 +25,33 @@ export function useRealtimeSync(): void {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
 
-    function connect(): void {
+    async function ensureAuthorizedSession(): Promise<boolean> {
+      try {
+        const res = await fetch("/api/sync/state", {
+          method: "GET",
+          credentials: "same-origin",
+          cache: "no-store",
+        });
+        return res.ok;
+      } catch {
+        return false;
+      }
+    }
+
+    async function connect(): Promise<void> {
       if (disposed) return;
+      const authorized = await ensureAuthorizedSession();
+      if (!authorized) {
+        const delay = retryDelayRef.current;
+        retryDelayRef.current = Math.min(
+          delay * 2,
+          SSE_RECONNECT_MAX_MS,
+        );
+        retryTimer = setTimeout(() => {
+          void connect();
+        }, delay);
+        return;
+      }
 
       source = new EventSource("/api/sync/events");
 
@@ -72,11 +97,13 @@ export function useRealtimeSync(): void {
           SSE_RECONNECT_MAX_MS,
         );
 
-        retryTimer = setTimeout(connect, delay);
+        retryTimer = setTimeout(() => {
+          void connect();
+        }, delay);
       };
     }
 
-    connect();
+    void connect();
 
     return () => {
       disposed = true;
