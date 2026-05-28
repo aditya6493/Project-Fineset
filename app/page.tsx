@@ -13,16 +13,19 @@ import { Button } from "@/components/ui/button";
 export default function HomePage() {
   const portals = [
     {
+      id: "staff",
       href: "/login",
       label: content.home.portals.staff.label,
       description: content.home.portals.staff.description,
     },
     {
+      id: "store",
       href: "/login",
       label: content.home.portals.store.label,
       description: content.home.portals.store.description,
     },
     {
+      id: "admin",
       href: "/login",
       label: content.home.portals.admin.label,
       description: content.home.portals.admin.description,
@@ -44,7 +47,7 @@ export default function HomePage() {
 
         <div className="grid gap-4 sm:grid-cols-3">
           {portals.map((portal) => (
-            <Card key={portal.href} className="flex flex-col">
+            <Card key={portal.id} className="flex flex-col">
               <CardHeader>
                 <CardTitle className="text-lg">{portal.label}</CardTitle>
                 <CardDescription>{portal.description}</CardDescription>

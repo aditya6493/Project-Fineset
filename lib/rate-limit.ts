@@ -6,6 +6,8 @@ type RateLimitResult =
   | { success: true }
   | { success: false; retryAfterSeconds: number };
 
+const LIMITER_TIMEOUT_MS = 250;
+
 function isNextBuild(): boolean {
   return process.env.NEXT_PHASE === "phase-production-build";
 }
@@ -68,14 +70,33 @@ async function checkLimit(
   identifier: string,
 ): Promise<RateLimitResult> {
   if (!limiter) return { success: true };
+  try {
+    const result = await Promise.race([
+      limiter.limit(identifier),
+      new Promise<null>((resolve) => {
+        setTimeout(() => resolve(null), LIMITER_TIMEOUT_MS);
+      }),
+    ]);
 
-  const result = await limiter.limit(identifier);
-  if (result.success) return { success: true };
+    // Fail-open on limiter timeout to avoid auth/write latency spikes.
+    if (!result) {
+      console.warn("[rate-limit] timeout — bypassing limiter", {
+        timeoutMs: LIMITER_TIMEOUT_MS,
+      });
+      return { success: true };
+    }
 
-  return {
-    success: false,
-    retryAfterSeconds: Math.ceil((result.reset - Date.now()) / 1000),
-  };
+    if (result.success) return { success: true };
+
+    return {
+      success: false,
+      retryAfterSeconds: Math.ceil((result.reset - Date.now()) / 1000),
+    };
+  } catch (error) {
+    // Fail-open on transient Upstash/network errors.
+    console.warn("[rate-limit] check failed — bypassing limiter", error);
+    return { success: true };
+  }
 }
 
 export async function checkLoginRateLimit(

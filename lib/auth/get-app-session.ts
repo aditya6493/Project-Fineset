@@ -8,7 +8,20 @@ type AppUserWithRelations = AppUser & {
   staff: { employeeId: string } | null;
 };
 
-function toAppSession(profile: AppUserWithRelations, email: string): AppSession {
+async function getProfileByAuthId(authId: string): Promise<AppUserWithRelations | null> {
+  return prisma.appUser.findUnique({
+    where: { authId },
+    include: {
+      store: { select: { name: true } },
+      staff: { select: { employeeId: true } },
+    },
+  });
+}
+
+export function appSessionFromProfile(
+  profile: AppUserWithRelations,
+  email: string,
+): AppSession {
   const base = {
     userId: profile.id,
     email: email.toLowerCase(),
@@ -60,20 +73,21 @@ export async function getAppSession(): Promise<AppSession | null> {
     return null;
   }
 
-  const profile = await prisma.appUser.findUnique({
-    where: { authId: user.id },
-    include: {
-      store: { select: { name: true } },
-      staff: { select: { employeeId: true } },
-    },
-  });
+  return getAppSessionForAuthUser(user.id, user.email);
+}
+
+export async function getAppSessionForAuthUser(
+  authId: string,
+  email: string,
+): Promise<AppSession | null> {
+  const profile = await getProfileByAuthId(authId);
 
   if (!profile?.isActive) {
     return null;
   }
 
   try {
-    return toAppSession(profile, user.email);
+    return appSessionFromProfile(profile, email);
   } catch (err) {
     console.error("[getAppSession] invalid profile", profile.id, err);
     return null;
