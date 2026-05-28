@@ -53,6 +53,11 @@ export function SupabaseLoginForm({
           ? errorInvalid
           : null;
 
+  const sleep = (ms: number) =>
+    new Promise((resolve) => {
+      setTimeout(resolve, ms);
+    });
+
   async function signInWithRecovery(
     email: string,
     password: string,
@@ -70,6 +75,40 @@ export function SupabaseLoginForm({
     await supabase.auth.signOut({ scope: "local" });
     const secondTry = await supabase.auth.signInWithPassword({ email, password });
     return secondTry.error ? { message: secondTry.error.message } : null;
+  }
+
+  async function completeLoginWithRetry(): Promise<Response> {
+    const maxAttempts = 3;
+    let lastError: Error | null = null;
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        const res = await fetch("/api/auth/after-login", {
+          method: "POST",
+          credentials: "same-origin",
+          signal: controller.signal,
+        });
+        clearTimeout(timeout);
+
+        // Session cookie propagation can race on first request in production.
+        if (res.status === 401 && attempt < maxAttempts) {
+          await sleep(250 * attempt);
+          continue;
+        }
+        return res;
+      } catch (error) {
+        clearTimeout(timeout);
+        lastError = error instanceof Error ? error : new Error(String(error));
+        if (attempt < maxAttempts) {
+          await sleep(250 * attempt);
+          continue;
+        }
+      }
+    }
+
+    throw lastError ?? new Error("after-login failed");
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -122,23 +161,29 @@ export function SupabaseLoginForm({
       return;
     }
 
-    const completeRes = await fetch("/api/auth/after-login", {
-      method: "POST",
-      credentials: "same-origin",
-    });
+    let completeRes: Response;
+    try {
+      completeRes = await completeLoginWithRetry();
+    } catch {
+      setIsLoading(false);
+      setError(
+        "Login is delayed due to network/server timeout. Please wait a moment and try again.",
+      );
+      return;
+    }
     setIsLoading(false);
 
     if (!completeRes.ok) {
       if (completeRes.status === 403) {
         setError(errorInactive);
+        await supabase.auth.signOut();
       } else if (completeRes.status === 429) {
         setError("Too many attempts. Please wait a few minutes and try again.");
       } else {
         setError(
-          "Signed in, but account setup failed. Run auth:bootstrap or contact support.",
+          "Signed in, but account setup is still processing. Please wait 2-3 seconds and retry.",
         );
       }
-      await supabase.auth.signOut();
       return;
     }
 
