@@ -1,7 +1,10 @@
 import { getServerSession, requireRole, unauthorized } from "@/lib/auth/session";
 import { checkSseRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { syncBroadcaster } from "@/lib/sync/broadcaster";
-import { SSE_HEARTBEAT_MS } from "@/lib/sync/constants";
+import {
+  SSE_HEARTBEAT_MS,
+  SSE_SERVER_MAX_CONNECTION_MS,
+} from "@/lib/sync/constants";
 import { computeSyncVersion } from "@/lib/sync/version";
 
 export const runtime = "nodejs";
@@ -27,7 +30,22 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream({
     start(controller) {
+      let closed = false;
+      const close = () => {
+        if (closed) return;
+        closed = true;
+        clearInterval(heartbeat);
+        clearTimeout(forceCloseTimer);
+        unsubscribe();
+        try {
+          controller.close();
+        } catch {
+          // stream already closed
+        }
+      };
+
       function send(data: unknown): void {
+        if (closed) return;
         controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
       }
 
@@ -38,13 +56,17 @@ export async function GET(req: Request) {
       });
 
       const heartbeat = setInterval(() => {
+        if (closed) return;
         controller.enqueue(encoder.encode(": heartbeat\n\n"));
       }, SSE_HEARTBEAT_MS);
 
+      // Close before serverless hard timeout to avoid runtime timeout errors.
+      const forceCloseTimer = setTimeout(() => {
+        close();
+      }, SSE_SERVER_MAX_CONNECTION_MS);
+
       req.signal.addEventListener("abort", () => {
-        clearInterval(heartbeat);
-        unsubscribe();
-        controller.close();
+        close();
       });
     },
   });

@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  SSE_MAX_CONSECUTIVE_ERRORS,
   SSE_RECONNECT_BASE_MS,
   SSE_RECONNECT_MAX_MS,
 } from "@/lib/sync/constants";
@@ -17,6 +18,7 @@ export function useRealtimeSync(): void {
   const queryClient = useQueryClient();
   const lastVersionRef = useRef<string | null>(null);
   const retryDelayRef = useRef(SSE_RECONNECT_BASE_MS);
+  const consecutiveErrorsRef = useRef(0);
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -46,6 +48,7 @@ export function useRealtimeSync(): void {
 
           lastVersionRef.current = data.version;
           retryDelayRef.current = SSE_RECONNECT_BASE_MS;
+          consecutiveErrorsRef.current = 0;
         } catch {
           // ignore malformed events
         }
@@ -56,6 +59,12 @@ export function useRealtimeSync(): void {
         source = null;
 
         if (disposed) return;
+
+        consecutiveErrorsRef.current += 1;
+        if (consecutiveErrorsRef.current >= SSE_MAX_CONSECUTIVE_ERRORS) {
+          // Prevent infinite reconnect loops on persistent 401/network failures.
+          return;
+        }
 
         const delay = retryDelayRef.current;
         retryDelayRef.current = Math.min(
