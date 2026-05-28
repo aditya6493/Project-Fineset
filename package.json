@@ -21,6 +21,8 @@
     "db:seed": "dotenv -e .env.local -- tsx prisma/seed.ts",
     "auth:bootstrap": "dotenv -e .env.local -- tsx scripts/bootstrap-admin.ts",
     "auth:bootstrap-dev": "dotenv -e .env.local -- tsx scripts/bootstrap-dev-users.ts",
+    "auth:reset-password": "dotenv -e .env.local -- tsx scripts/reset-admin-password.ts",
+    "auth:diagnose": "dotenv -e .env.local -- tsx scripts/diagnose-auth.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "postinstall": "prisma generate"
   },

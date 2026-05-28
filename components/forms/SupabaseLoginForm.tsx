@@ -39,6 +39,7 @@ export function SupabaseLoginForm({
   const searchParams = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const callbackUrl = searchParams.get("callbackUrl");
   const urlError = searchParams.get("error");
@@ -52,6 +53,25 @@ export function SupabaseLoginForm({
           ? errorInvalid
           : null;
 
+  async function signInWithRecovery(
+    email: string,
+    password: string,
+  ): Promise<{ message: string } | null> {
+    const supabase = createClient();
+
+    const firstTry = await supabase.auth.signInWithPassword({ email, password });
+    if (!firstTry.error) return null;
+
+    // Stale browser refresh tokens can cause auth API failures.
+    if (!/refresh token/i.test(firstTry.error.message)) {
+      return { message: firstTry.error.message };
+    }
+
+    await supabase.auth.signOut({ scope: "local" });
+    const secondTry = await supabase.auth.signInWithPassword({ email, password });
+    return secondTry.error ? { message: secondTry.error.message } : null;
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setIsLoading(true);
@@ -63,26 +83,60 @@ export function SupabaseLoginForm({
       .toLowerCase();
     const password = String(formData.get("password") ?? "");
 
-    const supabase = createClient();
-    const { error: signInError } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-
-    if (signInError) {
+    let signInError: { message: string; name?: string } | null = null;
+    try {
+      signInError = await signInWithRecovery(email, password);
+    } catch (err) {
       setIsLoading(false);
-      setError(errorInvalid);
+      const message = err instanceof Error ? err.message : String(err);
+      if (/failed to fetch|network|timeout/i.test(message)) {
+        setError(
+          "Cannot reach Supabase (network timeout). Check internet, VPN/firewall, or try http://localhost:3000/login.",
+        );
+      } else {
+        setError(errorGeneric);
+      }
       return;
     }
 
-    const completeRes = await fetch("/api/auth/after-login", { method: "POST" });
+    if (signInError) {
+      setIsLoading(false);
+      if (/fetch|network|timeout/i.test(signInError.message)) {
+        setError(
+          "Cannot reach Supabase (network timeout). Check internet, VPN/firewall, or Supabase project status.",
+        );
+      } else {
+        setError(errorInvalid);
+      }
+      return;
+    }
+
+    // Ensure session cookies are written before the server route runs.
+    const supabase = createClient();
+    const { data: sessionData, error: sessionError } =
+      await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      setIsLoading(false);
+      setError(errorGeneric);
+      await supabase.auth.signOut();
+      return;
+    }
+
+    const completeRes = await fetch("/api/auth/after-login", {
+      method: "POST",
+      credentials: "same-origin",
+    });
     setIsLoading(false);
 
     if (!completeRes.ok) {
       if (completeRes.status === 403) {
         setError(errorInactive);
+      } else if (completeRes.status === 429) {
+        setError("Too many attempts. Please wait a few minutes and try again.");
       } else {
-        setError(errorInvalid);
+        setError(
+          "Signed in, but account setup failed. Run auth:bootstrap or contact support.",
+        );
       }
       await supabase.auth.signOut();
       return;
@@ -147,14 +201,25 @@ export function SupabaseLoginForm({
           </div>
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type="password"
-              placeholder="••••••••"
-              required
-              autoComplete="current-password"
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                name="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                required
+                autoComplete="current-password"
+                className="pr-24"
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                className="absolute right-1 top-1 h-8 px-2 text-xs"
+                onClick={() => setShowPassword((prev) => !prev)}
+              >
+                {showPassword ? "Hide" : "Show"}
+              </Button>
+            </div>
           </div>
 
           {(error || initialError) && (
