@@ -33,15 +33,14 @@ export function useCustomerLookupPrefill({
   setValue,
 }: UseCustomerLookupPrefillOptions) {
   const customerPhone = watch("customerPhone");
-  const [status, setStatus] = useState<CustomerLookupStatus>("idle");
+  const normalizedPhone = customerPhone.replace(/\D/g, "");
+  const hasFullPhone = normalizedPhone.length === 10;
+  const [lookupStatus, setLookupStatus] = useState<CustomerLookupStatus>("idle");
   const lastLookedUpPhoneRef = useRef<string | null>(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
-    const normalizedPhone = customerPhone.replace(/\D/g, "");
-
-    if (normalizedPhone.length !== 10) {
-      setStatus("idle");
+    if (!hasFullPhone) {
       if (normalizedPhone.length < 10) {
         lastLookedUpPhoneRef.current = null;
       }
@@ -52,7 +51,7 @@ export function useCustomerLookupPrefill({
       return;
     }
 
-    setStatus("loading");
+    setLookupStatus("loading");
     const requestId = ++requestIdRef.current;
 
     const timer = setTimeout(() => {
@@ -63,7 +62,7 @@ export function useCustomerLookupPrefill({
           lastLookedUpPhoneRef.current = normalizedPhone;
 
           if (!customer) {
-            setStatus("not_found");
+            setLookupStatus("not_found");
             return;
           }
 
@@ -79,18 +78,20 @@ export function useCustomerLookupPrefill({
           }
           setValue("customerType", "REPEAT", { shouldDirty: true });
 
-          setStatus("found");
+          setLookupStatus("found");
         })
         .catch(() => {
           if (requestId !== requestIdRef.current) return;
-          setStatus("idle");
+          setLookupStatus("idle");
         });
     }, LOOKUP_DEBOUNCE_MS);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [customerPhone, setValue]);
+  }, [hasFullPhone, normalizedPhone, setValue]);
+
+  const status: CustomerLookupStatus = hasFullPhone ? lookupStatus : "idle";
 
   return { lookupStatus: status };
 }

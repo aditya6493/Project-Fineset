@@ -32,7 +32,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   mark("exchangeCodeForSession");
 
-  if (error || !data.user?.email) {
+  if (error || !data.user) {
     logCallback("exchange_failed", {
       totalMs: Date.now() - startedAt,
       timings,
@@ -41,8 +41,17 @@ export async function GET(request: Request) {
   }
 
   const user = data.user;
+  const email = user.email;
+  if (!email) {
+    logCallback("exchange_failed", {
+      totalMs: Date.now() - startedAt,
+      timings,
+      reason: "missing_email",
+    });
+    return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+  }
 
-  const profile = await activateProfileForAuthUser(user.id, user.email, {
+  const profile = await activateProfileForAuthUser(user.id, email, {
     awaitMetadataSync: true,
   });
   mark("activateProfile");
@@ -54,7 +63,7 @@ export async function GET(request: Request) {
 
   let role = profile.role;
   try {
-    const session = appSessionFromProfile(profile, user.email);
+    const session = appSessionFromProfile(profile, email);
     role = session.role;
   } catch (err) {
     console.error("[auth.callback] invalid profile", profile.id, err);
