@@ -26,7 +26,8 @@ cp .env.example .env.local
 
 Fill in:
 
-- `DATABASE_URL` — Supabase Postgres connection string
+- `DATABASE_URL` — Supabase Postgres connection string (use **transaction pooler** URL in production: `*.pooler.supabase.com:6543?pgbouncer=true`)
+- `DIRECT_URL` — Direct Postgres URL for Prisma migrations only (`db.*.supabase.co:5432`; locally can match `DATABASE_URL`)
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only (invites, bootstrap)
@@ -86,6 +87,10 @@ Open [http://localhost:3000/login](http://localhost:3000/login).
 - **Prisma `AppUser`** stores role, store assignment, and active status.
 - **Staff** table remains for visit attribution (`employeeId`, metrics).
 - Admins invite users by email; users set their own password via invite link.
+- Login uses a **server action** (`signInAction`) — one server round trip, cookies set before redirect.
+- Dashboard session resolution is **metadata-first** (JWT `app_metadata`) with Prisma fallback.
+- Target: **Sign In → dashboard shell visible in under 2s p95** (measure with `npm run auth:latency` or Playwright when `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` are set).
+- Align Vercel region (`vercel.json`), Supabase project, Upstash, and DB pooler in the same region.
 
 ## Project Structure
 

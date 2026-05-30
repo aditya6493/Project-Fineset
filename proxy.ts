@@ -1,7 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { createServerClient } from "@supabase/ssr";
-import { getSupabaseAnonKey, getSupabaseUrl } from "@/lib/supabase/env";
 
 const PROTECTED_PREFIXES = [
   { prefix: "/staff/dashboard", role: "STAFF" },
@@ -10,7 +8,7 @@ const PROTECTED_PREFIXES = [
 ] as const;
 
 export async function proxy(request: NextRequest) {
-  const response = await updateSession(request);
+  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
   const protectedRoute = PROTECTED_PREFIXES.find((r) =>
@@ -20,26 +18,6 @@ export async function proxy(request: NextRequest) {
   if (!protectedRoute) {
     return response;
   }
-
-  const supabase = createServerClient(getSupabaseUrl(), getSupabaseAnonKey(), {
-    cookies: {
-      getAll() {
-        return request.cookies.getAll();
-      },
-      setAll(cookiesToSet) {
-        cookiesToSet.forEach(({ name, value }) => {
-          request.cookies.set(name, value);
-        });
-        cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options);
-        });
-      },
-    },
-  });
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   if (!user) {
     const loginUrl = new URL("/login", request.url);

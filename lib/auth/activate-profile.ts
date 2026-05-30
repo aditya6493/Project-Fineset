@@ -9,12 +9,40 @@ type AppUserWithRelations = AppUser & {
   staff: { employeeId: string } | null;
 };
 
+function buildAppMetadata(profile: AppUserWithRelations) {
+  return {
+    role: profile.role,
+    storeId: profile.storeId,
+    staffId: profile.staffId,
+    appUserId: profile.id,
+    name: profile.name,
+    storeName: profile.store?.name ?? null,
+    employeeId: profile.staff?.employeeId ?? null,
+    isActive: profile.isActive,
+  };
+}
+
+async function syncSupabaseMetadata(
+  authId: string,
+  profile: AppUserWithRelations,
+): Promise<void> {
+  try {
+    const supabase = createAdminClient();
+    await supabase.auth.admin.updateUserById(authId, {
+      app_metadata: buildAppMetadata(profile),
+    });
+  } catch (error) {
+    console.error("[activate-profile] metadata sync failed", authId, error);
+  }
+}
+
 /**
- * Mark AppUser active after successful auth callback (invite acceptance or first login).
+ * Mark AppUser active after successful auth callback or password login.
  */
 export async function activateProfileForAuthUser(
   authId: string,
   email: string,
+  options: { awaitMetadataSync?: boolean } = {},
 ): Promise<AppUserWithRelations | null> {
   const profile = await prisma.appUser.findUnique({
     where: { authId },
@@ -43,57 +71,37 @@ export async function activateProfileForAuthUser(
       data: {
         isActive: true,
         activatedAt: now,
+        lastLoginAt: now,
       },
     });
     profile.isActive = true;
     profile.activatedAt = now;
-  }
+    profile.lastLoginAt = now;
 
-  // Non-critical bookkeeping: don't block login response.
-  void prisma.appUser
-    .update({
-      where: { id: profile.id },
-      data: { lastLoginAt: now },
-    })
-    .catch((error) => {
-      console.error("[activate-profile] lastLogin update failed", profile.id, error);
-    });
-
-  if (isFirstActivation) {
     void logAuthEvent({
       event: "USER_ACTIVATED",
       authId,
       email: profile.email,
     });
+  } else {
+    void prisma.appUser
+      .update({
+        where: { id: profile.id },
+        data: { lastLoginAt: now },
+      })
+      .catch((error) => {
+        console.error("[activate-profile] lastLogin update failed", profile.id, error);
+      });
   }
 
-  // Metadata sync is non-blocking for login response.
-  void syncSupabaseMetadata(authId, profile);
+  const shouldAwaitSync = options.awaitMetadataSync || isFirstActivation;
+  if (shouldAwaitSync) {
+    await syncSupabaseMetadata(authId, profile);
+  } else {
+    void syncSupabaseMetadata(authId, profile);
+  }
+
   return profile;
-}
-
-async function syncSupabaseMetadata(
-  authId: string,
-  profile: {
-    role: string;
-    storeId: string | null;
-    staffId: string | null;
-    id: string;
-  },
-): Promise<void> {
-  try {
-    const supabase = createAdminClient();
-    await supabase.auth.admin.updateUserById(authId, {
-      app_metadata: {
-        role: profile.role,
-        storeId: profile.storeId,
-        staffId: profile.staffId,
-        appUserId: profile.id,
-      },
-    });
-  } catch (error) {
-    console.error("[activate-profile] metadata sync failed", authId, error);
-  }
 }
 
 export async function syncAuthMetadataForSession(
@@ -101,17 +109,21 @@ export async function syncAuthMetadataForSession(
   session: AppSession,
 ): Promise<void> {
   try {
+    const profile = await prisma.appUser.findUnique({
+      where: { id: session.userId },
+      include: {
+        store: { select: { name: true } },
+        staff: { select: { employeeId: true } },
+      },
+    });
+
+    if (!profile) {
+      return;
+    }
+
     const supabase = createAdminClient();
     await supabase.auth.admin.updateUserById(authId, {
-      app_metadata: {
-        role: session.role,
-        storeId:
-          session.role === "MASTER_ADMIN"
-            ? null
-            : session.storeId,
-        staffId: session.role === "STAFF" ? session.staffId : null,
-        appUserId: session.userId,
-      },
+      app_metadata: buildAppMetadata(profile),
     });
   } catch (error) {
     console.error("[activate-profile] session metadata sync failed", authId, error);

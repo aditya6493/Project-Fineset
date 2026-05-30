@@ -86,14 +86,6 @@ export async function inviteUser(
 
   const authId = invited.user.id;
 
-  await supabase.auth.admin.updateUserById(authId, {
-    app_metadata: {
-      role: input.role,
-      storeId: input.storeId ?? null,
-      staffId: staffId ?? null,
-    },
-  });
-
   const appUser = await prisma.appUser.create({
     data: {
       authId,
@@ -104,6 +96,34 @@ export async function inviteUser(
       staffId,
       isActive: false,
       invitedAt: new Date(),
+    },
+  });
+
+  let storeName: string | null = null;
+  let employeeId: string | null = null;
+
+  if (input.storeId) {
+    const store = await prisma.store.findUnique({
+      where: { id: input.storeId },
+      select: { name: true },
+    });
+    storeName = store?.name ?? null;
+  }
+
+  if (staffId) {
+    employeeId = input.employeeId ?? null;
+  }
+
+  await supabase.auth.admin.updateUserById(authId, {
+    app_metadata: {
+      role: input.role,
+      storeId: input.storeId ?? null,
+      staffId: staffId ?? null,
+      appUserId: appUser.id,
+      name,
+      storeName,
+      employeeId,
+      isActive: false,
     },
   });
 

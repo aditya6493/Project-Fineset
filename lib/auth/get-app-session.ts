@@ -1,4 +1,7 @@
+import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
+import { syncAuthMetadataForSession } from "@/lib/auth/activate-profile";
+import { appSessionFromSupabaseUser } from "@/lib/auth/session-from-metadata";
 import { createClient } from "@/lib/supabase/server";
 import type { AppSession } from "@/types";
 import type { AppRole, AppUser, Store } from "@prisma/client";
@@ -62,7 +65,7 @@ export function appSessionFromProfile(
   }
 }
 
-export async function getAppSession(): Promise<AppSession | null> {
+async function resolveAppSession(): Promise<AppSession | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -73,8 +76,21 @@ export async function getAppSession(): Promise<AppSession | null> {
     return null;
   }
 
-  return getAppSessionForAuthUser(user.id, user.email);
+  const fromMetadata = appSessionFromSupabaseUser(user);
+  if (fromMetadata) {
+    return fromMetadata;
+  }
+
+  const session = await getAppSessionForAuthUser(user.id, user.email);
+  if (session) {
+    void syncAuthMetadataForSession(user.id, session);
+  }
+
+  return session;
 }
+
+/** Request-scoped session resolution with metadata-first fast path. */
+export const getAppSession = cache(resolveAppSession);
 
 export async function getAppSessionForAuthUser(
   authId: string,

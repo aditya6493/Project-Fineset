@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { signInAction } from "@/lib/auth/sign-in-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +14,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { getRedirectForRole } from "@/lib/auth/routes";
-import type { UserRole } from "@/types";
 
 interface SupabaseLoginFormProps {
   title: string;
@@ -37,9 +36,10 @@ export function SupabaseLoginForm({
 }: SupabaseLoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const submitGuardRef = useRef(false);
 
   const callbackUrl = searchParams.get("callbackUrl");
   const urlError = searchParams.get("error");
@@ -53,67 +53,19 @@ export function SupabaseLoginForm({
           ? errorInvalid
           : null;
 
-  const sleep = (ms: number) =>
-    new Promise((resolve) => {
-      setTimeout(resolve, ms);
-    });
-
-  async function signInWithRecovery(
-    email: string,
-    password: string,
-  ): Promise<{ message: string } | null> {
-    const supabase = createClient();
-
-    const firstTry = await supabase.auth.signInWithPassword({ email, password });
-    if (!firstTry.error) return null;
-
-    // Stale browser refresh tokens can cause auth API failures.
-    if (!/refresh token/i.test(firstTry.error.message)) {
-      return { message: firstTry.error.message };
-    }
-
-    await supabase.auth.signOut({ scope: "local" });
-    const secondTry = await supabase.auth.signInWithPassword({ email, password });
-    return secondTry.error ? { message: secondTry.error.message } : null;
-  }
-
-  async function completeLoginWithRetry(): Promise<Response> {
-    const maxAttempts = 3;
-    let lastError: Error | null = null;
-
-    for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8000);
-      try {
-        const res = await fetch("/api/auth/after-login", {
-          method: "POST",
-          credentials: "same-origin",
-          signal: controller.signal,
-        });
-        clearTimeout(timeout);
-
-        // Session cookie propagation can race on first request in production.
-        if (res.status === 401 && attempt < maxAttempts) {
-          await sleep(250 * attempt);
-          continue;
-        }
-        return res;
-      } catch (error) {
-        clearTimeout(timeout);
-        lastError = error instanceof Error ? error : new Error(String(error));
-        if (attempt < maxAttempts) {
-          await sleep(250 * attempt);
-          continue;
-        }
-      }
-    }
-
-    throw lastError ?? new Error("after-login failed");
-  }
+  useEffect(() => {
+    router.prefetch("/staff/dashboard");
+    router.prefetch("/store/dashboard");
+    router.prefetch("/admin/dashboard");
+  }, [router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    setIsLoading(true);
+    if (submitGuardRef.current || isPending) {
+      return;
+    }
+
+    submitGuardRef.current = true;
     setError(null);
 
     const formData = new FormData(event.currentTarget);
@@ -122,79 +74,42 @@ export function SupabaseLoginForm({
       .toLowerCase();
     const password = String(formData.get("password") ?? "");
 
-    let signInError: { message: string; name?: string } | null = null;
-    try {
-      signInError = await signInWithRecovery(email, password);
-    } catch (err) {
-      setIsLoading(false);
-      const message = err instanceof Error ? err.message : String(err);
-      if (/failed to fetch|network|timeout/i.test(message)) {
-        setError(
-          "Cannot reach Supabase (network timeout). Check internet, VPN/firewall, or try http://localhost:3000/login.",
-        );
-      } else {
-        setError(errorGeneric);
+    startTransition(async () => {
+      try {
+        const result = await signInAction(email, password, callbackUrl);
+
+        if (!result.ok) {
+          submitGuardRef.current = false;
+          switch (result.code) {
+            case "invalid_credentials":
+              setError(errorInvalid);
+              break;
+            case "inactive":
+              setError(errorInactive);
+              break;
+            case "rate_limited":
+              setError("Too many attempts. Please wait a few minutes and try again.");
+              break;
+            default:
+              setError(errorGeneric);
+          }
+          return;
+        }
+
+        // Full navigation keeps loading state until redirect completes.
+        window.location.assign(result.redirectTo);
+      } catch (err) {
+        submitGuardRef.current = false;
+        const message = err instanceof Error ? err.message : String(err);
+        if (/failed to fetch|network|timeout/i.test(message)) {
+          setError(
+            "Cannot reach the server (network timeout). Check your connection and try again.",
+          );
+        } else {
+          setError(errorGeneric);
+        }
       }
-      return;
-    }
-
-    if (signInError) {
-      setIsLoading(false);
-      if (/fetch|network|timeout/i.test(signInError.message)) {
-        setError(
-          "Cannot reach Supabase (network timeout). Check internet, VPN/firewall, or Supabase project status.",
-        );
-      } else {
-        setError(errorInvalid);
-      }
-      return;
-    }
-
-    // Ensure session cookies are written before the server route runs.
-    const supabase = createClient();
-    const { data: sessionData, error: sessionError } =
-      await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      setIsLoading(false);
-      setError(errorGeneric);
-      await supabase.auth.signOut();
-      return;
-    }
-
-    let completeRes: Response;
-    try {
-      completeRes = await completeLoginWithRetry();
-    } catch {
-      setIsLoading(false);
-      setError(
-        "Login is delayed due to network/server timeout. Please wait a moment and try again.",
-      );
-      return;
-    }
-    setIsLoading(false);
-
-    if (!completeRes.ok) {
-      if (completeRes.status === 403) {
-        setError(errorInactive);
-        await supabase.auth.signOut();
-      } else if (completeRes.status === 429) {
-        setError("Too many attempts. Please wait a few minutes and try again.");
-      } else {
-        setError(
-          "Signed in, but account setup is still processing. Please wait 2-3 seconds and retry.",
-        );
-      }
-      return;
-    }
-
-    const body = (await completeRes.json()) as { role: UserRole };
-    const destination =
-      callbackUrl && callbackUrl.startsWith("/")
-        ? callbackUrl
-        : getRedirectForRole(body.role);
-
-    router.push(destination);
-    router.refresh();
+    });
   }
 
   async function handleForgotPassword() {
@@ -205,7 +120,6 @@ export function SupabaseLoginForm({
       return;
     }
 
-    setIsLoading(true);
     setError(null);
 
     const supabase = createClient();
@@ -214,16 +128,15 @@ export function SupabaseLoginForm({
       redirectTo,
     });
 
-    setIsLoading(false);
-
     if (resetError) {
       setError(errorGeneric);
       return;
     }
 
-    setError(null);
     alert("If an account exists, a reset link has been sent to your email.");
   }
+
+  const isLoading = isPending;
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -242,6 +155,7 @@ export function SupabaseLoginForm({
               placeholder="you@example.com"
               required
               autoComplete="username"
+              disabled={isLoading}
             />
           </div>
           <div className="space-y-2">
@@ -255,12 +169,14 @@ export function SupabaseLoginForm({
                 required
                 autoComplete="current-password"
                 className="pr-24"
+                disabled={isLoading}
               />
               <Button
                 type="button"
                 variant="ghost"
                 className="absolute right-1 top-1 h-8 px-2 text-xs"
                 onClick={() => setShowPassword((prev) => !prev)}
+                disabled={isLoading}
               >
                 {showPassword ? "Hide" : "Show"}
               </Button>
@@ -274,7 +190,7 @@ export function SupabaseLoginForm({
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
-            {isLoading ? "…" : submitLabel}
+            {isLoading ? "Signing in…" : submitLabel}
           </Button>
 
           <Button
