@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { content } from "@/content/en";
+import { RestoreSessionRedirect } from "@/components/auth/RestoreSessionRedirect";
 import { SupabaseLoginForm } from "@/components/forms/SupabaseLoginForm";
 import { Logo } from "@/components/shared/Logo";
 import { isDevAuthBypassEnabled } from "@/lib/auth/dev-bypass";
@@ -35,6 +36,7 @@ export function LoginScreen({ showLogo = false }: LoginScreenProps) {
             <code className="text-xs">staff-a@store-alpha.local</code> with any password.
           </p>
         ) : null}
+        {!devBypass ? <RestoreSessionRedirect /> : null}
         <Suspense fallback={<div className="text-text-secondary">{content.common.loading}</div>}>
           <SupabaseLoginForm
             title={c.title}

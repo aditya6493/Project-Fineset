@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { shouldUseSecureAuthCookies } from "@/lib/supabase/cookie-options";
 import type { AppSession, UserRole } from "@/types";
 
 export const DEV_SESSION_COOKIE = "fineset-dev-session";
@@ -87,9 +88,9 @@ export async function setDevSessionCookie(session: DevSessionCookie): Promise<vo
   cookieStore.set(DEV_SESSION_COOKIE, serializeDevSessionCookie(session), {
     httpOnly: true,
     sameSite: "lax",
-    secure: false,
+    secure: shouldUseSecureAuthCookies(),
     path: "/",
-    maxAge: 60 * 60 * 24 * 7,
+    maxAge: 60 * 60 * 24 * 400,
   });
 }
 
