@@ -215,6 +215,7 @@ enum SourceChannel {
   SOCIAL_MEDIA
   INTERNET
   PHONE
+  USER_CALLS
   TANISHQ_REF
   CARATLANE_REF
   OTHER
@@ -333,8 +334,8 @@ model FieldSale {
   profession          String?
   activityType        FieldActivityType
   locationLabel       String?
-  schemesPitched      SchemeProduct[]
-  enrollmentOutcome   SchemeEnrollmentOutcome
+  schemesPitched      SchemeProduct[]          @default([])
+  enrollmentOutcome   SchemeEnrollmentOutcome?
   monthlyCommitment   Float?
   intentTier          IntentTier?
   reasonNoEnrollment  FieldDeclineReason?

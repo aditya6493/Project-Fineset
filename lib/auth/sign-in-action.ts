@@ -1,6 +1,11 @@
 "use server";
 
 import { completeLoginForSupabaseUser, logLoginSuccess } from "@/lib/auth/complete-login";
+import {
+  createDevSessionForEmail,
+  isDevAuthBypassEnabled,
+  setDevSessionCookie,
+} from "@/lib/auth/dev-bypass";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import { isMetadataComplete } from "@/lib/auth/session-from-metadata";
 import { logAuthEvent } from "@/lib/auth/audit";
@@ -38,6 +43,28 @@ export async function signInAction(
   const normalizedEmail = email.trim().toLowerCase();
   if (!normalizedEmail || !password) {
     return { ok: false, code: "generic" };
+  }
+
+  if (isDevAuthBypassEnabled()) {
+    const session = await createDevSessionForEmail(normalizedEmail);
+
+    await setDevSessionCookie({
+      email: normalizedEmail,
+      role: session.role,
+    });
+
+    const redirectTo =
+      callbackUrl && callbackUrl.startsWith("/")
+        ? callbackUrl
+        : getRedirectForRole(session.role);
+
+    logSignIn("dev_bypass_success", {
+      totalMs: Date.now() - startedAt,
+      role: session.role,
+      email: normalizedEmail,
+    });
+
+    return { ok: true, redirectTo };
   }
 
   const identifier = await getRequestIdentifier();

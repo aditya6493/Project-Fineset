@@ -37,7 +37,9 @@ export function FieldSaleCard({ item, labels, showStoreName = false }: FieldSale
 
       <div className="mt-3 flex flex-wrap gap-2">
         <Badge variant="secondary">{formatLabel(item.activityType)}</Badge>
-        <Badge variant="default">{formatLabel(item.enrollmentOutcome)}</Badge>
+        {item.enrollmentOutcome && (
+          <Badge variant="default">{formatLabel(item.enrollmentOutcome)}</Badge>
+        )}
         {item.monthlyCommitment != null && (
           <Badge variant="success">{formatCurrency(item.monthlyCommitment)}/mo</Badge>
         )}
@@ -48,9 +50,11 @@ export function FieldSaleCard({ item, labels, showStoreName = false }: FieldSale
         )}
       </div>
 
-      <p className="mt-2 text-sm text-text-secondary">
-        {labels.schemes}: {item.schemesPitched.map(formatLabel).join(", ")}
-      </p>
+      {item.schemesPitched.length > 0 && (
+        <p className="mt-2 text-sm text-text-secondary">
+          {labels.schemes}: {item.schemesPitched.map(formatLabel).join(", ")}
+        </p>
+      )}
 
       {item.reasonNoEnrollment && (
         <p className="mt-1 text-sm text-text-muted">

@@ -1,12 +1,16 @@
 import { prisma } from "@/lib/db/prisma";
 import type { AnalyticsPeriod, RsoPerformanceRow, StoreRsoPerformance } from "@/types";
-import type { PurchaseStatus } from "@prisma/client";
 import {
   calculateSalesGrowthPercent,
   getPeriodRange,
   getPreviousPeriodRange,
 } from "@/lib/utils/analytics";
-import { formatGrowthLabel, formatRevenueLakhs } from "@/lib/utils/formatters";
+import { formatGrowthLabel, formatPercent, formatRevenueLakhs } from "@/lib/utils/formatters";
+import {
+  calculateVisitDataEntryScore,
+  type VisitDataEntryInput,
+} from "@/lib/utils/visit-data-entry-score";
+import type { PurchaseStatus } from "@prisma/client";
 
 interface StaffPeriodStats {
   staffId: string;
@@ -19,6 +23,8 @@ interface StaffPeriodStats {
   purchased: number;
   notPurchased: number;
   schemesEnrolled: number;
+  dataEntryScoreSum: number;
+  dataEntryVisitCount: number;
 }
 
 function isWithinRange(date: Date, start: Date, end: Date): boolean {
@@ -43,23 +49,28 @@ function buildPeriodSalesLabel(sales: number, period: AnalyticsPeriod["label"]):
 
 function accumulateCurrentPeriodVisitStats(
   stats: StaffPeriodStats,
-  purchaseStatus: PurchaseStatus,
-  schemeEnrolled: boolean,
-  transactionAmount: number | null,
+  visit: VisitDataEntryInput & {
+    purchaseStatus: PurchaseStatus;
+    schemeEnrolled: boolean;
+    transactionAmount: number | null;
+  },
 ): void {
   stats.customersAttended += 1;
 
-  if (purchaseStatus === "PURCHASED") {
+  if (visit.purchaseStatus === "PURCHASED") {
     stats.purchased += 1;
     stats.currentPeriodSales += 1;
-    stats.currentPeriodRevenue += transactionAmount ?? 0;
-  } else if (purchaseStatus === "NOT_PURCHASED") {
+    stats.currentPeriodRevenue += visit.transactionAmount ?? 0;
+  } else if (visit.purchaseStatus === "NOT_PURCHASED") {
     stats.notPurchased += 1;
   }
 
-  if (schemeEnrolled) {
+  if (visit.schemeEnrolled) {
     stats.schemesEnrolled += 1;
   }
+
+  stats.dataEntryScoreSum += calculateVisitDataEntryScore(visit);
+  stats.dataEntryVisitCount += 1;
 }
 
 function toPerformanceRow(stats: StaffPeriodStats): RsoPerformanceRow {
@@ -67,6 +78,10 @@ function toPerformanceRow(stats: StaffPeriodStats): RsoPerformanceRow {
     stats.currentPeriodRevenue,
     stats.previousPeriodRevenue,
   );
+  const dataEntryScorePercent =
+    stats.dataEntryVisitCount > 0
+      ? Math.round(stats.dataEntryScoreSum / stats.dataEntryVisitCount)
+      : 0;
 
   return {
     staffId: stats.staffId,
@@ -75,6 +90,8 @@ function toPerformanceRow(stats: StaffPeriodStats): RsoPerformanceRow {
     purchased: stats.purchased,
     notPurchased: stats.notPurchased,
     schemesEnrolled: stats.schemesEnrolled,
+    dataEntryScorePercent,
+    dataEntryScoreLabel: formatPercent(dataEntryScorePercent, 0),
     growthPercent,
     growthLabel: formatGrowthLabel(growthPercent),
     growthTone:
@@ -112,6 +129,8 @@ export async function getStoreRsoPerformance(
         purchased: 0,
         notPurchased: 0,
         schemesEnrolled: 0,
+        dataEntryScoreSum: 0,
+        dataEntryVisitCount: 0,
       },
     ]),
   );
@@ -127,6 +146,26 @@ export async function getStoreRsoPerformance(
       purchaseStatus: true,
       transactionAmount: true,
       schemeEnrolled: true,
+      outTime: true,
+      area: true,
+      gender: true,
+      ageGroup: true,
+      productsPurchased: true,
+      productsExplored: true,
+      intentTier: true,
+      reasonNoPurchase: true,
+      competitorMention: true,
+      purchaseOccasion: true,
+      metalKtPref: true,
+      budgetStated: true,
+      schemesPitched: true,
+      enrollmentOutcome: true,
+      monthlyCommitment: true,
+      reasonNoEnrollment: true,
+      schemeCompetitorMention: true,
+      followUpNeeded: true,
+      followUpDate: true,
+      staffNotes: true,
     },
   });
 
@@ -142,12 +181,7 @@ export async function getStoreRsoPerformance(
     }
 
     if (isWithinRange(visit.visitDate, currentRange.start, currentRange.end)) {
-      accumulateCurrentPeriodVisitStats(
-        stats,
-        visit.purchaseStatus,
-        visit.schemeEnrolled,
-        visit.transactionAmount,
-      );
+      accumulateCurrentPeriodVisitStats(stats, visit);
     }
   }
 
@@ -186,6 +220,10 @@ export async function getStoreRsoPerformance(
 
   return {
     period,
+    periodRange: {
+      start: currentRange.start.toISOString(),
+      end: currentRange.end.toISOString(),
+    },
     rows,
     topPerformer: topPerformerCandidate
       ? {

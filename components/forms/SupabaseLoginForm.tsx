@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
 import { signInAction } from "@/lib/auth/sign-in-action";
+import { requestPasswordResetAction } from "@/lib/auth/request-password-reset-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,6 +23,11 @@ interface SupabaseLoginFormProps {
   errorInactive: string;
   errorGeneric: string;
   forgotPasswordLabel: string;
+  forgotPasswordEmailRequired: string;
+  resetEmailSent: string;
+  resetEmailError: string;
+  resetEmailRateLimited: string;
+  resetSuccessMessage?: string;
 }
 
 export function SupabaseLoginForm({
@@ -33,16 +38,24 @@ export function SupabaseLoginForm({
   errorInactive,
   errorGeneric,
   forgotPasswordLabel,
+  forgotPasswordEmailRequired,
+  resetEmailSent,
+  resetEmailError,
+  resetEmailRateLimited,
+  resetSuccessMessage,
 }: SupabaseLoginFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
+  const [isResetPending, startResetTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const submitGuardRef = useRef(false);
 
   const callbackUrl = searchParams.get("callbackUrl");
   const urlError = searchParams.get("error");
+  const resetSuccess = searchParams.get("reset") === "success";
 
   const initialError =
     urlError === "account_inactive"
@@ -57,6 +70,7 @@ export function SupabaseLoginForm({
     router.prefetch("/staff/dashboard");
     router.prefetch("/store/dashboard");
     router.prefetch("/admin/dashboard");
+    router.prefetch("/reset-password");
   }, [router]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -67,6 +81,7 @@ export function SupabaseLoginForm({
 
     submitGuardRef.current = true;
     setError(null);
+    setResetMessage(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "")
@@ -96,7 +111,6 @@ export function SupabaseLoginForm({
           return;
         }
 
-        // Full navigation keeps loading state until redirect completes.
         window.location.assign(result.redirectTo);
       } catch (err) {
         submitGuardRef.current = false;
@@ -112,31 +126,41 @@ export function SupabaseLoginForm({
     });
   }
 
-  async function handleForgotPassword() {
+  function handleForgotPassword() {
     const emailInput = document.getElementById("email") as HTMLInputElement | null;
     const email = emailInput?.value?.trim().toLowerCase();
     if (!email) {
-      setError("Enter your email first, then click forgot password.");
+      setResetMessage(null);
+      setError(forgotPasswordEmailRequired);
       return;
     }
 
     setError(null);
+    setResetMessage(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/login`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
+    startResetTransition(async () => {
+      const result = await requestPasswordResetAction(email);
+
+      if (!result.ok) {
+        switch (result.code) {
+          case "invalid_email":
+            setError(forgotPasswordEmailRequired);
+            break;
+          case "rate_limited":
+            setError(resetEmailRateLimited);
+            break;
+          default:
+            setError(resetEmailError);
+        }
+        return;
+      }
+
+      setResetMessage(resetEmailSent);
     });
-
-    if (resetError) {
-      setError(errorGeneric);
-      return;
-    }
-
-    alert("If an account exists, a reset link has been sent to your email.");
   }
 
   const isLoading = isPending;
+  const isForgotLoading = isResetPending;
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -155,7 +179,7 @@ export function SupabaseLoginForm({
               placeholder="you@example.com"
               required
               autoComplete="username"
-              disabled={isLoading}
+              disabled={isLoading || isForgotLoading}
             />
           </div>
           <div className="space-y-2">
@@ -169,19 +193,31 @@ export function SupabaseLoginForm({
                 required
                 autoComplete="current-password"
                 className="pr-24"
-                disabled={isLoading}
+                disabled={isLoading || isForgotLoading}
               />
               <Button
                 type="button"
                 variant="ghost"
                 className="absolute right-1 top-1 h-8 px-2 text-xs"
                 onClick={() => setShowPassword((prev) => !prev)}
-                disabled={isLoading}
+                disabled={isLoading || isForgotLoading}
               >
                 {showPassword ? "Hide" : "Show"}
               </Button>
             </div>
           </div>
+
+          {resetSuccess && resetSuccessMessage && (
+            <p className="text-sm text-status-success" role="status">
+              {resetSuccessMessage}
+            </p>
+          )}
+
+          {resetMessage && (
+            <p className="text-sm text-status-success" role="status">
+              {resetMessage}
+            </p>
+          )}
 
           {(error || initialError) && (
             <p className="text-sm text-status-error" role="alert">
@@ -189,7 +225,7 @@ export function SupabaseLoginForm({
             </p>
           )}
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full" disabled={isLoading || isForgotLoading}>
             {isLoading ? "Signing in…" : submitLabel}
           </Button>
 
@@ -197,10 +233,10 @@ export function SupabaseLoginForm({
             type="button"
             variant="ghost"
             className="w-full text-sm"
-            disabled={isLoading}
+            disabled={isLoading || isForgotLoading}
             onClick={handleForgotPassword}
           >
-            {forgotPasswordLabel}
+            {isForgotLoading ? "Sending reset link…" : forgotPasswordLabel}
           </Button>
         </form>
       </CardContent>

@@ -22,8 +22,8 @@ export function StoreRsoPerformanceSection({
   periodLabels,
   period,
   emptyMessage,
-  errorLabel = "Unable to load RSO performance.",
-  retryLabel = "Retry",
+  errorLabel,
+  retryLabel,
 }: StoreRsoPerformanceSectionProps) {
   const { data, isLoading, isError, refetch } = useStoreRsoPerformance({ period });
   const periodLabel = periodLabels[period];
@@ -32,14 +32,17 @@ export function StoreRsoPerformanceSection({
   return (
     <RsoPerformanceView
       title={title}
+      subtitle={copy.subtitle}
       copy={copy}
       data={data}
       isLoading={isLoading}
       isError={isError}
-      errorLabel={errorLabel}
-      retryLabel={retryLabel}
+      errorLabel={errorLabel ?? copy.error}
+      retryLabel={retryLabel ?? copy.retry}
       onRetry={() => void refetch()}
       emptyMessage={emptyMessage}
+      periodLabel={periodLabel}
+      collapsible
     />
   );
 }

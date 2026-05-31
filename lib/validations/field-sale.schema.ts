@@ -35,7 +35,7 @@ export const createFieldSaleSchema = z
     activityDate: z.coerce.date().optional(),
     startTime: z.coerce.date().optional(),
     endTime: z.coerce.date().optional(),
-    schemesPitched: z.array(schemeProductSchema).min(1),
+    schemesPitched: z.array(schemeProductSchema).default([]),
     enrollmentOutcome: schemeEnrollmentOutcomeSchema.optional(),
     monthlyCommitment: z.coerce.number().positive().optional(),
     intentTier: intentTierSchema.optional(),
@@ -46,7 +46,7 @@ export const createFieldSaleSchema = z
     staffNotes: z.string().max(500).optional(),
   })
   .superRefine((data, ctx) => {
-    refineSchemeFields(data, ctx, { requireOutcome: true });
+    refineSchemeFields(data, ctx);
 
     if (data.followUpNeeded && !data.followUpDate) {
       ctx.addIssue({
@@ -86,6 +86,7 @@ export const getFieldSalesQuerySchema = z.object({
   staffId: z.string().optional(),
   search: z.string().optional(),
   enrollmentOutcome: schemeEnrollmentOutcomeSchema.optional(),
+  activityType: fieldActivityTypeSchema.optional(),
 });
 
 export type GetFieldSalesQuery = z.infer<typeof getFieldSalesQuerySchema>;

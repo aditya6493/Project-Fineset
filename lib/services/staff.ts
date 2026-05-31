@@ -63,6 +63,7 @@ export async function createStaff(storeId: string, input: CreateStaffInput) {
   return inviteUser({
     name: input.name,
     email: input.email,
+    password: input.password,
     role: "STAFF",
     storeId,
     employeeId: input.employeeId,

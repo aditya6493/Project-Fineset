@@ -3,7 +3,9 @@ import type {
   AdminDashboardOverview,
   AnalyticsData,
   GetAnalyticsParams,
+  StoreCallAnalytics,
   StoreDetailAnalytics,
+  StoreFieldSaleAnalytics,
   StoreRsoPerformance,
 } from "@/types";
 
@@ -36,6 +38,20 @@ export async function getStoreRsoPerformance(
 ): Promise<StoreRsoPerformance> {
   const qs = buildQueryString(params);
   return apiFetch<StoreRsoPerformance>(`/api/analytics/store/rso-performance${qs}`);
+}
+
+export async function getStoreCallAnalytics(
+  params: GetAnalyticsParams = {},
+): Promise<StoreCallAnalytics> {
+  const qs = buildQueryString(params);
+  return apiFetch<StoreCallAnalytics>(`/api/analytics/store/calls${qs}`);
+}
+
+export async function getStoreFieldSaleAnalytics(
+  params: GetAnalyticsParams = {},
+): Promise<StoreFieldSaleAnalytics> {
+  const qs = buildQueryString(params);
+  return apiFetch<StoreFieldSaleAnalytics>(`/api/analytics/store/field-sales${qs}`);
 }
 
 export async function getAdminStoreRsoPerformance(

@@ -25,6 +25,7 @@ export const portalCallsQuerySchema = paginationQuerySchema.extend({
   storeId: z.string().optional(),
   staffId: z.string().optional(),
   search: z.string().optional(),
+  intentTier: z.enum(["HOT", "WARM", "COLD", "BROWSING"]).optional(),
 });
 
 export type PortalCallsQuery = z.infer<typeof portalCallsQuerySchema>;

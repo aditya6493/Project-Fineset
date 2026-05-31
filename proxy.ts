@@ -1,4 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
+import {
+  getDevSessionFromRequest,
+  isDevAuthBypassEnabled,
+} from "@/lib/auth/dev-bypass";
 import { updateSession } from "@/lib/supabase/middleware";
 
 const PROTECTED_PREFIXES = [
@@ -8,7 +12,6 @@ const PROTECTED_PREFIXES = [
 ] as const;
 
 export async function proxy(request: NextRequest) {
-  const { response, user } = await updateSession(request);
   const { pathname } = request.nextUrl;
 
   const protectedRoute = PROTECTED_PREFIXES.find((r) =>
@@ -16,18 +19,42 @@ export async function proxy(request: NextRequest) {
   );
 
   if (!protectedRoute) {
+    if (isDevAuthBypassEnabled()) {
+      return NextResponse.next({ request });
+    }
+
+    const { response } = await updateSession(request);
     return response;
   }
 
+  if (isDevAuthBypassEnabled()) {
+    const devSession = getDevSessionFromRequest(request);
+    if (!devSession) {
+      const loginUrl = new URL("/", request.url);
+      loginUrl.searchParams.set("callbackUrl", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    if (devSession.role !== protectedRoute.role) {
+      const loginUrl = new URL("/", request.url);
+      loginUrl.searchParams.set("error", "wrong_portal");
+      return NextResponse.redirect(loginUrl);
+    }
+
+    return NextResponse.next({ request });
+  }
+
+  const { response, user } = await updateSession(request);
+
   if (!user) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   const metadataRole = user.app_metadata?.role as string | undefined;
   if (metadataRole && metadataRole !== protectedRoute.role) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/", request.url);
     loginUrl.searchParams.set("error", "wrong_portal");
     return NextResponse.redirect(loginUrl);
   }

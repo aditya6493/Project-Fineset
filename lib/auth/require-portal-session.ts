@@ -10,7 +10,7 @@ export async function requirePortalSession(
   const session = await getAppSession();
 
   if (!session) {
-    redirect("/login");
+    redirect("/");
   }
 
   if (!roles.includes(session.role)) {

@@ -3,7 +3,9 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Sparkles } from "lucide-react";
 import { createStaffSchema, type CreateStaffInput } from "@/lib/validations/staff.schema";
+import { generateSecurePassword } from "@/lib/auth/generate-password";
 import { useCreateStaff, useStoreStaff, useUpdateStaff } from "@/hooks/useStaff";
 import { toast } from "@/hooks/useToast";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
@@ -45,6 +47,7 @@ export function StaffManagement({
 }: StaffManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const { data, isLoading } = useStoreStaff({ initialData: initialStaff });
   const createStaffMutation = useCreateStaff();
@@ -52,8 +55,27 @@ export function StaffManagement({
 
   const form = useForm<CreateStaffInput>({
     resolver: zodResolver(createStaffSchema),
-    defaultValues: { name: "", email: "", employeeId: "" },
+    defaultValues: { name: "", email: "", employeeId: "", password: "" },
   });
+
+  function handleSuggestPassword() {
+    const password = generateSecurePassword();
+    form.setValue("password", password, {
+      shouldDirty: true,
+      shouldTouch: true,
+      shouldValidate: true,
+    });
+    setShowPassword(true);
+  }
+
+  function handleModalChange(open: boolean) {
+    setModalOpen(open);
+    if (!open) {
+      form.reset();
+      setSubmitError(null);
+      setShowPassword(false);
+    }
+  }
 
   async function onSubmit(values: CreateStaffInput) {
     setSubmitError(null);
@@ -61,9 +83,10 @@ export function StaffManagement({
       await createStaffMutation.mutateAsync(values);
       toast({
         title: store.staff.addStaff,
-        description: store.staff.inviteSent,
+        description: store.staff.accountCreated,
       });
       form.reset();
+      setShowPassword(false);
       setModalOpen(false);
     } catch {
       setSubmitError(errors.generic);
@@ -156,7 +179,7 @@ export function StaffManagement({
         </div>
       )}
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog open={modalOpen} onOpenChange={handleModalChange}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>{store.staff.modal.title}</DialogTitle>
@@ -198,6 +221,54 @@ export function StaffManagement({
                     <FormControl>
                       <Input {...field} className="uppercase" />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between gap-2">
+                      <FormLabel>{store.staff.modal.passwordLabel}</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-2 py-1 text-xs text-brand-gold"
+                        onClick={handleSuggestPassword}
+                      >
+                        <Sparkles className="mr-1 size-3.5" aria-hidden="true" />
+                        {store.staff.modal.suggestPassword}
+                      </Button>
+                    </div>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          {...field}
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder={store.staff.modal.passwordPlaceholder}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => setShowPassword((value) => !value)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="size-4 text-text-muted" aria-hidden="true" />
+                          ) : (
+                            <Eye className="size-4 text-text-muted" aria-hidden="true" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <p className="text-xs text-text-muted">{store.staff.modal.passwordHint}</p>
                     <FormMessage />
                   </FormItem>
                 )}

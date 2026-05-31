@@ -56,15 +56,22 @@ export function PortalCallsLog({
 }: PortalCallsLogProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
-  const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState(currentMonth);
-  const [segment, setSegment] = useState<StaffCallSegment>("ALL");
-  const [valueTier, setValueTier] = useState<StaffCallValueTier>("ALL");
-  const [queue, setQueue] = useState<StaffCallQueue>("ALL");
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [year, setYear] = useState(initialPortalCallsParams?.year ?? currentYear);
+  const [month, setMonth] = useState(initialPortalCallsParams?.month ?? currentMonth);
+  const [segment, setSegment] = useState<StaffCallSegment>(
+    initialPortalCallsParams?.segment ?? "ALL",
+  );
+  const [valueTier, setValueTier] = useState<StaffCallValueTier>(
+    initialPortalCallsParams?.valueTier ?? "ALL",
+  );
+  const [queue, setQueue] = useState<StaffCallQueue>(
+    initialPortalCallsParams?.queue ?? "ALL",
+  );
+  const [page, setPage] = useState(initialPortalCallsParams?.page ?? 1);
+  const [search, setSearch] = useState(initialPortalCallsParams?.search ?? "");
   const [storeFilter, setStoreFilter] = useState(initialStoreId ?? "all");
-  const [staffFilter, setStaffFilter] = useState("all");
+  const [staffFilter, setStaffFilter] = useState(initialPortalCallsParams?.staffId ?? "all");
+  const intentTierFilter = initialPortalCallsParams?.intentTier;
 
   const queryParams = useMemo<GetPortalCallsParams>(
     () => ({
@@ -78,6 +85,7 @@ export function PortalCallsLog({
       search: search || undefined,
       storeId: showStoreFilter && storeFilter !== "all" ? storeFilter : undefined,
       staffId: staffFilter !== "all" ? staffFilter : undefined,
+      intentTier: intentTierFilter,
     }),
     [
       year,
@@ -90,6 +98,7 @@ export function PortalCallsLog({
       showStoreFilter,
       storeFilter,
       staffFilter,
+      intentTierFilter,
     ],
   );
 
@@ -232,6 +241,12 @@ export function PortalCallsLog({
         onSegmentChange={(value) => resetPage(setSegment, value as StaffCallSegment)}
         onValueTierChange={(value) => resetPage(setValueTier, value as StaffCallValueTier)}
       />
+
+      {intentTierFilter && (
+        <p className="rounded-md border border-border bg-surface-secondary px-3 py-2 text-sm text-text-secondary">
+          {copy.intentFilterActive.replace("{intent}", copy.intentTierLabels[intentTierFilter])}
+        </p>
+      )}
 
       <QueryLoadState
         isLoading={isLoading}

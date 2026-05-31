@@ -49,12 +49,14 @@ export function PortalFieldSalesLog({
 }: PortalFieldSalesLogProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
-  const [year, setYear] = useState(currentYear);
-  const [month, setMonth] = useState(currentMonth);
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [year, setYear] = useState(initialFieldSalesParams?.year ?? currentYear);
+  const [month, setMonth] = useState(initialFieldSalesParams?.month ?? currentMonth);
+  const [page, setPage] = useState(initialFieldSalesParams?.page ?? 1);
+  const [search, setSearch] = useState(initialFieldSalesParams?.search ?? "");
   const [storeFilter, setStoreFilter] = useState(initialStoreId ?? "all");
-  const [staffFilter, setStaffFilter] = useState("all");
+  const [staffFilter, setStaffFilter] = useState(initialFieldSalesParams?.staffId ?? "all");
+  const enrollmentOutcomeFilter = initialFieldSalesParams?.enrollmentOutcome;
+  const activityTypeFilter = initialFieldSalesParams?.activityType;
 
   const queryParams = useMemo<GetFieldSalesListParams>(
     () => ({
@@ -65,8 +67,20 @@ export function PortalFieldSalesLog({
       search: search || undefined,
       storeId: showStoreFilter && storeFilter !== "all" ? storeFilter : undefined,
       staffId: staffFilter !== "all" ? staffFilter : undefined,
+      enrollmentOutcome: enrollmentOutcomeFilter,
+      activityType: activityTypeFilter,
     }),
-    [year, month, page, search, showStoreFilter, storeFilter, staffFilter],
+    [
+      year,
+      month,
+      page,
+      search,
+      showStoreFilter,
+      storeFilter,
+      staffFilter,
+      enrollmentOutcomeFilter,
+      activityTypeFilter,
+    ],
   );
 
   const { data, isLoading, isError, refetch } = useFieldSalesList(queryParams, {
@@ -180,6 +194,12 @@ export function PortalFieldSalesLog({
           setPage(1);
         }}
       />
+
+      {(enrollmentOutcomeFilter || activityTypeFilter) && (
+        <p className="rounded-md border border-border bg-surface-secondary px-3 py-2 text-sm text-text-secondary">
+          {copy.analyticsFilterActive}
+        </p>
+      )}
 
       <QueryLoadState
         isLoading={isLoading}

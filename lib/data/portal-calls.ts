@@ -10,6 +10,7 @@ export interface InitialPortalCallsPayload {
 
 export async function fetchInitialPortalCalls(
   storeId?: string,
+  overrides?: GetPortalCallsParams,
 ): Promise<InitialPortalCallsPayload | null> {
   const session = await getServerSession();
   if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
@@ -21,7 +22,11 @@ export async function fetchInitialPortalCalls(
     resolvedStoreId = session.storeId;
   }
 
-  const params = defaultPortalCallsParams(resolvedStoreId);
+  const params: GetPortalCallsParams = {
+    ...defaultPortalCallsParams(resolvedStoreId),
+    ...overrides,
+    storeId: resolvedStoreId ?? overrides?.storeId,
+  };
   const data = await listPortalCalls({
     page: params.page ?? 1,
     pageSize: params.pageSize ?? 15,
@@ -33,6 +38,7 @@ export async function fetchInitialPortalCalls(
     storeId: params.storeId,
     staffId: params.staffId,
     search: params.search,
+    intentTier: params.intentTier,
   });
 
   return { params, data };

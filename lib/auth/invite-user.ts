@@ -1,14 +1,45 @@
 import { prisma } from "@/lib/db/prisma";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { validatePassword } from "@/lib/auth/password-policy";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAuthRedirectBaseUrl } from "@/lib/supabase/env";
 import type { InviteUserInput } from "@/lib/validations/user-invite.schema";
 import type { AppRole } from "@prisma/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface InviteUserResult {
   appUserId: string;
   email: string;
   role: AppRole;
+}
+
+async function createSupabaseAuthUser(
+  supabase: SupabaseClient,
+  email: string,
+  password: string,
+  name: string,
+  role: AppRole,
+): Promise<string> {
+  const { data: created, error: createError } =
+    await supabase.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: { name, role },
+    });
+
+  if (!createError && created.user) {
+    return created.user.id;
+  }
+
+  if (createError?.message.includes("already been registered")) {
+    throw new InviteError("This email is already registered", 409);
+  }
+
+  throw new InviteError(
+    createError?.message ?? "Failed to create auth user",
+    502,
+  );
 }
 
 export async function inviteUser(
@@ -57,34 +88,63 @@ export async function inviteUser(
     staffId = staff.id;
   }
 
-  const redirectTo = `${getAuthRedirectBaseUrl()}/auth/callback`;
   const supabase = createAdminClient();
+  const now = new Date();
+  let authId: string;
+  let provisionedWithPassword = false;
 
-  const { data: invited, error: inviteError } =
-    await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo,
-      data: {
-        name,
-        role: input.role,
-      },
-    });
-
-  if (inviteError || !invited.user) {
-    if (staffId) {
-      await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+  if (input.password) {
+    const passwordCheck = validatePassword(input.password);
+    if (!passwordCheck.success) {
+      if (staffId) {
+        await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+      }
+      throw new InviteError(passwordCheck.error ?? "Invalid password", 400);
     }
-    await logAuthEvent({
-      event: "INVITE_FAILED",
-      email,
-      metadata: { reason: inviteError?.message ?? "unknown" },
-    });
-    throw new InviteError(
-      inviteError?.message ?? "Failed to send invitation",
-      502,
-    );
-  }
 
-  const authId = invited.user.id;
+    try {
+      authId = await createSupabaseAuthUser(
+        supabase,
+        email,
+        input.password,
+        name,
+        input.role,
+      );
+      provisionedWithPassword = true;
+    } catch (error) {
+      if (staffId) {
+        await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+      }
+      throw error;
+    }
+  } else {
+    const redirectTo = `${getAuthRedirectBaseUrl()}/auth/callback`;
+    const { data: invited, error: inviteError } =
+      await supabase.auth.admin.inviteUserByEmail(email, {
+        redirectTo,
+        data: {
+          name,
+          role: input.role,
+        },
+      });
+
+    if (inviteError || !invited.user) {
+      if (staffId) {
+        await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+      }
+      await logAuthEvent({
+        event: "INVITE_FAILED",
+        email,
+        metadata: { reason: inviteError?.message ?? "unknown" },
+      });
+      throw new InviteError(
+        inviteError?.message ?? "Failed to send invitation",
+        502,
+      );
+    }
+
+    authId = invited.user.id;
+  }
 
   const appUser = await prisma.appUser.create({
     data: {
@@ -94,8 +154,9 @@ export async function inviteUser(
       role: input.role,
       storeId: input.storeId,
       staffId,
-      isActive: false,
-      invitedAt: new Date(),
+      isActive: provisionedWithPassword,
+      invitedAt: now,
+      activatedAt: provisionedWithPassword ? now : undefined,
     },
   });
 
@@ -123,12 +184,12 @@ export async function inviteUser(
       name,
       storeName,
       employeeId,
-      isActive: false,
+      isActive: provisionedWithPassword,
     },
   });
 
   await logAuthEvent({
-    event: "INVITE_SENT",
+    event: provisionedWithPassword ? "USER_CREATED_WITH_PASSWORD" : "INVITE_SENT",
     authId,
     email,
     metadata: { role: input.role, storeId: input.storeId, appUserId: appUser.id },

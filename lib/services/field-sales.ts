@@ -36,10 +36,7 @@ export async function createFieldSale(
     ...fieldData
   } = params;
 
-  const enrollmentOutcome = params.enrollmentOutcome;
-  if (!enrollmentOutcome) {
-    throw new Error("Enrollment outcome is required");
-  }
+  const enrollmentOutcome = params.enrollmentOutcome ?? null;
 
   const customerPii = prepareCustomerPii(customerName, customerPhone);
   const enrollmentFlags = resolveSchemeEnrollmentFlags(enrollmentOutcome);
@@ -85,7 +82,7 @@ export async function createFieldSale(
     const fieldSale = await tx.fieldSale.create({
       data: {
         ...fieldData,
-        enrollmentOutcome,
+        enrollmentOutcome: enrollmentOutcome ?? undefined,
         activityDate: activityDate ?? new Date(),
         startTime: resolvedStart,
         endTime: resolvedEnd,
@@ -139,6 +136,7 @@ interface ListFieldSalesParams {
   month: number;
   search?: string;
   enrollmentOutcome?: CreateFieldSaleInput["enrollmentOutcome"];
+  activityType?: CreateFieldSaleInput["activityType"];
 }
 
 function monthRange(year: number, month: number) {
@@ -156,6 +154,7 @@ function buildFieldSaleWhere(params: ListFieldSalesParams): Prisma.FieldSaleWher
   if (params.storeId) where.storeId = params.storeId;
   if (params.staffId) where.staffId = params.staffId;
   if (params.enrollmentOutcome) where.enrollmentOutcome = params.enrollmentOutcome;
+  if (params.activityType) where.activityType = params.activityType;
 
   if (params.search?.trim()) {
     const normalizedPhone = params.search.replace(/\D/g, "");

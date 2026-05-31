@@ -157,6 +157,8 @@ export interface RsoPerformanceRow {
   purchased: number;
   notPurchased: number;
   schemesEnrolled: number;
+  dataEntryScorePercent: number;
+  dataEntryScoreLabel: string;
   growthPercent: number;
   growthLabel: string;
   growthTone: "positive" | "negative" | "neutral";
@@ -166,6 +168,7 @@ export interface RsoPerformanceRow {
 
 export interface StoreRsoPerformance {
   period: AnalyticsPeriodLabel;
+  periodRange: { start: string; end: string };
   rows: RsoPerformanceRow[];
   topPerformer: {
     staffId: string;
@@ -179,6 +182,170 @@ export interface StoreRsoPerformance {
     growthLabel: string;
     salesProgressLabel: string;
   } | null;
+}
+
+export interface StoreCallBreakdownRow {
+  label: string;
+  total: number;
+  answered: number;
+  notAnswered: number;
+  answerRatePercent: number;
+}
+
+export interface StoreCallStaffRow {
+  staffId: string;
+  staffName: string;
+  totalCalls: number;
+  answered: number;
+  notAnswered: number;
+  answerRatePercent: number;
+  callToConversionPercent: number;
+  uniqueVisitsCalled: number;
+  callsWithFeedback: number;
+}
+
+export interface StoreCallAnalyticsSummary {
+  totalCalls: number;
+  answered: number;
+  notAnswered: number;
+  answerRatePercent: number;
+  activeStaffCount: number;
+  avgCallsPerStaff: number;
+  callsWithFeedback: number;
+  feedbackRatePercent: number;
+  avgFeedbackLength: number;
+  eligiblePool: number;
+  coverageRatePercent: number;
+  answeredCallsConverted: number;
+  callToConversionPercent: number;
+  storeVisitsFromCalls: number;
+  storeVisitsFromCallsPurchased: number;
+  storeVisitsFromCallsConversionPercent: number;
+}
+
+export interface StoreCallAnalyticsDeltas {
+  totalCalls: number;
+  answered: number;
+  notAnswered: number;
+  answerRatePercent: number;
+  coverageRatePercent: number;
+  callToConversionPercent: number;
+  storeVisitsFromCalls: number;
+}
+
+export interface StoreCallAnalytics {
+  period: AnalyticsPeriodLabel;
+  periodRange: { start: string; end: string };
+  summary: StoreCallAnalyticsSummary;
+  deltas: StoreCallAnalyticsDeltas;
+  staffBreakdown: StoreCallStaffRow[];
+  byCustomerType: StoreCallBreakdownRow[];
+  byPurchaseStatus: StoreCallBreakdownRow[];
+  byValueTier: StoreCallBreakdownRow[];
+  byIntentTier: StoreCallBreakdownRow[];
+  notesInsights: {
+    themes: Array<{ key: string; label: string; count: number }>;
+    recentSnippets: string[];
+    aiSummary: string | null;
+    aiSummaryAvailable: boolean;
+  };
+  highlights: {
+    bestAnswerRate: {
+      staffId: string;
+      staffName: string;
+      answerRatePercent: number;
+      answerRateLabel: string;
+    } | null;
+    needsAttention: Array<{
+      staffId: string;
+      staffName: string;
+      notAnswered: number;
+      answerRatePercent: number;
+    }>;
+  };
+}
+
+export interface StoreFieldSaleBreakdownRow {
+  label: string;
+  total: number;
+  enrolled: number;
+  followUpNeeded: number;
+  enrollmentRatePercent: number;
+}
+
+export interface StoreFieldSaleStaffRow {
+  staffId: string;
+  staffName: string;
+  totalVisits: number;
+  enrolled: number;
+  enrollmentRatePercent: number;
+  followUpNeeded: number;
+  followUpsConverted: number;
+  uniqueAreas: number;
+  visitsWithNotes: number;
+}
+
+export interface StoreFieldSaleAnalyticsSummary {
+  totalVisits: number;
+  uniqueAreas: number;
+  enrolled: number;
+  enrollmentRatePercent: number;
+  interested: number;
+  declined: number;
+  followUpRequired: number;
+  convertedFollowUps: number;
+  followUpConversionPercent: number;
+}
+
+export interface StoreFieldSaleAnalyticsDeltas {
+  totalVisits: number;
+  enrolled: number;
+  enrollmentRatePercent: number;
+  followUpRequired: number;
+  followUpConversionPercent: number;
+}
+
+export interface StoreFieldSaleAnalytics {
+  period: AnalyticsPeriodLabel;
+  periodRange: { start: string; end: string };
+  summary: StoreFieldSaleAnalyticsSummary;
+  deltas: StoreFieldSaleAnalyticsDeltas;
+  staffBreakdown: StoreFieldSaleStaffRow[];
+  dailyTrend: Array<{
+    date: string;
+    total: number;
+    enrolled: number;
+    followUpNeeded: number;
+    interested: number;
+    declined: number;
+    enrollmentRatePercent: number;
+  }>;
+  byActivityType: StoreFieldSaleBreakdownRow[];
+  byEnrollmentOutcome: StoreFieldSaleBreakdownRow[];
+  byCustomerType: StoreFieldSaleBreakdownRow[];
+  byIntentTier: StoreFieldSaleBreakdownRow[];
+  byDeclineReason: StoreFieldSaleBreakdownRow[];
+  byArea: StoreFieldSaleBreakdownRow[];
+  followUpStatus: Array<{ label: string; status: string; count: number }>;
+  notesInsights: {
+    themes: Array<{ key: string; label: string; count: number }>;
+    recentSnippets: string[];
+    aiSummary: string | null;
+    aiSummaryAvailable: boolean;
+  };
+  highlights: {
+    bestEnrollmentRate: {
+      staffId: string;
+      staffName: string;
+      enrollmentRatePercent: number;
+      enrollmentRateLabel: string;
+    } | null;
+    needsAttention: Array<{
+      staffId: string;
+      staffName: string;
+      enrollmentRatePercent: number;
+    }>;
+  };
 }
 
 export interface VisitListItem {
@@ -340,6 +507,7 @@ export interface GetPortalCallsParams {
   storeId?: string;
   staffId?: string;
   search?: string;
+  intentTier?: IntentTier;
 }
 
 export interface FieldSaleListItem {
@@ -356,7 +524,7 @@ export interface FieldSaleListItem {
   activityType: string;
   locationLabel: string | null;
   schemesPitched: string[];
-  enrollmentOutcome: string;
+  enrollmentOutcome: string | null;
   monthlyCommitment: number | null;
   intentTier: string | null;
   reasonNoEnrollment: string | null;
@@ -389,6 +557,7 @@ export interface GetFieldSalesListParams {
   staffId?: string;
   search?: string;
   enrollmentOutcome?: string;
+  activityType?: string;
 }
 
 export interface StoreDetailAnalytics {

@@ -42,9 +42,13 @@ export function PortalShell({
       clearVisitDraft();
       queryClient.clear();
       await fetch("/api/auth/signout", { method: "POST" });
-      const supabase = createClient();
-      await supabase.auth.signOut();
-      router.replace("/login");
+      try {
+        const supabase = createClient();
+        await supabase.auth.signOut();
+      } catch {
+        // Dev bypass or offline Supabase — cookie sign-out above is enough.
+      }
+      router.replace("/");
       router.refresh();
     } catch {
       setIsSigningOut(false);
@@ -69,7 +73,7 @@ export function PortalShell({
       >
         Skip to main content
       </a>
-      <header className="sticky top-0 z-10 border-b border-border bg-surface-card shadow-sm">
+      <header className="sticky top-0 z-10 border-b border-border bg-surface-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-page-x py-4 sm:px-page-md">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2.5">
@@ -109,7 +113,7 @@ export function PortalShell({
         </div>
         {navItems.length > 0 && (
           <nav
-            className="flex h-14 items-center gap-2 overflow-x-auto border-t border-border px-page-x sm:hidden"
+            className="flex h-14 items-center gap-2 overflow-x-auto border-t border-border px-page-x [scrollbar-width:none] [-ms-overflow-style:none] sm:hidden [&::-webkit-scrollbar]:hidden"
             aria-label="Main navigation"
           >
             {navItems.map((item) => (
@@ -130,7 +134,7 @@ export function PortalShell({
           </nav>
         )}
       </header>
-      <main id="main-content" className="mx-auto max-w-7xl px-page-x py-6 sm:px-page-md">
+      <main id="main-content" className="mx-auto min-w-0 max-w-7xl px-page-x py-6 sm:px-page-md">
         {children}
       </main>
     </div>

@@ -30,7 +30,7 @@ export function KPICard({
   return (
     <div
       className={cn(
-        "min-w-0 overflow-hidden rounded-card border border-border bg-surface-card p-3 shadow-card sm:p-5",
+        "min-w-0 overflow-hidden rounded-card border border-border bg-surface-card p-3 sm:p-5",
         className,
       )}
     >

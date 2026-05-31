@@ -17,7 +17,7 @@
   --text-secondary: #4b4b4b;
   --text-muted: #9ca3af;
   --border: #e5e0d8;
-  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.06);
+  --shadow-card: none;
 
   --status-success: #22c55e;
   --status-warning: #f59e0b;

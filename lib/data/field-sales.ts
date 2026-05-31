@@ -11,6 +11,7 @@ export interface InitialFieldSalesPayload {
 
 export async function fetchInitialFieldSales(
   storeId?: string,
+  overrides?: GetFieldSalesListParams,
 ): Promise<InitialFieldSalesPayload | null> {
   const session = await getServerSession();
   if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
@@ -22,7 +23,11 @@ export async function fetchInitialFieldSales(
     resolvedStoreId = session.storeId;
   }
 
-  const params = defaultFieldSalesParams(resolvedStoreId);
+  const params: GetFieldSalesListParams = {
+    ...defaultFieldSalesParams(resolvedStoreId),
+    ...overrides,
+    storeId: resolvedStoreId ?? overrides?.storeId,
+  };
   const data = await listFieldSales({
     page: params.page ?? 1,
     pageSize: params.pageSize ?? 15,
@@ -32,8 +37,9 @@ export async function fetchInitialFieldSales(
     staffId: params.staffId,
     search: params.search,
     enrollmentOutcome: params.enrollmentOutcome as
-      CreateFieldSaleInput["enrollmentOutcome"]
+      | CreateFieldSaleInput["enrollmentOutcome"]
       | undefined,
+    activityType: params.activityType as CreateFieldSaleInput["activityType"] | undefined,
   });
 
   return { params, data };

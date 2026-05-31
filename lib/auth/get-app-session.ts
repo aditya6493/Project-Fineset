@@ -1,6 +1,11 @@
 import { cache } from "react";
 import { prisma } from "@/lib/db/prisma";
 import { syncAuthMetadataForSession } from "@/lib/auth/activate-profile";
+import {
+  getDevSessionFromCookies,
+  isDevAuthBypassEnabled,
+  resolveDevAppSession,
+} from "@/lib/auth/dev-bypass";
 import { appSessionFromSupabaseUser } from "@/lib/auth/session-from-metadata";
 import { createClient } from "@/lib/supabase/server";
 import type { AppSession } from "@/types";
@@ -66,6 +71,14 @@ export function appSessionFromProfile(
 }
 
 async function resolveAppSession(): Promise<AppSession | null> {
+  if (isDevAuthBypassEnabled()) {
+    const devCookie = await getDevSessionFromCookies();
+    if (devCookie) {
+      return resolveDevAppSession(devCookie);
+    }
+    return null;
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

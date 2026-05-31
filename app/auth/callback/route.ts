@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const next = searchParams.get("next");
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+    return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
   const supabase = await createClient();
@@ -32,12 +32,28 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   mark("exchangeCodeForSession");
 
+  if (next === "/reset-password") {
+    if (error || !data.session) {
+      logCallback("reset_exchange_failed", {
+        totalMs: Date.now() - startedAt,
+        timings,
+      });
+      return NextResponse.redirect(`${origin}/reset-password?error=auth_callback`);
+    }
+
+    logCallback("reset_success", {
+      totalMs: Date.now() - startedAt,
+      timings,
+    });
+    return NextResponse.redirect(`${origin}/reset-password`);
+  }
+
   if (error || !data.user) {
     logCallback("exchange_failed", {
       totalMs: Date.now() - startedAt,
       timings,
     });
-    return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+    return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
   const user = data.user;
@@ -48,7 +64,7 @@ export async function GET(request: Request) {
       timings,
       reason: "missing_email",
     });
-    return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+    return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
   const profile = await activateProfileForAuthUser(user.id, email, {
@@ -58,7 +74,7 @@ export async function GET(request: Request) {
 
   if (!profile?.isActive) {
     logCallback("inactive", { totalMs: Date.now() - startedAt, timings });
-    return NextResponse.redirect(`${origin}/login?error=account_inactive`);
+    return NextResponse.redirect(`${origin}/?error=account_inactive`);
   }
 
   let role = profile.role;
@@ -67,7 +83,7 @@ export async function GET(request: Request) {
     role = session.role;
   } catch (err) {
     console.error("[auth.callback] invalid profile", profile.id, err);
-    return NextResponse.redirect(`${origin}/login?error=auth_callback`);
+    return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
   const destination =

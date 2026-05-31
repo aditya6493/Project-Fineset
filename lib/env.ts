@@ -25,6 +25,8 @@ const envSchema = z.object({
   MASTER_ADMIN_EMAIL: optionalEnv(z.string().email().optional()),
   MASTER_ADMIN_PASSWORD: optionalEnv(z.string().min(8).optional()),
   MASTER_ADMIN_NAME: optionalEnv(z.string().min(1).optional()),
+  DEV_AUTH_BYPASS: optionalEnv(z.string().optional()),
+  DEV_AUTH_ROLE: optionalEnv(z.string().optional()),
   SKIP_ENV_VALIDATION: optionalEnv(z.string().optional()),
 });
 

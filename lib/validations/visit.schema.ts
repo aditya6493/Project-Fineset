@@ -24,6 +24,7 @@ const sourceChannelSchema = z.enum([
   "SOCIAL_MEDIA",
   "INTERNET",
   "PHONE",
+  "USER_CALLS",
   "TANISHQ_REF",
   "CARATLANE_REF",
   "OTHER",

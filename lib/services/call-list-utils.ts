@@ -3,7 +3,7 @@ import type {
   StaffCallSegment,
   StaffCallValueTier,
 } from "@/types";
-import type { BudgetRange, CustomerType, PurchaseStatus } from "@prisma/client";
+import type { BudgetRange, CustomerType, IntentTier, PurchaseStatus } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils/formatters";
 
 export function computeVisitValueTier(visit: {
@@ -58,6 +58,14 @@ export function matchesCallValueTier(
 ): boolean {
   if (valueTier === "ALL") return true;
   return computeVisitValueTier(visit) === valueTier;
+}
+
+export function matchesCallIntentTier(
+  visit: { intentTier: IntentTier | null },
+  intentTier?: IntentTier,
+): boolean {
+  if (!intentTier) return true;
+  return visit.intentTier === intentTier;
 }
 
 export function matchesCallQueue(

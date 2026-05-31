@@ -1,30 +1,23 @@
-import { Suspense } from "react";
-import { content } from "@/content/en";
-import { SupabaseLoginForm } from "@/components/forms/SupabaseLoginForm";
+import { redirect } from "next/navigation";
 
-export default function LoginPage() {
-  const c = content.auth.login;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+type LoginPageProps = {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+};
 
-  return (
-    <main className="flex min-h-screen items-center justify-center bg-surface-primary px-page-x py-12">
-      {supabaseUrl ? (
-        <>
-          <link rel="preconnect" href={supabaseUrl} />
-          <link rel="dns-prefetch" href={supabaseUrl} />
-        </>
-      ) : null}
-      <Suspense fallback={<div className="text-text-secondary">{content.common.loading}</div>}>
-        <SupabaseLoginForm
-          title={c.title}
-          subtitle={c.subtitle}
-          submitLabel={c.submitLabel}
-          errorInvalid={c.errorInvalid}
-          errorInactive={c.errorInactive}
-          errorGeneric={c.errorGeneric}
-          forgotPasswordLabel={c.forgotPassword}
-        />
-      </Suspense>
-    </main>
-  );
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const params = await searchParams;
+  const qs = new URLSearchParams();
+
+  for (const [key, value] of Object.entries(params)) {
+    if (typeof value === "string") {
+      qs.set(key, value);
+    } else if (Array.isArray(value)) {
+      for (const entry of value) {
+        qs.append(key, entry);
+      }
+    }
+  }
+
+  const query = qs.toString();
+  redirect(query ? `/?${query}` : "/");
 }

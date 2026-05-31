@@ -1,8 +1,28 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import {
+  clearDevSessionCookie,
+  getDevSessionFromCookies,
+  isDevAuthBypassEnabled,
+} from "@/lib/auth/dev-bypass";
 import { logAuthEvent } from "@/lib/auth/audit";
+import { createClient } from "@/lib/supabase/server";
 
 export async function POST() {
+  if (isDevAuthBypassEnabled()) {
+    const devSession = await getDevSessionFromCookies();
+    await clearDevSessionCookie();
+
+    if (devSession?.email) {
+      await logAuthEvent({
+        event: "LOGOUT",
+        email: devSession.email,
+        metadata: { devBypass: true },
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  }
+
   const supabase = await createClient();
   const {
     data: { user },

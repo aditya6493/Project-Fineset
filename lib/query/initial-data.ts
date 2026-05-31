@@ -36,7 +36,8 @@ export function fieldSalesParamsMatch(
     (current.search ?? "") === (initial.search ?? "") &&
     (current.storeId ?? "") === (initial.storeId ?? "") &&
     (current.staffId ?? "") === (initial.staffId ?? "") &&
-    (current.enrollmentOutcome ?? "") === (initial.enrollmentOutcome ?? "")
+    (current.enrollmentOutcome ?? "") === (initial.enrollmentOutcome ?? "") &&
+    (current.activityType ?? "") === (initial.activityType ?? "")
   );
 }
 
@@ -56,7 +57,8 @@ export function portalCallsParamsMatch(
     (current.queue ?? "ALL") === (initial.queue ?? "ALL") &&
     (current.search ?? "") === (initial.search ?? "") &&
     (current.storeId ?? "") === (initial.storeId ?? "") &&
-    (current.staffId ?? "") === (initial.staffId ?? "")
+    (current.staffId ?? "") === (initial.staffId ?? "") &&
+    (current.intentTier ?? "") === (initial.intentTier ?? "")
   );
 }
 

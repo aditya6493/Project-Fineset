@@ -3,6 +3,7 @@ import type { PortalCallsQuery } from "@/lib/validations/portal-calls.schema";
 import {
   buildVisitCallSummary,
   computeVisitValueTier,
+  matchesCallIntentTier,
   matchesCallQueue,
   matchesCallSegment,
   matchesCallValueTier,
@@ -162,6 +163,7 @@ function countFilters(
     month: number;
     staffId?: string;
     search?: string;
+    intentTier?: import("@prisma/client").IntentTier;
   },
 ): StaffCallFilterCounts {
   const base = visits.filter(
@@ -183,6 +185,7 @@ function countFilters(
   const withPeriod = (visit: PortalVisitRow, month: number) =>
     matchesCallSegment(visit, active.segment) &&
     matchesCallValueTier(visit, active.valueTier) &&
+    matchesCallIntentTier(visit, active.intentTier) &&
     matchesCallQueue(
       { ...visit, callLogs: visit.callLogs.map((log) => ({ ...log })) },
       active.queue,
@@ -196,6 +199,7 @@ function countFilters(
         (visit) =>
           matchesCallSegment(visit, segment) &&
           matchesCallValueTier(visit, active.valueTier) &&
+          matchesCallIntentTier(visit, active.intentTier) &&
           matchesCallQueue(visit, active.queue) &&
           matchesVisitPeriod(visit.visitDate, active.year, active.month),
       ).length,
@@ -206,6 +210,7 @@ function countFilters(
         (visit) =>
           matchesCallSegment(visit, active.segment) &&
           matchesCallValueTier(visit, tier) &&
+          matchesCallIntentTier(visit, active.intentTier) &&
           matchesCallQueue(visit, active.queue) &&
           matchesVisitPeriod(visit.visitDate, active.year, active.month),
       ).length,
@@ -216,6 +221,7 @@ function countFilters(
         (visit) =>
           matchesCallSegment(visit, active.segment) &&
           matchesCallValueTier(visit, active.valueTier) &&
+          matchesCallIntentTier(visit, active.intentTier) &&
           matchesCallQueue(visit, queue) &&
           matchesVisitPeriod(visit.visitDate, active.year, active.month),
       ).length,
@@ -250,6 +256,7 @@ export async function listPortalCalls(
       matchesSearch(visit, params.search) &&
       matchesCallSegment(visit, params.segment) &&
       matchesCallValueTier(visit, params.valueTier) &&
+      matchesCallIntentTier(visit, params.intentTier) &&
       matchesCallQueue(visit, params.queue) &&
       matchesVisitPeriod(visit.visitDate, params.year, params.month),
   );
@@ -273,6 +280,7 @@ export async function listPortalCalls(
       month: params.month,
       staffId: params.staffId,
       search: params.search,
+      intentTier: params.intentTier,
     }),
   };
 }

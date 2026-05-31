@@ -36,14 +36,16 @@ export function AdminRsoPerformanceSection({
   return (
     <RsoPerformanceView
       title={title}
+      subtitle={copy.subtitle}
       copy={copy}
       data={data}
       isLoading={isLoading}
       isError={isError}
-      errorLabel={errorLabel}
-      retryLabel={retryLabel}
+      errorLabel={errorLabel ?? copy.error}
+      retryLabel={retryLabel ?? copy.retry}
       onRetry={() => void refetch()}
       emptyMessage={emptyMessage}
+      periodLabel={periodLabel}
     />
   );
 }

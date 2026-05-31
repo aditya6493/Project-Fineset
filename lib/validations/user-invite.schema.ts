@@ -1,3 +1,4 @@
+import { passwordPolicySchema } from "@/lib/auth/password-policy";
 import { z } from "zod";
 
 const appRoleSchema = z.enum(["MASTER_ADMIN", "STORE_MANAGER", "STAFF"]);
@@ -14,6 +15,7 @@ export const inviteUserSchema = z
       .max(20)
       .regex(/^[A-Z0-9]+$/)
       .optional(),
+    password: passwordPolicySchema.optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "STAFF" && !data.employeeId) {
@@ -52,6 +54,7 @@ export const storeInviteUserSchema = z.object({
     .min(3)
     .max(20)
     .regex(/^[A-Z0-9]+$/, "Employee ID must be uppercase alphanumeric"),
+  password: passwordPolicySchema,
 });
 
 export type StoreInviteUserInput = z.infer<typeof storeInviteUserSchema>;
