@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { Download, X } from "lucide-react";
+import { X } from "lucide-react";
+import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { PWA_CONFIG } from "@/lib/pwa/config";
 
@@ -77,9 +78,7 @@ export function InstallPrompt() {
       className="fixed inset-x-4 bottom-4 z-50 mx-auto max-w-lg rounded-card border border-border bg-surface-card p-4 shadow-card sm:inset-x-auto sm:right-6 sm:bottom-6"
     >
       <div className="flex items-start gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-input bg-brand-gold/10">
-          <Download className="size-5 text-brand-gold" aria-hidden="true" />
-        </div>
+        <Logo size={40} linked={false} />
         <div className="min-w-0 flex-1">
           <p className="font-medium text-text-primary">
             Install {PWA_CONFIG.shortName}

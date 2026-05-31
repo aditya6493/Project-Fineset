@@ -2,8 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { SerwistProvider } from "@serwist/turbopack/react";
 import { Inter, Playfair_Display } from "next/font/google";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
+import { PwaAssetRefresh } from "@/components/pwa/PwaAssetRefresh";
 import { Providers } from "@/components/providers";
-import { PWA_CONFIG } from "@/lib/pwa/config";
+import { PWA_ASSET_VERSION, PWA_CONFIG } from "@/lib/pwa/config";
 import "@/styles/globals.css";
 
 const inter = Inter({
@@ -38,11 +39,23 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: [
-      { url: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-      { url: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png" },
+      {
+        url: `/icons/icon-192x192.png?v=${PWA_ASSET_VERSION}`,
+        sizes: "192x192",
+        type: "image/png",
+      },
+      {
+        url: `/icons/icon-512x512.png?v=${PWA_ASSET_VERSION}`,
+        sizes: "512x512",
+        type: "image/png",
+      },
     ],
     apple: [
-      { url: "/icons/icon-180x180.png", sizes: "180x180", type: "image/png" },
+      {
+        url: `/icons/icon-180x180.png?v=${PWA_ASSET_VERSION}`,
+        sizes: "180x180",
+        type: "image/png",
+      },
     ],
   },
   openGraph: {
@@ -78,6 +91,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${playfair.variable} min-h-screen`}>
         <SerwistProvider swUrl="/serwist/sw.js">
           <Providers>
+            <PwaAssetRefresh />
             {children}
             <InstallPrompt />
           </Providers>
