@@ -48,6 +48,15 @@
     @apply font-display;
   }
 
+  /* iOS Safari auto-zooms focused fields below 16px; keep layout stable when keyboard opens */
+  @media (max-width: 767px) {
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="hidden"]):not([type="file"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+    textarea,
+    select {
+      font-size: 1rem;
+    }
+  }
+
   .progress-bar-fill {
     width: var(--progress, 0%);
   }
