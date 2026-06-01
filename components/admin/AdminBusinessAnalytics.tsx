@@ -13,7 +13,6 @@ import { AnalyticsAppliedFiltersBar } from "@/components/admin/analytics/Analyti
 import { AnalyticsPeriodPicker } from "@/components/admin/analytics/AnalyticsPeriodPicker";
 import { AnalyticsToggledFilter } from "@/components/admin/analytics/AnalyticsToggledFilter";
 import {
-  ANALYTICS_FILTER_KEYS,
   buildActiveFiltersQuery,
   createEmptyFilterDraft,
   type AnalyticsFilterDraft,

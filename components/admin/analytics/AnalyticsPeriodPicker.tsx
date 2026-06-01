@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { CalendarRange, ChevronDown, GitCompareArrows } from "lucide-react";
 import type { DateRange } from "react-day-picker";
@@ -207,25 +207,29 @@ export function AnalyticsPeriodPicker({
       : { periodA: { month: 5, year: 2026 }, periodB: { month: 5, year: 2025 } },
   );
 
-  useEffect(() => {
-    if (!open) return;
-    if (selection.mode !== "preset") {
-      setCustomMode(selection.mode);
+  function syncDraftsFromSelection(next: AnalyticsPeriodSelection) {
+    setCustomMode(next.mode === "preset" ? "month" : next.mode);
+    if (next.mode === "range") {
+      setDraftRange({ from: next.startDate, to: next.endDate });
     }
-    if (selection.mode === "range") {
-      setDraftRange({ from: selection.startDate, to: selection.endDate });
+    if (next.mode === "day") setDraftDay(next.date);
+    if (next.mode === "month") {
+      setDraftMonth({ month: next.month, year: next.year });
     }
-    if (selection.mode === "day") setDraftDay(selection.date);
-    if (selection.mode === "month") {
-      setDraftMonth({ month: selection.month, year: selection.year });
-    }
-    if (selection.mode === "compare") {
+    if (next.mode === "compare") {
       setDraftCompare({
-        periodA: selection.periodA,
-        periodB: selection.periodB,
+        periodA: next.periodA,
+        periodB: next.periodB,
       });
     }
-  }, [open, selection]);
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (nextOpen) {
+      syncDraftsFromSelection(selection);
+    }
+    setOpen(nextOpen);
+  }
 
   function applyPreset(period: NonNullable<AdminBusinessAnalyticsQuery["period"]>) {
     onSelectionChange({ mode: "preset", period });
@@ -284,7 +288,7 @@ export function AnalyticsPeriodPicker({
       <p className="text-xs font-medium uppercase tracking-wide text-text-muted">
         {copy.dateRangeLabel}
       </p>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={handleOpenChange}>
         <PopoverTrigger asChild>
           <button
             type="button"
