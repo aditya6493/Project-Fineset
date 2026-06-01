@@ -3,21 +3,36 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { Eye, EyeOff, MoreHorizontal, Sparkles } from "lucide-react";
 import { createStaffSchema, type CreateStaffInput } from "@/lib/validations/staff.schema";
 import { generateSecurePassword } from "@/lib/auth/generate-password";
-import { useCreateStaff, useStoreStaff, useUpdateStaff } from "@/hooks/useStaff";
+import {
+  useCreateStaff,
+  useDeleteStaff,
+  useStoreStaff,
+  useUpdateStaff,
+} from "@/hooks/useStaff";
 import { toast } from "@/hooks/useToast";
-import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
+import { formatDate } from "@/lib/utils/formatters";
+import { ApiError } from "@/types";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -31,6 +46,7 @@ import type { Content } from "@/content/en";
 
 type StoreContent = Content["store"];
 type ErrorsContent = Content["errors"];
+type StaffListItem = NonNullable<StaffManagementProps["initialStaff"]>[number];
 
 interface StaffManagementProps {
   store: StoreContent;
@@ -48,10 +64,15 @@ export function StaffManagement({
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [staffToDelete, setStaffToDelete] = useState<StaffListItem | null>(null);
 
   const { data, isLoading } = useStoreStaff({ initialData: initialStaff });
   const createStaffMutation = useCreateStaff();
   const updateStaffMutation = useUpdateStaff();
+  const deleteStaffMutation = useDeleteStaff();
+
+  const isMutating =
+    updateStaffMutation.isPending || deleteStaffMutation.isPending;
 
   const form = useForm<CreateStaffInput>({
     resolver: zodResolver(createStaffSchema),
@@ -94,6 +115,45 @@ export function StaffManagement({
     }
   }
 
+  function handleSetActive(member: StaffListItem, isActive: boolean) {
+    if (member.isActive === isActive) return;
+
+    updateStaffMutation.mutate(
+      {
+        staffId: member.id,
+        payload: { isActive },
+      },
+      {
+        onSuccess: () => {
+          toast({
+            title: store.staff.statusUpdated,
+            description: isActive ? store.staff.active : store.staff.inactive,
+          });
+        },
+        onError: () => toast({ title: errors.generic }),
+      },
+    );
+  }
+
+  async function handleConfirmDelete() {
+    if (!staffToDelete) return;
+
+    try {
+      await deleteStaffMutation.mutateAsync(staffToDelete.id);
+      toast({
+        title: store.staff.deleted,
+        description: staffToDelete.name,
+      });
+      setStaffToDelete(null);
+    } catch (error) {
+      const message =
+        error instanceof ApiError && error.status === 409
+          ? error.body.message ?? store.staff.actions.deleteBlocked
+          : errors.generic;
+      toast({ title: message });
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -113,7 +173,7 @@ export function StaffManagement({
         <EmptyState message={emptyMessage} />
       ) : (
         <div className="overflow-x-auto rounded-card border border-border bg-surface-card shadow-card">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[720px] text-left text-sm">
             <thead className="border-b border-border bg-surface-secondary">
               <tr>
                 <th className="px-4 py-3 font-medium text-text-secondary">
@@ -123,61 +183,121 @@ export function StaffManagement({
                   {store.staff.columns.employeeId}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
+                  {store.staff.columns.email}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
+                  {store.staff.columns.createdAt}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
                   {store.staff.columns.visits}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
-                  {store.staff.columns.revenue}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {store.staff.columns.conversionRate}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
                   {store.staff.columns.status}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
+                  {store.staff.columns.actions}
                 </th>
               </tr>
             </thead>
             <tbody>
               {data.map((member) => (
-                <tr key={member.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">{member.name}</td>
-                  <td className="px-4 py-3 font-mono text-xs">{member.employeeId}</td>
-                  <td className="px-4 py-3">{member.monthlyVisits}</td>
-                  <td className="px-4 py-3">{formatCurrency(member.monthlyRevenue)}</td>
-                  <td className="px-4 py-3">{formatPercent(member.conversionRate)}</td>
-                  <td className="px-4 py-3">
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant={member.isActive ? "outline" : "secondary"}
-                      disabled={updateStaffMutation.isPending}
-                      onClick={() =>
-                        updateStaffMutation.mutate(
-                          {
-                            staffId: member.id,
-                            payload: { isActive: !member.isActive },
-                          },
-                          {
-                            onSuccess: () => {
-                              toast({
-                                title: member.isActive
-                                  ? store.staff.inactive
-                                  : store.staff.active,
-                              });
-                            },
-                            onError: () => toast({ title: errors.generic }),
-                          },
-                        )
-                      }
-                    >
-                      {member.isActive ? store.staff.active : store.staff.inactive}
-                    </Button>
-                  </td>
-                </tr>
+                  <tr key={member.id} className="border-b border-border last:border-0">
+                    <td className="px-4 py-3">{member.name}</td>
+                    <td className="px-4 py-3 font-mono text-xs">{member.employeeId}</td>
+                    <td className="px-4 py-3">{member.email ?? "—"}</td>
+                    <td className="px-4 py-3">{formatDate(member.createdAt)}</td>
+                    <td className="px-4 py-3">{member.monthlyVisits}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={member.isActive ? "success" : "secondary"}>
+                        {member.isActive ? store.staff.active : store.staff.inactive}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-8"
+                            disabled={isMutating}
+                            aria-label={store.staff.actions.menu}
+                          >
+                            <MoreHorizontal className="size-4" aria-hidden="true" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={member.isActive || isMutating}
+                            onSelect={() => handleSetActive(member, true)}
+                          >
+                            {store.staff.actions.markActive}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            disabled={!member.isActive || isMutating}
+                            onSelect={() => handleSetActive(member, false)}
+                          >
+                            {store.staff.actions.markInactive}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            disabled={!member.canDelete || isMutating}
+                            className="text-status-error focus:text-status-error"
+                            title={
+                              member.canDelete ? undefined : store.staff.actions.deleteBlocked
+                            }
+                            onSelect={() => setStaffToDelete(member)}
+                          >
+                            {store.staff.actions.delete}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </td>
+                  </tr>
               ))}
             </tbody>
           </table>
         </div>
       )}
+
+      <Dialog
+        open={staffToDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) setStaffToDelete(null);
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{store.staff.deleteConfirm.title}</DialogTitle>
+            <DialogDescription>
+              {staffToDelete
+                ? store.staff.deleteConfirm.description.replace(
+                    "{name}",
+                    staffToDelete.name,
+                  )
+                : null}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={deleteStaffMutation.isPending}
+              onClick={() => setStaffToDelete(null)}
+            >
+              {store.staff.deleteConfirm.cancel}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={deleteStaffMutation.isPending}
+              onClick={() => void handleConfirmDelete()}
+            >
+              {store.staff.deleteConfirm.confirm}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={modalOpen} onOpenChange={handleModalChange}>
         <DialogContent>

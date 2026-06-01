@@ -7,6 +7,13 @@ export const STORE_CATEGORY_LABELS: Record<StoreCategory, string> = {
   OTHER: "Other",
 };
 
-export function getStoreCategoryLabel(category: StoreCategory): string {
+export function getStoreCategoryLabel(
+  category: StoreCategory,
+  customCategory?: string | null,
+): string {
+  if (category === "OTHER" && customCategory) {
+    return customCategory;
+  }
+
   return STORE_CATEGORY_LABELS[category] ?? category;
 }

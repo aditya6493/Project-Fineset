@@ -26,6 +26,8 @@ export default async function AdminStaffPage({ searchParams }: AdminStaffPagePro
       initialPerformance={performance?.data}
       initialStoreFilter={performance?.storeFilter}
       initialStores={stores?.data}
+      backHref={storeId ? `/admin/dashboard/stores/${storeId}` : undefined}
+      backLabel={content.common.back}
     />
   );
 }

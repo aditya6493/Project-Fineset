@@ -1,10 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createStore, getStores, updateStore } from "@/lib/api/stores";
+import { createStore, deleteStore, getStores, updateStore } from "@/lib/api/stores";
 import { storesParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
-import type { PaginatedResponse } from "@/types";
+import type { PaginatedResponse, StoreCategory } from "@/types";
 
 interface UseStoresParams {
   page?: number;
@@ -15,14 +15,17 @@ interface UseStoresParams {
 type StoreListResponse = PaginatedResponse<{
   id: string;
   name: string;
-  category: string;
+  category: StoreCategory;
+  customCategory: string | null;
   city: string;
   state: string;
+  pincode: string | null;
+  pocName: string | null;
+  pointOfContactPhone: string | null;
+  email: string | null;
   isActive: boolean;
   staffCount: number;
   visits: number;
-  revenue: number;
-  conversionRate: number;
   createdAt: string;
 }>;
 
@@ -67,6 +70,17 @@ export function useUpdateStore() {
       storeId: string;
       payload: UpdateStoreInput;
     }) => updateStore(storeId, payload),
+    onSuccess: () => {
+      void invalidatePortalData(queryClient);
+    },
+  });
+}
+
+export function useDeleteStore() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (storeId: string) => deleteStore(storeId),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },

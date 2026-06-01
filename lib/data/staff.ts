@@ -19,13 +19,16 @@ export interface InitialStaffFilterStoresPayload {
     id: string;
     name: string;
     category: StoreCategory;
+    customCategory: string | null;
     city: string;
     state: string;
+    pincode: string | null;
+    pocName: string | null;
+    pointOfContactPhone: string | null;
+    email: string | null;
     isActive: boolean;
     staffCount: number;
     visits: number;
-    revenue: number;
-    conversionRate: number;
     createdAt: string;
   }>;
 }

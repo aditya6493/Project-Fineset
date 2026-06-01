@@ -23,6 +23,8 @@ export default async function AdminFieldSalesPage({
       initialStoreId={storeId}
       initialFieldSales={initial?.data}
       initialFieldSalesParams={initial?.params}
+      backHref={storeId ? `/admin/dashboard/stores/${storeId}` : undefined}
+      backLabel={content.common.back}
     />
   );
 }

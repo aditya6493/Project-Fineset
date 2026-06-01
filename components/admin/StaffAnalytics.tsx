@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { getStores } from "@/lib/api/stores";
 import { useStaffPerformance } from "@/hooks/useStaffPerformance";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
@@ -16,7 +18,11 @@ import {
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Content } from "@/content/en";
-import type { PaginatedResponse, StaffPerformanceRow } from "@/types";
+import type {
+  PaginatedResponse,
+  StaffPerformanceRow,
+  StoreCategory,
+} from "@/types";
 
 type AdminContent = Content["admin"];
 type CommonContent = Content["common"];
@@ -29,17 +35,22 @@ interface StaffAnalyticsProps {
   initialStoreId?: string;
   initialPerformance?: StaffPerformanceRow[];
   initialStoreFilter?: string;
+  backHref?: string;
+  backLabel?: string;
   initialStores?: PaginatedResponse<{
     id: string;
     name: string;
-    category: string;
+    category: StoreCategory;
+    customCategory: string | null;
     city: string;
     state: string;
+    pincode: string | null;
+    pocName: string | null;
+    pointOfContactPhone: string | null;
+    email: string | null;
     isActive: boolean;
     staffCount: number;
     visits: number;
-    revenue: number;
-    conversionRate: number;
     createdAt: string;
   }>;
 }
@@ -52,6 +63,8 @@ export function StaffAnalytics({
   initialStoreId,
   initialPerformance,
   initialStoreFilter,
+  backHref,
+  backLabel,
   initialStores,
 }: StaffAnalyticsProps) {
   const [storeFilter, setStoreFilter] = useState<string>(initialStoreId ?? "all");
@@ -76,9 +89,20 @@ export function StaffAnalytics({
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">
-          {admin.staff.title}
-        </h1>
+        <div>
+          {backHref ? (
+            <Link
+              href={backHref}
+              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel ?? "Back"}
+            </Link>
+          ) : null}
+          <h1 className="font-display text-2xl font-bold text-text-primary">
+            {admin.staff.title}
+          </h1>
+        </div>
         <Select value={storeFilter} onValueChange={setStoreFilter}>
           <SelectTrigger className="w-full sm:w-56">
             <SelectValue placeholder={common.filter} />

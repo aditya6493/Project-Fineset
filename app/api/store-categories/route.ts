@@ -1,0 +1,11 @@
+import { NextResponse } from "next/server";
+import { getServerSession, requireRole, unauthorized } from "@/lib/auth/session";
+import { listStoreCategoryOptions } from "@/lib/services/store-categories";
+
+export async function GET() {
+  const session = await getServerSession();
+  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+
+  const categories = await listStoreCategoryOptions();
+  return NextResponse.json({ data: categories });
+}

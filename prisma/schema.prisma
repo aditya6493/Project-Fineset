@@ -19,8 +19,13 @@ model Store {
   id          String        @id @default(cuid())
   name        String
   category    StoreCategory @default(JEWELRY)
+  customCategory String?
   city        String
   state       String
+  pincode     String?
+  pocName     String?
+  pointOfContactPhone String?
+  email       String?
   isActive    Boolean       @default(true)
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
@@ -30,6 +35,13 @@ model Store {
   visits     Visit[]
   customers  Customer[]
   fieldSales FieldSale[]
+}
+
+model StoreCategoryOption {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Staff {

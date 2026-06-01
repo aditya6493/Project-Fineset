@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
+import { ArrowLeft } from "lucide-react";
 import { usePortalCalls } from "@/hooks/usePortalCalls";
 import { getStaff, getStaffPerformance } from "@/lib/api/staff";
 import { getStores } from "@/lib/api/stores";
@@ -41,6 +43,8 @@ interface PortalCallsLogProps {
   initialStoreId?: string;
   initialPortalCalls?: PortalCallListResponse;
   initialPortalCallsParams?: GetPortalCallsParams;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function PortalCallsLog({
@@ -53,6 +57,8 @@ export function PortalCallsLog({
   initialStoreId,
   initialPortalCalls,
   initialPortalCallsParams,
+  backHref,
+  backLabel,
 }: PortalCallsLogProps) {
   const currentYear = new Date().getFullYear();
   const currentMonth = new Date().getMonth() + 1;
@@ -172,6 +178,15 @@ export function PortalCallsLog({
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
+          {backHref ? (
+            <Link
+              href={backHref}
+              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              {backLabel ?? "Back"}
+            </Link>
+          ) : null}
           <h1 className="font-display text-2xl font-bold text-text-primary">{copy.title}</h1>
           <p className="mt-1 text-sm text-text-muted">{copy.subtitle}</p>
         </div>

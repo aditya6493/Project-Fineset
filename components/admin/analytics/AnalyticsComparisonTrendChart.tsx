@@ -1,0 +1,91 @@
+"use client";
+
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+import { ChartCard } from "@/components/shared/ChartCard";
+import { CHART_COLORS } from "@/lib/charts/theme";
+import { formatCurrency } from "@/lib/utils/formatters";
+import { NUMERIC_FONT_FAMILY } from "@/lib/utils/typography";
+import type { ComparisonTrendPoint } from "@/types/admin-business-analytics";
+
+interface AnalyticsComparisonTrendChartProps {
+  title: string;
+  periodALabel: string;
+  periodBLabel: string;
+  revenueLabel: string;
+  data: ComparisonTrendPoint[];
+}
+
+export function AnalyticsComparisonTrendChart({
+  title,
+  periodALabel,
+  periodBLabel,
+  revenueLabel,
+  data,
+}: AnalyticsComparisonTrendChartProps) {
+  const chartData = data.map((row) => ({
+    label: row.label,
+    periodARevenue: row.periodA.revenue,
+    periodBRevenue: row.periodB.revenue,
+  }));
+
+  return (
+    <ChartCard title={title}>
+      <div className="h-72 w-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={chartData}>
+            <CartesianGrid strokeDasharray="3 3" stroke={CHART_COLORS.grid} />
+            <XAxis
+              dataKey="label"
+              stroke={CHART_COLORS.axis}
+              fontSize={12}
+              fontFamily={NUMERIC_FONT_FAMILY}
+              label={{ value: "Day of month", position: "insideBottom", offset: -4 }}
+            />
+            <YAxis
+              tickFormatter={(value: number) => formatCurrency(value)}
+              stroke={CHART_COLORS.axis}
+              fontSize={12}
+              width={72}
+              fontFamily={NUMERIC_FONT_FAMILY}
+            />
+            <Tooltip
+              formatter={(value: number, name: string) => [
+                formatCurrency(value),
+                name === "periodARevenue" ? periodALabel : periodBLabel,
+              ]}
+              labelFormatter={(label: string) => `Day ${label}`}
+              contentStyle={{ fontFamily: NUMERIC_FONT_FAMILY }}
+            />
+            <Legend />
+            <Line
+              type="monotone"
+              dataKey="periodARevenue"
+              name={periodALabel}
+              stroke={CHART_COLORS.primary}
+              strokeWidth={2}
+              dot={false}
+            />
+            <Line
+              type="monotone"
+              dataKey="periodBRevenue"
+              name={periodBLabel}
+              stroke={CHART_COLORS.secondary}
+              strokeWidth={2}
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-2 text-xs text-text-muted">{revenueLabel}</p>
+    </ChartCard>
+  );
+}

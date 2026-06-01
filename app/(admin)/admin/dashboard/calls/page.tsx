@@ -21,6 +21,8 @@ export default async function AdminCallsPage({ searchParams }: AdminCallsPagePro
       initialStoreId={storeId}
       initialPortalCalls={initial?.data}
       initialPortalCallsParams={initial?.params}
+      backHref={storeId ? `/admin/dashboard/stores/${storeId}` : undefined}
+      backLabel={content.common.back}
     />
   );
 }

@@ -42,7 +42,7 @@ export async function listStores(params: {
         _count: { select: { staff: true } },
         visits: {
           where: { visitDate: { gte: start, lte: end } },
-          select: { purchaseStatus: true, transactionAmount: true },
+          select: { id: true },
         },
       },
     }),
@@ -54,13 +54,16 @@ export async function listStores(params: {
       id: store.id,
       name: store.name,
       category: store.category,
+      customCategory: store.customCategory,
       city: store.city,
       state: store.state,
+      pincode: store.pincode,
+      pocName: store.pocName,
+      pointOfContactPhone: store.pointOfContactPhone,
+      email: store.email,
       isActive: store.isActive,
       staffCount: store._count.staff,
       visits: store.visits.length,
-      revenue: calculateTotalRevenue(store.visits),
-      conversionRate: calculateConversionRate(store.visits),
       createdAt: store.createdAt.toISOString(),
     })),
     total,
@@ -68,15 +71,54 @@ export async function listStores(params: {
 }
 
 export async function createStore(input: CreateStoreInput) {
-  return prisma.store.create({
-    data: input,
+  const normalizedCustomCategory =
+    input.category === "OTHER" ? input.customCategory?.trim() : undefined;
+
+  const store = await prisma.store.create({
+    data: {
+      ...input,
+      customCategory: normalizedCustomCategory,
+    },
   });
+
+  if (normalizedCustomCategory) {
+    await prisma.storeCategoryOption.upsert({
+      where: { name: normalizedCustomCategory },
+      update: {},
+      create: { name: normalizedCustomCategory },
+    });
+  }
+
+  return store;
 }
 
 export async function updateStore(storeId: string, input: UpdateStoreInput) {
-  return prisma.store.update({
+  const normalizedCustomCategory =
+    input.category === "OTHER" ? input.customCategory?.trim() : undefined;
+  const shouldClearCustomCategory = input.category && input.category !== "OTHER";
+
+  const store = await prisma.store.update({
     where: { id: storeId },
-    data: input,
+    data: {
+      ...input,
+      customCategory: shouldClearCustomCategory ? null : normalizedCustomCategory,
+    },
+  });
+
+  if (normalizedCustomCategory) {
+    await prisma.storeCategoryOption.upsert({
+      where: { name: normalizedCustomCategory },
+      update: {},
+      create: { name: normalizedCustomCategory },
+    });
+  }
+
+  return store;
+}
+
+export async function deleteStore(storeId: string) {
+  return prisma.store.delete({
+    where: { id: storeId },
   });
 }
 

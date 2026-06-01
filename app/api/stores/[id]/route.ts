@@ -6,7 +6,7 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
-import { getStoreById, updateStore } from "@/lib/services/stores";
+import { deleteStore, getStoreById, updateStore } from "@/lib/services/stores";
 import { updateStoreSchema } from "@/lib/validations/store.schema";
 
 interface RouteParams {
@@ -35,6 +35,19 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
   try {
     const store = await updateStore(id, parsed.data);
+    return NextResponse.json(store);
+  } catch {
+    return notFound("Store not found");
+  }
+}
+
+export async function DELETE(_req: Request, { params }: RouteParams) {
+  const { id } = await params;
+  const session = await getServerSession();
+  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+
+  try {
+    const store = await deleteStore(id);
     return NextResponse.json(store);
   } catch {
     return notFound("Store not found");

@@ -25,10 +25,8 @@ export default async function AdminLayout({
       signOutLabel={content.common.signOut}
       navItems={[
         { href: "/admin/dashboard", label: nav.overview },
+        { href: "/admin/dashboard/analytics", label: nav.analytics },
         { href: "/admin/dashboard/stores", label: nav.stores },
-        { href: "/admin/dashboard/calls", label: nav.calls },
-        { href: "/admin/dashboard/field-sales", label: nav.fieldSales },
-        { href: "/admin/dashboard/staff", label: nav.staff },
       ]}
     >
       <RealtimeSyncProvider>{children}</RealtimeSyncProvider>

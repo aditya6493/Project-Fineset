@@ -12,8 +12,11 @@ interface StaffListItem {
   id: string;
   name: string;
   employeeId: string;
+  email: string | null;
+  createdAt: Date | string;
   isActive: boolean;
   visitCount: number;
+  canDelete: boolean;
   monthlyVisits: number;
   monthlyRevenue: number;
   conversionRate: number;
@@ -40,6 +43,12 @@ export async function updateStaff(
   return apiFetch<{ count: number }>(`/api/staff/${staffId}`, {
     method: "PATCH",
     body: JSON.stringify(payload),
+  });
+}
+
+export async function deleteStaff(staffId: string): Promise<void> {
+  await apiFetch<void>(`/api/staff/${staffId}`, {
+    method: "DELETE",
   });
 }
 

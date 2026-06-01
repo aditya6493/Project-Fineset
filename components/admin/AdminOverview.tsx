@@ -16,7 +16,6 @@ import {
 import type { Content } from "@/content/en";
 import type { GetAnalyticsParams, StoreCategory } from "@/types";
 import { StorePerformanceCard } from "./overview/StorePerformanceCard";
-import { StorePerformanceTable } from "./overview/StorePerformanceTable";
 
 type AdminContent = Content["admin"];
 
@@ -124,9 +123,6 @@ export function AdminOverview({
         </div>
       )}
 
-      {!isLoading && filteredStores.length > 0 && (
-        <StorePerformanceTable stores={filteredStores} admin={admin} />
-      )}
     </div>
   );
 }
