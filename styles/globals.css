@@ -24,10 +24,23 @@
   --status-error: #ef4444;
   --status-info: #3b82f6;
 
-  --chart-primary: var(--brand-gold);
-  --chart-secondary: var(--brand-gold-light);
-  --chart-axis: var(--text-muted);
-  --chart-grid: var(--border);
+  /* Analytics charts — accessible contrast on light surfaces */
+  --chart-primary: #9a7618;
+  --chart-secondary: #2e5a8c;
+  --chart-compare-current: #9a7618;
+  --chart-compare-prior: #2e5a8c;
+  --chart-axis: #5c5c62;
+  --chart-grid: #e5e0d6;
+  --chart-tooltip-bg: #ffffff;
+  --chart-tooltip-border: #e5e0d8;
+  --chart-series-1: #9a7618;
+  --chart-series-2: #1a7a6d;
+  --chart-series-3: #5e4b8b;
+  --chart-series-4: #b8432f;
+  --chart-series-5: #2563a8;
+  --chart-series-6: #6d5348;
+  --chart-series-7: #2e7d4a;
+  --chart-series-8: #8e4585;
 }
 
 @layer base {
@@ -59,6 +72,14 @@
 
   .progress-bar-fill {
     width: var(--progress, 0%);
+  }
+
+  /* AI analytics — no rubber-band / scroll chaining on pull past edges */
+  html.analytics-no-overscroll,
+  html.analytics-no-overscroll body,
+  [data-analytics-page],
+  [data-analytics-page] [data-recommendations-scroll] {
+    overscroll-behavior: none;
   }
 }
 

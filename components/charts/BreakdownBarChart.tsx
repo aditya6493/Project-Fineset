@@ -1,5 +1,7 @@
 "use client";
 
+import { getChartSeriesColor } from "@/lib/charts/theme";
+
 interface BreakdownBarChartProps {
   title: string;
   data: Array<{ label: string; count: number }>;
@@ -22,7 +24,7 @@ export function BreakdownBarChart({
         <p className="text-sm text-text-muted">{emptyMessage}</p>
       ) : (
         <ul className="space-y-3">
-          {data.map((item) => (
+          {data.map((item, index) => (
             <li key={item.label}>
               <div className="mb-1 flex items-center justify-between text-sm">
                 <span className="text-text-secondary">{item.label}</span>
@@ -30,8 +32,11 @@ export function BreakdownBarChart({
               </div>
               <div className="h-2 overflow-hidden rounded-full bg-surface-secondary">
                 <div
-                  className="h-full rounded-full bg-brand-gold transition-all"
-                  style={{ width: `${(item.count / maxCount) * 100}%` }}
+                  className="h-full rounded-full transition-all"
+                  style={{
+                    width: `${(item.count / maxCount) * 100}%`,
+                    backgroundColor: getChartSeriesColor(index),
+                  }}
                 />
               </div>
             </li>

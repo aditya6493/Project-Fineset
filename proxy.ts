@@ -3,9 +3,7 @@ import {
   getDevSessionFromRequest,
   isDevAuthBypassEnabled,
 } from "@/lib/auth/dev-bypass";
-import { getRedirectForRole } from "@/lib/auth/routes";
 import { updateSession } from "@/lib/supabase/middleware";
-import type { AppSession } from "@/types";
 
 const PROTECTED_PREFIXES = [
   { prefix: "/staff/dashboard", role: "STAFF" },
@@ -13,36 +11,8 @@ const PROTECTED_PREFIXES = [
   { prefix: "/admin/dashboard", role: "MASTER_ADMIN" },
 ] as const;
 
-function isAppRole(value: unknown): value is AppSession["role"] {
-  return value === "STAFF" || value === "STORE_MANAGER" || value === "MASTER_ADMIN";
-}
-
-function redirectIfSignedIn(
-  request: NextRequest,
-  role: AppSession["role"],
-): NextResponse {
-  return NextResponse.redirect(new URL(getRedirectForRole(role), request.url));
-}
-
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (pathname === "/") {
-    if (isDevAuthBypassEnabled()) {
-      const devSession = getDevSessionFromRequest(request);
-      if (devSession) {
-        return redirectIfSignedIn(request, devSession.role);
-      }
-      return NextResponse.next({ request });
-    }
-
-    const { response, user } = await updateSession(request);
-    const metadataRole = user?.app_metadata?.role;
-    if (user && isAppRole(metadataRole)) {
-      return redirectIfSignedIn(request, metadataRole);
-    }
-    return response;
-  }
 
   const protectedRoute = PROTECTED_PREFIXES.find((r) =>
     pathname.startsWith(r.prefix),
@@ -94,7 +64,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
     "/staff/dashboard/:path*",
     "/store/dashboard/:path*",
     "/admin/dashboard/:path*",

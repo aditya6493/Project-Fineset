@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/dev-bypass";
 import { appSessionFromSupabaseUser } from "@/lib/auth/session-from-metadata";
 import { createClient } from "@/lib/supabase/server";
+import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
 import type { AppSession } from "@/types";
 import type { AppRole, AppUser, Store } from "@prisma/client";
 
@@ -79,11 +80,18 @@ async function resolveAppSession(): Promise<AppSession | null> {
     return null;
   }
 
+  if (isSupabaseAuthDisabled()) {
+    return null;
+  }
+
   const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
+  let user;
+  let error;
+  try {
+    ({ data: { user }, error } = await supabase.auth.getUser());
+  } catch {
+    return null;
+  }
 
   if (error || !user?.email) {
     return null;

@@ -66,14 +66,17 @@ export function PortalShell({
   }
 
   return (
-    <div className="min-h-screen bg-surface-primary" data-testid="portal-shell">
+    <div
+      className="min-h-screen bg-surface-primary [--portal-header-offset:4.5rem] [--portal-sticky-gap:0.75rem] max-sm:[--portal-header-offset:8.25rem]"
+      data-testid="portal-shell"
+    >
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-input focus:bg-brand-gold focus:px-4 focus:py-2 focus:text-white"
       >
         Skip to main content
       </a>
-      <header className="sticky top-0 z-10 border-b border-border bg-surface-card">
+      <header className="sticky top-0 z-20 border-b border-border bg-surface-card">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-page-x py-4 sm:px-page-md">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center gap-2.5">

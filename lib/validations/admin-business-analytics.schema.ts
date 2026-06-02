@@ -25,78 +25,77 @@ const activeFiltersSchema = z
 const monthSchema = z.coerce.number().int().min(1).max(12);
 const yearSchema = z.coerce.number().int().min(2000).max(2100);
 
-export const adminBusinessAnalyticsQuerySchema = z
-  .object({
-    dateMode: z
-      .enum(["preset", "range", "day", "month", "compare"])
-      .optional(),
-    startDate: z.coerce.date().optional(),
-    endDate: z.coerce.date().optional(),
-    period: periodQuerySchema.optional(),
-    month: monthSchema.optional(),
-    year: yearSchema.optional(),
-    compareAMonth: monthSchema.optional(),
-    compareAYear: yearSchema.optional(),
-    compareBMonth: monthSchema.optional(),
-    compareBYear: yearSchema.optional(),
-    activeFilters: activeFiltersSchema,
-    storeId: z.string().min(1).optional(),
-    staffId: z.string().min(1).optional(),
-    segment: staffCallSegmentSchema.default("ALL"),
-    valueTier: staffCallValueTierSchema.default("ALL"),
-    customerType: optionalEnum(["NEW", "REPEAT", "VIP"]),
-    intentTier: withNa(["HOT", "WARM", "COLD", "BROWSING"]),
-    purchaseStatus: optionalEnum(["PURCHASED", "NOT_PURCHASED", "PENDING"]),
-    visitType: optionalEnum(["WALK_IN", "APPOINTMENT"]),
-    sourceChannel: optionalEnum([
-      "ORGANIC_WALK_IN",
-      "REFERRAL",
-      "SOCIAL_MEDIA",
-      "INTERNET",
-      "PHONE",
-      "USER_CALLS",
-      "TANISHQ_REF",
-      "CARATLANE_REF",
-      "OTHER",
-    ]),
-    gender: withNa(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]),
-    ageGroup: withNa(["18-25", "26-35", "36-50", "50+"]),
-    area: z.union([z.string().min(1).max(100), z.literal("NA")]).optional(),
-    budgetRange: withNa([
-      "UNDER_15K",
-      "K15_50K",
-      "K50_1L",
-      "ABOVE_1L",
-      "NOT_STATED",
-    ]),
-    productCategory: optionalEnum([
-      "RINGS",
-      "NECKLACES",
-      "BANGLES",
-      "EARRINGS",
-      "CHAINS",
-      "PENDANTS",
-      "SETS",
-      "OTHER",
-    ]),
-    schemeProduct: optionalEnum(["GHS", "GPP"]),
-    enrollmentOutcome: withNa([
-      "ENROLLED_GHS",
-      "ENROLLED_GPP",
-      "ENROLLED_BOTH",
-      "INTERESTED",
-      "DECLINED",
-      "CALLBACK",
-    ]),
-    schemeEnrolled: z
-      .enum(["true", "false"])
-      .optional()
-      .transform((v) => (v === undefined ? undefined : v === "true")),
-    schemeEnrolledNa: z
-      .enum(["true", "false"])
-      .optional()
-      .transform((v) => (v === undefined ? undefined : v === "true")),
-  })
+const adminBusinessAnalyticsBaseSchema = z.object({
+  dateMode: z.enum(["preset", "range", "day", "month", "compare"]).optional(),
+  startDate: z.coerce.date().optional(),
+  endDate: z.coerce.date().optional(),
+  period: periodQuerySchema.optional(),
+  month: monthSchema.optional(),
+  year: yearSchema.optional(),
+  compareAMonth: monthSchema.optional(),
+  compareAYear: yearSchema.optional(),
+  compareBMonth: monthSchema.optional(),
+  compareBYear: yearSchema.optional(),
+  activeFilters: activeFiltersSchema,
+  storeId: z.string().min(1).optional(),
+  staffId: z.string().min(1).optional(),
+  segment: staffCallSegmentSchema.default("ALL"),
+  valueTier: staffCallValueTierSchema.default("ALL"),
+  customerType: optionalEnum(["NEW", "REPEAT", "VIP"]),
+  intentTier: withNa(["HOT", "WARM", "COLD", "BROWSING"]),
+  purchaseStatus: optionalEnum(["PURCHASED", "NOT_PURCHASED", "PENDING"]),
+  visitType: optionalEnum(["WALK_IN", "APPOINTMENT"]),
+  sourceChannel: optionalEnum([
+    "ORGANIC_WALK_IN",
+    "REFERRAL",
+    "SOCIAL_MEDIA",
+    "INTERNET",
+    "PHONE",
+    "USER_CALLS",
+    "TANISHQ_REF",
+    "CARATLANE_REF",
+    "OTHER",
+  ]),
+  gender: withNa(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]),
+  ageGroup: withNa(["18-25", "26-35", "36-50", "50+"]),
+  area: z.union([z.string().min(1).max(100), z.literal("NA")]).optional(),
+  budgetRange: withNa([
+    "UNDER_15K",
+    "K15_50K",
+    "K50_1L",
+    "ABOVE_1L",
+    "NOT_STATED",
+  ]),
+  productCategory: optionalEnum([
+    "RINGS",
+    "NECKLACES",
+    "BANGLES",
+    "EARRINGS",
+    "CHAINS",
+    "PENDANTS",
+    "SETS",
+    "OTHER",
+  ]),
+  schemeProduct: optionalEnum(["GHS", "GPP"]),
+  enrollmentOutcome: withNa([
+    "ENROLLED_GHS",
+    "ENROLLED_GPP",
+    "ENROLLED_BOTH",
+    "INTERESTED",
+    "DECLINED",
+    "CALLBACK",
+  ]),
+  schemeEnrolled: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
+  schemeEnrolledNa: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => (v === undefined ? undefined : v === "true")),
+});
+
+export const adminBusinessAnalyticsQuerySchema = adminBusinessAnalyticsBaseSchema
   .refine(
     (data) => {
       if (data.startDate && data.endDate) {

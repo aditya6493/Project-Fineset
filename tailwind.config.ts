@@ -39,8 +39,18 @@ const config: Config = {
         chart: {
           primary: "var(--chart-primary)",
           secondary: "var(--chart-secondary)",
+          "compare-current": "var(--chart-compare-current)",
+          "compare-prior": "var(--chart-compare-prior)",
           axis: "var(--chart-axis)",
           grid: "var(--chart-grid)",
+          "series-1": "var(--chart-series-1)",
+          "series-2": "var(--chart-series-2)",
+          "series-3": "var(--chart-series-3)",
+          "series-4": "var(--chart-series-4)",
+          "series-5": "var(--chart-series-5)",
+          "series-6": "var(--chart-series-6)",
+          "series-7": "var(--chart-series-7)",
+          "series-8": "var(--chart-series-8)",
         },
       },
       fontFamily: {

@@ -1,5 +1,4 @@
 import { prisma } from "@/lib/db/prisma";
-import type { AdminBusinessAnalyticsQuery } from "@/lib/validations/admin-business-analytics.schema";
 import {
   computeVisitValueTier,
   matchesCallSegment,
@@ -18,7 +17,8 @@ import {
   ANALYTICS_FILTER_NA,
   isAnalyticsFilterActive,
   type AnalyticsFilterKey,
-} from "@/lib/analytics/admin-business-filters";
+} from "@/lib/analytics/analytics-query-filters";
+import type { AdminBusinessAnalyticsQuery } from "@/lib/validations/admin-business-analytics.schema";
 import type {
   AdminBusinessAnalytics,
   AdminBusinessAnalyticsFilterOptions,

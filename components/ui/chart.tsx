@@ -111,12 +111,27 @@ export function ChartTooltipContent({
         {payload.map((item) => {
           const key = String(item.dataKey ?? item.name ?? "value");
           const entry = config[key];
+          const swatchColor =
+            (typeof item.color === "string" && item.color) ||
+            (item.payload &&
+              typeof item.payload === "object" &&
+              "fill" in item.payload &&
+              typeof (item.payload as { fill?: string }).fill === "string" &&
+              (item.payload as { fill: string }).fill) ||
+            entry?.color;
           return (
             <div key={key} className="flex items-center justify-between gap-3">
-              <span className="text-text-secondary">
-                {entry?.label ?? item.name ?? key}
+              <span className="flex min-w-0 items-center gap-2 text-text-secondary">
+                {swatchColor ? (
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-sm ring-1 ring-border/80"
+                    style={{ backgroundColor: swatchColor }}
+                    aria-hidden
+                  />
+                ) : null}
+                <span className="truncate">{entry?.label ?? item.name ?? key}</span>
               </span>
-              <span className="font-numeric font-medium text-text-primary">
+              <span className="shrink-0 font-numeric font-medium text-text-primary">
                 {typeof item.value === "number"
                   ? item.value.toLocaleString("en-IN")
                   : String(item.value ?? "")}

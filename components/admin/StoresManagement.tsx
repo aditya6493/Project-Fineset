@@ -50,7 +50,7 @@ type ErrorsContent = Content["errors"];
 type StoreSummary = {
   id: string;
   name: string;
-  category: StoreCategory;
+  category: string;
   customCategory: string | null;
   city: string;
   state: string;

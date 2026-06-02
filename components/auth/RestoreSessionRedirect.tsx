@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
+import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
 import type { AppSession } from "@/types";
 
 function isAppRole(value: unknown): value is AppSession["role"] {
@@ -17,6 +18,8 @@ export function RestoreSessionRedirect() {
   const router = useRouter();
 
   useEffect(() => {
+    if (isSupabaseAuthDisabled()) return;
+
     const supabase = createClient();
 
     void supabase.auth.getSession().then(({ data: { session } }) => {

@@ -18,11 +18,7 @@ import {
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Content } from "@/content/en";
-import type {
-  PaginatedResponse,
-  StaffPerformanceRow,
-  StoreCategory,
-} from "@/types";
+import type { PaginatedResponse, StaffPerformanceRow } from "@/types";
 
 type AdminContent = Content["admin"];
 type CommonContent = Content["common"];
@@ -40,7 +36,7 @@ interface StaffAnalyticsProps {
   initialStores?: PaginatedResponse<{
     id: string;
     name: string;
-    category: StoreCategory;
+    category: string;
     customCategory: string | null;
     city: string;
     state: string;

@@ -30,3 +30,9 @@ export function getAuthRedirectBaseUrl(): string {
     "http://localhost:3000"
   );
 }
+
+/** CI/e2e use a non-routable Supabase host; skip remote auth calls. */
+export function isSupabaseAuthDisabled(): boolean {
+  const url = getSupabaseUrl();
+  return url.includes("placeholder.supabase.co");
+}

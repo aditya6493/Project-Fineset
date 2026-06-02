@@ -4,7 +4,7 @@ import { storesParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
-import type { PaginatedResponse, StoreCategory } from "@/types";
+import type { PaginatedResponse } from "@/types";
 
 interface UseStoresParams {
   page?: number;
@@ -15,7 +15,7 @@ interface UseStoresParams {
 type StoreListResponse = PaginatedResponse<{
   id: string;
   name: string;
-  category: StoreCategory;
+  category: string;
   customCategory: string | null;
   city: string;
   state: string;
