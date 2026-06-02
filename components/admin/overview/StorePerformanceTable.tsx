@@ -84,9 +84,9 @@ export function StorePerformanceTable({
     <div className="rounded-card border border-border bg-surface-card shadow-card">
       <div className="border-b border-border px-4 py-3 sm:px-6">
         <h2 className="font-display text-lg font-semibold text-text-primary">
-          {admin.ranking.title}
+          {admin.overview.title}
         </h2>
-        <p className="mt-1 text-sm text-text-secondary">{admin.overview.tableHint}</p>
+        <p className="mt-1 text-sm text-text-secondary">{admin.overview.subtitle}</p>
       </div>
       <div className="overflow-x-auto">
         <Table className="min-w-[880px]">
