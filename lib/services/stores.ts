@@ -17,9 +17,6 @@ export async function listStores(params: {
   activeOnly?: boolean;
   period?: AnalyticsPeriodLabel;
 }) {
-  // #region agent log
-  fetch('http://127.0.0.1:7770/ingest/e9d9530f-db18-41c5-908e-df9613ae6f7e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ea2429'},body:JSON.stringify({sessionId:'ea2429',runId:'build-debug',hypothesisId:'A',location:'lib/services/stores.ts:listStores:entry',message:'listStores invoked',data:{page:params.page,pageSize:params.pageSize,period:params.period ?? 'month',activeOnly:Boolean(params.activeOnly),hasSearch:Boolean(params.search)},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
   const period = params.period ?? "month";
   const { start, end } = getPeriodRange(period);
   const where: Prisma.StoreWhereInput = {};
@@ -69,10 +66,6 @@ export async function listStores(params: {
       conversionRate: calculateConversionRate(store.visits),
       createdAt: store.createdAt.toISOString(),
     }));
-
-  // #region agent log
-  fetch('http://127.0.0.1:7770/ingest/e9d9530f-db18-41c5-908e-df9613ae6f7e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ea2429'},body:JSON.stringify({sessionId:'ea2429',runId:'build-debug',hypothesisId:'A',location:'lib/services/stores.ts:listStores:exit',message:'listStores mapped payload shape',data:{count:mapped.length,firstKeys:mapped[0]?Object.keys(mapped[0]):[],hasRevenueField:Boolean(mapped[0] && Object.prototype.hasOwnProperty.call(mapped[0],'revenue')),hasConversionRateField:Boolean(mapped[0] && Object.prototype.hasOwnProperty.call(mapped[0],'conversionRate'))},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   return {
     data: mapped,

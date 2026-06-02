@@ -33,6 +33,7 @@ export const fetchInitialStoreAnalytics = cache(
   async (
     overrides: GetAnalyticsParams = {},
   ): Promise<InitialStoreAnalyticsPayload | null> => {
+    const startedAt = Date.now();
     const session = await getServerSession();
     if (!requireRole(session, ["STORE_MANAGER"])) return null;
 
@@ -41,9 +42,19 @@ export const fetchInitialStoreAnalytics = cache(
       ...overrides,
     };
     const period = params.period ?? "week";
-    const data = await getStoreAnalytics(session.storeId, period);
+    try {
+      const data = await getStoreAnalytics(session.storeId, period);
 
-    return { params: { period }, data };
+      return { params: { period }, data };
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialStoreAnalytics failed", {
+        period,
+        storeId: session.storeId,
+        elapsedMs: Date.now() - startedAt,
+        error,
+      });
+      return null;
+    }
   },
 );
 

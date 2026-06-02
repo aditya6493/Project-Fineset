@@ -45,10 +45,6 @@ export const fetchInitialStores = cache(
     const params: StoresListParams = { ...DEFAULT_STORES_PARAMS, ...overrides };
     const data = await listStores(params);
 
-    // #region agent log
-    fetch('http://127.0.0.1:7770/ingest/e9d9530f-db18-41c5-908e-df9613ae6f7e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ea2429'},body:JSON.stringify({sessionId:'ea2429',runId:'build-debug',hypothesisId:'B',location:'lib/data/stores.ts:fetchInitialStores:afterListStores',message:'initial stores payload contract check',data:{rows:data.data.length,firstKeys:data.data[0]?Object.keys(data.data[0]):[],hasRevenueField:Boolean(data.data[0] && Object.prototype.hasOwnProperty.call(data.data[0],'revenue')),hasConversionRateField:Boolean(data.data[0] && Object.prototype.hasOwnProperty.call(data.data[0],'conversionRate'))},timestamp:Date.now()})}).catch(()=>{});
-    // #endregion
-
     return {
       params,
       data: {

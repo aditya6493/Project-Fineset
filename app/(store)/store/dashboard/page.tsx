@@ -3,7 +3,12 @@ import { StoreOverview } from "@/components/store/StoreOverview";
 import { fetchInitialStoreAnalytics } from "@/lib/data/analytics";
 
 export default async function StoreDashboardPage() {
-  const initial = await fetchInitialStoreAnalytics();
+  let initial: Awaited<ReturnType<typeof fetchInitialStoreAnalytics>> = null;
+  try {
+    initial = await fetchInitialStoreAnalytics();
+  } catch (error) {
+    console.error("[store-dashboard] initial analytics failed", error);
+  }
 
   return (
     <StoreOverview

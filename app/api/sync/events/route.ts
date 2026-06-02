@@ -11,71 +11,88 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  const session = await getServerSession();
-  if (!requireRole(session, ["STAFF", "STORE_MANAGER", "MASTER_ADMIN"])) {
-    return unauthorized();
-  }
+  const startedAt = Date.now();
+  try {
+    const session = await getServerSession();
+    if (!requireRole(session, ["STAFF", "STORE_MANAGER", "MASTER_ADMIN"])) {
+      return unauthorized();
+    }
 
-  const identifier = await getRequestIdentifier();
-  const rateLimit = await checkSseRateLimit(identifier);
-  if (!rateLimit.success) {
-    return new Response("Too many requests", { status: 429 });
-  }
+    const identifier = await getRequestIdentifier();
+    const rateLimit = await checkSseRateLimit(identifier);
+    if (!rateLimit.success) {
+      return new Response("Too many requests", { status: 429 });
+    }
 
-  const scope =
-    session.role === "MASTER_ADMIN" ? "all" : session.storeId;
+    const scope =
+      session.role === "MASTER_ADMIN" ? "all" : session.storeId;
 
-  const initial = await computeSyncVersionLight(session);
-  const encoder = new TextEncoder();
+    const initial = await computeSyncVersionLight(session);
+    const encoder = new TextEncoder();
 
-  const stream = new ReadableStream({
-    start(controller) {
-      let closed = false;
-      const close = () => {
-        if (closed) return;
-        closed = true;
-        clearInterval(heartbeat);
-        clearTimeout(forceCloseTimer);
-        unsubscribe();
-        try {
-          controller.close();
-        } catch {
-          // stream already closed
+    const stream = new ReadableStream({
+      start(controller) {
+        let closed = false;
+        const close = () => {
+          if (closed) return;
+          closed = true;
+          clearInterval(heartbeat);
+          clearTimeout(forceCloseTimer);
+          unsubscribe();
+          try {
+            controller.close();
+          } catch {
+            // stream already closed
+          }
+        };
+
+        function send(data: unknown): void {
+          if (closed) return;
+          controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
         }
-      };
 
-      function send(data: unknown): void {
-        if (closed) return;
-        controller.enqueue(encoder.encode(`data: ${JSON.stringify(data)}\n\n`));
-      }
+        send(initial);
 
-      send(initial);
+        const unsubscribe = syncBroadcaster.subscribe(scope, (payload) => {
+          send(payload);
+        });
 
-      const unsubscribe = syncBroadcaster.subscribe(scope, (payload) => {
-        send(payload);
-      });
+        const heartbeat = setInterval(() => {
+          if (closed) return;
+          controller.enqueue(encoder.encode(": heartbeat\n\n"));
+        }, SSE_HEARTBEAT_MS);
 
-      const heartbeat = setInterval(() => {
-        if (closed) return;
-        controller.enqueue(encoder.encode(": heartbeat\n\n"));
-      }, SSE_HEARTBEAT_MS);
+        // Close before serverless hard timeout to avoid runtime timeout errors.
+        const forceCloseTimer = setTimeout(() => {
+          close();
+        }, SSE_SERVER_MAX_CONNECTION_MS);
 
-      // Close before serverless hard timeout to avoid runtime timeout errors.
-      const forceCloseTimer = setTimeout(() => {
-        close();
-      }, SSE_SERVER_MAX_CONNECTION_MS);
+        req.signal.addEventListener("abort", () => {
+          close();
+        });
+      },
+    });
 
-      req.signal.addEventListener("abort", () => {
-        close();
-      });
-    },
-  });
-
-  return new Response(stream, {
-    headers: {
-      "Content-Type": "text/event-stream",
-      "Cache-Control": "no-cache, no-transform",
-      Connection: "keep-alive",
-    },
-  });
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  } catch (error) {
+    console.error("[api.sync.events] failed", {
+      elapsedMs: Date.now() - startedAt,
+      error,
+    });
+    // Fail open with heartbeat-only stream so dashboards remain usable.
+    return new Response(": sync unavailable\n\n", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+      },
+    });
+  }
 }
