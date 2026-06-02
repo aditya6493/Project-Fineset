@@ -16,13 +16,13 @@ type StoreListResponse = PaginatedResponse<{
   id: string;
   name: string;
   category: string;
-  customCategory: string | null;
+  customCategory?: string | null;
   city: string;
   state: string;
-  pincode: string | null;
-  pocName: string | null;
-  pointOfContactPhone: string | null;
-  email: string | null;
+  pincode?: string | null;
+  pocName?: string | null;
+  pointOfContactPhone?: string | null;
+  email?: string | null;
   isActive: boolean;
   staffCount: number;
   visits: number;
