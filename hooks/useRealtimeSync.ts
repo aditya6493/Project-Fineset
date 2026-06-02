@@ -19,6 +19,8 @@ export function useRealtimeSync(): void {
   const lastVersionRef = useRef<string | null>(null);
   const retryDelayRef = useRef(SSE_RECONNECT_BASE_MS);
   const consecutiveErrorsRef = useRef(0);
+  const invalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingEntitiesRef = useRef<Set<SyncEntity>>(new Set());
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -66,12 +68,24 @@ export function useRealtimeSync(): void {
             lastVersionRef.current !== null &&
             lastVersionRef.current !== data.version
           ) {
-            void invalidateEntities(
-              queryClient,
+            const entities =
               data.entities.length > 0
                 ? data.entities
-                : (["visits", "fieldSales", "staff", "callLogs", "stores"] as SyncEntity[]),
-            );
+                : (["visits", "fieldSales", "staff", "callLogs", "stores"] as SyncEntity[]);
+            for (const entity of entities) {
+              pendingEntitiesRef.current.add(entity);
+            }
+            if (invalidateTimerRef.current) {
+              clearTimeout(invalidateTimerRef.current);
+            }
+            invalidateTimerRef.current = setTimeout(() => {
+              const batch = [...pendingEntitiesRef.current];
+              pendingEntitiesRef.current.clear();
+              invalidateTimerRef.current = null;
+              if (batch.length > 0) {
+                void invalidateEntities(queryClient, batch);
+              }
+            }, 750);
           }
 
           lastVersionRef.current = data.version;
@@ -107,6 +121,7 @@ export function useRealtimeSync(): void {
     return () => {
       disposed = true;
       if (retryTimer) clearTimeout(retryTimer);
+      if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
       source?.close();
     };
   }, [queryClient]);

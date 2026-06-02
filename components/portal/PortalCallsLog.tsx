@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { usePortalCalls } from "@/hooks/usePortalCalls";
 import { getStaff, getStaffPerformance } from "@/lib/api/staff";
 import { getStores } from "@/lib/api/stores";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, STAFF_FILTER_QUERY_OPTIONS } from "@/lib/sync/constants";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -121,10 +121,10 @@ export function PortalCallsLog({
   });
 
   const { data: storeStaff } = useQuery({
-    queryKey: ["staff", "list", showStoreFilter ? storeFilter : "store"],
+    queryKey: ["staff", "store"],
     queryFn: () => getStaff(),
     enabled: !showStoreFilter,
-    ...LIVE_QUERY_OPTIONS,
+    ...STAFF_FILTER_QUERY_OPTIONS,
   });
 
   const { data: adminStaff } = useQuery({

@@ -14,6 +14,20 @@ import {
 type Role = AppSession["role"];
 
 export function handleRouteError(error: unknown): NextResponse {
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    const message = String(error.message ?? "");
+    if (
+      /Authentication failed against database server|ECIRCUITBREAKER|too many authentication failures/i.test(
+        message,
+      )
+    ) {
+      return NextResponse.json(
+        { message: "Database connection is temporarily unavailable" },
+        { status: 503 },
+      );
+    }
+  }
+
   if (error instanceof Prisma.PrismaClientKnownRequestError) {
     if (error.code === "P2002") {
       return NextResponse.json(

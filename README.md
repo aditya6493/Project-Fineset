@@ -44,6 +44,7 @@ In Supabase Dashboard → Authentication → URL configuration, add:
 **Production (Vercel → Settings → Environment Variables)** — required:
 
 - `DATABASE_URL`
+- `DIRECT_URL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -53,6 +54,16 @@ In Supabase Dashboard → Authentication → URL configuration, add:
 Recommended:
 
 - `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN` — rate limiting ([Upstash Console](https://console.upstash.com/))
+
+### Production DB credential runbook
+
+- `DATABASE_URL` must use the Supabase pooler host (`*.pooler.supabase.com:6543`) and include `pgbouncer=true&connection_limit=5` (or higher).
+- `DIRECT_URL` must use direct Postgres host (`db.*.supabase.co:5432`) for migrations.
+- Keep both URLs on the same Supabase project and same active database password.
+- If you rotate DB password in Supabase:
+  - update both `DATABASE_URL` and `DIRECT_URL` in Vercel immediately,
+  - redeploy once so serverless instances use the new credentials,
+  - verify no `PrismaClientInitializationError` or `ECIRCUITBREAKER` appears in Vercel runtime logs.
 
 ### 3. Set up database
 
