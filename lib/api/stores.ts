@@ -17,6 +17,8 @@ interface StoreListItem {
   isActive: boolean;
   staffCount: number;
   visits: number;
+  revenue: number;
+  conversionRate: number;
   createdAt: string;
 }
 
