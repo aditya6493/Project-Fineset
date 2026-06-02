@@ -62,7 +62,7 @@ jobs:
 
       - run: npm ci
 
-      - run: npx prisma migrate deploy
+      - run: npx prisma db push --skip-generate
         env:
           DATABASE_URL: postgresql://fineset:fineset@localhost:5432/fineset_test?schema=public
           DIRECT_URL: postgresql://fineset:fineset@localhost:5432/fineset_test?schema=public
