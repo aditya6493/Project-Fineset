@@ -148,7 +148,7 @@ function monthRange(year: number, month: number) {
 
 type FieldSaleFilterParams = Pick<
   ListFieldSalesParams,
-  "storeId" | "staffId" | "search" | "enrollmentOutcome"
+  "storeId" | "staffId" | "search" | "enrollmentOutcome" | "activityType"
 >;
 
 function applyFieldSaleFilters(
