@@ -9,7 +9,12 @@ interface StoreCallsPageProps {
 
 export default async function StoreCallsPage({ searchParams }: StoreCallsPageProps) {
   const urlFilters = parsePortalCallsSearchParams(await searchParams);
-  const initial = await fetchInitialPortalCalls(undefined, urlFilters);
+  let initial: Awaited<ReturnType<typeof fetchInitialPortalCalls>> = null;
+  try {
+    initial = await fetchInitialPortalCalls(undefined, urlFilters);
+  } catch (error) {
+    console.error("[store-calls] initial portal calls failed", { urlFilters, error });
+  }
 
   return (
     <PortalCallsLog

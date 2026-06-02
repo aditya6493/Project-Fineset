@@ -9,7 +9,15 @@ interface StoreFieldSalesPageProps {
 
 export default async function StoreFieldSalesPage({ searchParams }: StoreFieldSalesPageProps) {
   const urlFilters = parseFieldSalesSearchParams(await searchParams);
-  const initial = await fetchInitialFieldSales(undefined, urlFilters);
+  let initial: Awaited<ReturnType<typeof fetchInitialFieldSales>> = null;
+  try {
+    initial = await fetchInitialFieldSales(undefined, urlFilters);
+  } catch (error) {
+    console.error("[store-field-sales] initial field sales failed", {
+      urlFilters,
+      error,
+    });
+  }
 
   return (
     <PortalFieldSalesLog

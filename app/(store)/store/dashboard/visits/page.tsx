@@ -3,7 +3,12 @@ import { StoreVisitsLog } from "@/components/store/StoreVisitsLog";
 import { fetchInitialVisits } from "@/lib/data/visits";
 
 export default async function StoreVisitsPage() {
-  const initial = await fetchInitialVisits();
+  let initial: Awaited<ReturnType<typeof fetchInitialVisits>> = null;
+  try {
+    initial = await fetchInitialVisits();
+  } catch (error) {
+    console.error("[store-visits] initial visits failed", error);
+  }
 
   return (
     <StoreVisitsLog

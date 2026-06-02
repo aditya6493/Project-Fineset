@@ -3,7 +3,12 @@ import { StaffManagement } from "@/components/store/StaffManagement";
 import { fetchInitialStoreStaff } from "@/lib/data/staff";
 
 export default async function StoreStaffPage() {
-  const initial = await fetchInitialStoreStaff();
+  let initial: Awaited<ReturnType<typeof fetchInitialStoreStaff>> = null;
+  try {
+    initial = await fetchInitialStoreStaff();
+  } catch (error) {
+    console.error("[store-staff] initial staff failed", error);
+  }
 
   return (
     <StaffManagement
