@@ -27,7 +27,9 @@ export const content = {
       errorInvalid: "Invalid email or password",
       errorInactive:
         "Your account is not active. Open your invite email or contact your administrator.",
-      errorGeneric: "You do not have access to this portal.",
+      errorGeneric: "Sign-in failed. Please try again.",
+      errorWrongPortal:
+        "This account uses a different dashboard. Sign in from the correct portal link for your role.",
       forgotPassword: "Forgot password?",
       resetSuccess: "Your password has been updated. Sign in with your new password.",
       forgotPasswordEmailRequired:

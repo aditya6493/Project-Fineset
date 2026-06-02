@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { signInAction } from "@/lib/auth/sign-in-action";
@@ -22,6 +22,7 @@ interface SupabaseLoginFormProps {
   errorInvalid: string;
   errorInactive: string;
   errorGeneric: string;
+  errorWrongPortal: string;
   forgotPasswordLabel: string;
   forgotPasswordEmailRequired: string;
   resetEmailSent: string;
@@ -37,6 +38,7 @@ export function SupabaseLoginForm({
   errorInvalid,
   errorInactive,
   errorGeneric,
+  errorWrongPortal,
   forgotPasswordLabel,
   forgotPasswordEmailRequired,
   resetEmailSent,
@@ -59,14 +61,25 @@ export function SupabaseLoginForm({
       ? resetSuccessMessage
       : null;
 
-  const initialError =
-    urlError === "account_inactive"
-      ? errorInactive
-      : urlError === "wrong_portal"
-        ? errorGeneric
-        : urlError
-          ? errorInvalid
-          : null;
+  const [urlBootstrapError, setUrlBootstrapError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!urlError) return;
+
+    const message =
+      urlError === "account_inactive"
+        ? errorInactive
+        : urlError === "wrong_portal"
+          ? errorWrongPortal
+          : errorInvalid;
+    setUrlBootstrapError(message);
+
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has("error")) return;
+    url.searchParams.delete("error");
+    const next = `${url.pathname}${url.search}`;
+    window.history.replaceState(null, "", next);
+  }, [urlError, errorInactive, errorWrongPortal, errorInvalid]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -76,6 +89,7 @@ export function SupabaseLoginForm({
 
     submitGuardRef.current = true;
     setError(null);
+    setUrlBootstrapError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "")
@@ -196,15 +210,15 @@ export function SupabaseLoginForm({
             </div>
           </div>
 
-          {(error || initialError || initialMessage) && (
+          {initialMessage && (
             <p className="text-sm text-status-success" role="status">
               {initialMessage}
             </p>
           )}
 
-          {(error || initialError) && (
+          {!isLoading && (error || urlBootstrapError) && (
             <p className="text-sm text-status-error" role="alert">
-              {error ?? initialError}
+              {error ?? urlBootstrapError}
             </p>
           )}
 
