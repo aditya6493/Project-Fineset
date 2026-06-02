@@ -132,16 +132,26 @@ export async function getStoreAnalytics(
 export async function getAdminDashboardOverview(
   period: AnalyticsPeriod["label"],
 ): Promise<AdminDashboardOverview> {
-  const totalStores = await prisma.store.count();
-  const activeStores = await prisma.store.count({ where: { isActive: true } });
-  const stores = await getStorePerformanceRows(period);
+  const startedAt = Date.now();
+  try {
+    const totalStores = await prisma.store.count();
+    const activeStores = await prisma.store.count({ where: { isActive: true } });
+    const stores = await getStorePerformanceRows(period);
 
-  return {
-    totalStores,
-    activeStores,
-    period,
-    stores,
-  };
+    return {
+      totalStores,
+      activeStores,
+      period,
+      stores,
+    };
+  } catch (error) {
+    console.error("[services.analytics] getAdminDashboardOverview failed", {
+      period,
+      elapsedMs: Date.now() - startedAt,
+      error,
+    });
+    throw error;
+  }
 }
 
 export async function getAdminStoreDetailAnalytics(

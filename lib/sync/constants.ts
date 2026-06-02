@@ -3,6 +3,8 @@ export const LIVE_QUERY_OPTIONS = {
   staleTime: 30_000,
   refetchOnWindowFocus: true,
   refetchOnReconnect: true,
+  // Avoid retry storms when backend returns 500 (shows as repeated calls in Network tab).
+  retry: false,
 } as const;
 
 /** Avoid duplicate client fetch right after matching SSR initialData. */

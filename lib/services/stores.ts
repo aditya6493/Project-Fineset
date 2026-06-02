@@ -35,22 +35,21 @@ export async function listStores(params: {
     ];
   }
 
-  const [stores, total] = await Promise.all([
-    prisma.store.findMany({
-      where,
-      orderBy: { name: "asc" },
-      skip: (params.page - 1) * params.pageSize,
-      take: params.pageSize,
-      include: {
-        _count: { select: { staff: true } },
-        visits: {
-          where: { visitDate: { gte: start, lte: end } },
-          select: { purchaseStatus: true, transactionAmount: true },
-        },
+  // Run sequentially to avoid pool saturation on low connection limits.
+  const stores = await prisma.store.findMany({
+    where,
+    orderBy: { name: "asc" },
+    skip: (params.page - 1) * params.pageSize,
+    take: params.pageSize,
+    include: {
+      _count: { select: { staff: true } },
+      visits: {
+        where: { visitDate: { gte: start, lte: end } },
+        select: { purchaseStatus: true, transactionAmount: true },
       },
-    }),
-    prisma.store.count({ where }),
-  ]);
+    },
+  });
+  const total = await prisma.store.count({ where });
 
   const mapped = stores.map((store) => ({
       id: store.id,
@@ -148,28 +147,27 @@ export async function getStorePerformanceRows(
   const { start, end } = getPeriodRange(period);
   const previousRange = getPreviousPeriodRange(period);
 
-  const [stores, previousPeriodVisits] = await Promise.all([
-    prisma.store.findMany({
-      orderBy: { name: "asc" },
-      include: {
-        _count: { select: { staff: { where: { isActive: true } } } },
-        visits: {
-          where: { visitDate: { gte: start, lte: end } },
-          select: { purchaseStatus: true, transactionAmount: true },
-        },
+  // Run sequentially to avoid pool saturation on low connection limits.
+  const stores = await prisma.store.findMany({
+    orderBy: { name: "asc" },
+    include: {
+      _count: { select: { staff: { where: { isActive: true } } } },
+      visits: {
+        where: { visitDate: { gte: start, lte: end } },
+        select: { purchaseStatus: true, transactionAmount: true },
       },
-    }),
-    prisma.visit.findMany({
-      where: {
-        visitDate: { gte: previousRange.start, lte: previousRange.end },
-      },
-      select: {
-        storeId: true,
-        purchaseStatus: true,
-        transactionAmount: true,
-      },
-    }),
-  ]);
+    },
+  });
+  const previousPeriodVisits = await prisma.visit.findMany({
+    where: {
+      visitDate: { gte: previousRange.start, lte: previousRange.end },
+    },
+    select: {
+      storeId: true,
+      purchaseStatus: true,
+      transactionAmount: true,
+    },
+  });
 
   const previousByStore = new Map<
     string,

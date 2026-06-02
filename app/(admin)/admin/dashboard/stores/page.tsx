@@ -3,7 +3,12 @@ import { StoresManagement } from "@/components/admin/StoresManagement";
 import { fetchInitialStores } from "@/lib/data/stores";
 
 export default async function AdminStoresPage() {
-  const initial = await fetchInitialStores();
+  let initial: Awaited<ReturnType<typeof fetchInitialStores>> = null;
+  try {
+    initial = await fetchInitialStores();
+  } catch (error) {
+    console.error("[admin-stores] initial stores failed", error);
+  }
 
   return (
     <StoresManagement

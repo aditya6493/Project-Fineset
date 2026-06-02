@@ -10,7 +10,12 @@ export default async function AdminStoreDetailPage({
   params,
 }: AdminStoreDetailPageProps) {
   const { storeId } = await params;
-  const initial = await fetchInitialAdminStoreDetail(storeId);
+  let initial: Awaited<ReturnType<typeof fetchInitialAdminStoreDetail>> = null;
+  try {
+    initial = await fetchInitialAdminStoreDetail(storeId);
+  } catch (error) {
+    console.error("[admin-store-detail] initial detail failed", { storeId, error });
+  }
 
   return (
     <AdminStoreDetail
