@@ -37,6 +37,9 @@ interface UseStoresOptions {
 }
 
 export function useStores(params: UseStoresParams = {}, options?: UseStoresOptions) {
+  // #region agent log
+  fetch('http://127.0.0.1:7770/ingest/e9d9530f-db18-41c5-908e-df9613ae6f7e',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'ea2429'},body:JSON.stringify({sessionId:'ea2429',runId:'build-debug',hypothesisId:'C',location:'hooks/useStores.ts:useStores:entry',message:'useStores initialData shape',data:{hasInitialData:Boolean(options?.initialData),firstKeys:options?.initialData?.data?.[0]?Object.keys(options.initialData.data[0]):[],hasRevenueField:Boolean(options?.initialData?.data?.[0] && Object.prototype.hasOwnProperty.call(options.initialData.data[0],'revenue')),hasConversionRateField:Boolean(options?.initialData?.data?.[0] && Object.prototype.hasOwnProperty.call(options.initialData.data[0],'conversionRate'))},timestamp:Date.now()})}).catch(()=>{});
+  // #endregion
   const useInitialData =
     options?.initialData &&
     options.initialParams &&
