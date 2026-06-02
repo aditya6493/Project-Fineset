@@ -23,6 +23,11 @@ interface SupabaseLoginFormProps {
   errorInactive: string;
   errorGeneric: string;
   forgotPasswordLabel: string;
+  forgotPasswordEmailRequired: string;
+  resetEmailSent: string;
+  resetEmailError: string;
+  resetEmailRateLimited: string;
+  resetSuccessMessage: string;
 }
 
 export function SupabaseLoginForm({
@@ -33,6 +38,11 @@ export function SupabaseLoginForm({
   errorInactive,
   errorGeneric,
   forgotPasswordLabel,
+  forgotPasswordEmailRequired,
+  resetEmailSent,
+  resetEmailError,
+  resetEmailRateLimited,
+  resetSuccessMessage,
 }: SupabaseLoginFormProps) {
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
@@ -42,6 +52,12 @@ export function SupabaseLoginForm({
 
   const callbackUrl = searchParams.get("callbackUrl");
   const urlError = searchParams.get("error");
+  const resetStatus = searchParams.get("reset");
+
+  const initialMessage =
+    resetStatus === "success"
+      ? resetSuccessMessage
+      : null;
 
   const initialError =
     urlError === "account_inactive"
@@ -109,7 +125,7 @@ export function SupabaseLoginForm({
     const emailInput = document.getElementById("email") as HTMLInputElement | null;
     const email = emailInput?.value?.trim().toLowerCase();
     if (!email) {
-      setError("Enter your email first, then click forgot password.");
+      setError(forgotPasswordEmailRequired);
       return;
     }
 
@@ -122,11 +138,15 @@ export function SupabaseLoginForm({
     });
 
     if (resetError) {
-      setError(errorGeneric);
+      if (resetError.status === 429) {
+        setError(resetEmailRateLimited);
+      } else {
+        setError(resetEmailError);
+      }
       return;
     }
 
-    alert("If an account exists, a reset link has been sent to your email.");
+    alert(resetEmailSent);
   }
 
   const isLoading = isPending;
@@ -175,6 +195,12 @@ export function SupabaseLoginForm({
               </Button>
             </div>
           </div>
+
+          {(error || initialError || initialMessage) && (
+            <p className="text-sm text-status-success" role="status">
+              {initialMessage}
+            </p>
+          )}
 
           {(error || initialError) && (
             <p className="text-sm text-status-error" role="alert">
