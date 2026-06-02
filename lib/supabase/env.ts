@@ -33,6 +33,9 @@ export function getAuthRedirectBaseUrl(): string {
 
 /** CI/e2e use a non-routable Supabase host; skip remote auth calls. */
 export function isSupabaseAuthDisabled(): boolean {
-  const url = getSupabaseUrl();
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  if (!url) {
+    return process.env.SKIP_ENV_VALIDATION === "true";
+  }
   return url.includes("placeholder.supabase.co");
 }
