@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PurchaseStatus } from "@prisma/client";
 import {
   calculateConversionRate,
   calculateDelta,
@@ -137,47 +137,47 @@ export async function getStorePerformanceRows(
   const { start, end } = getPeriodRange(period);
   const previousRange = getPreviousPeriodRange(period);
 
-  const stores = await prisma.store.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { staff: { where: { isActive: true } } } },
-      visits: {
-        where: { visitDate: { gte: start, lte: end } },
-        select: { purchaseStatus: true, transactionAmount: true },
+  const [stores, previousPeriodVisits] = await Promise.all([
+    prisma.store.findMany({
+      orderBy: { name: "asc" },
+      include: {
+        _count: { select: { staff: { where: { isActive: true } } } },
+        visits: {
+          where: { visitDate: { gte: start, lte: end } },
+          select: { purchaseStatus: true, transactionAmount: true },
+        },
       },
-    },
-  });
+    }),
+    prisma.visit.findMany({
+      where: {
+        visitDate: { gte: previousRange.start, lte: previousRange.end },
+      },
+      select: {
+        storeId: true,
+        purchaseStatus: true,
+        transactionAmount: true,
+      },
+    }),
+  ]);
 
-  const previousVisitsByStore = await prisma.visit.groupBy({
-    by: ["storeId"],
-    where: {
-      visitDate: { gte: previousRange.start, lte: previousRange.end },
-    },
-    _count: { _all: true },
-  });
+  const previousByStore = new Map<
+    string,
+    Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
+  >();
+  for (const visit of previousPeriodVisits) {
+    const bucket = previousByStore.get(visit.storeId) ?? [];
+    bucket.push(visit);
+    previousByStore.set(visit.storeId, bucket);
+  }
 
-  const previousRevenueByStore = await prisma.visit.findMany({
-    where: {
-      visitDate: { gte: previousRange.start, lte: previousRange.end },
-    },
-    select: {
-      storeId: true,
-      purchaseStatus: true,
-      transactionAmount: true,
-    },
-  });
-
-  const previousVisitsMap = new Map(
-    previousVisitsByStore.map((row) => [row.storeId, row._count._all]),
-  );
-
+  const previousVisitsMap = new Map<string, number>();
   const previousRevenueMap = new Map<string, number>();
   const previousConversionMap = new Map<string, number>();
 
-  for (const store of stores) {
-    const prevVisits = previousRevenueByStore.filter((v) => v.storeId === store.id);
-    previousRevenueMap.set(store.id, calculateTotalRevenue(prevVisits));
-    previousConversionMap.set(store.id, calculateConversionRate(prevVisits));
+  for (const [storeId, prevVisits] of previousByStore) {
+    previousVisitsMap.set(storeId, prevVisits.length);
+    previousRevenueMap.set(storeId, calculateTotalRevenue(prevVisits));
+    previousConversionMap.set(storeId, calculateConversionRate(prevVisits));
   }
 
   return stores.map((store) => {

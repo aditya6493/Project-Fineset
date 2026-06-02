@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { createStore, deleteStore, getStores, updateStore } from "@/lib/api/stores";
 import { storesParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { PaginatedResponse } from "@/types";
 
@@ -45,6 +45,7 @@ export function useStores(params: UseStoresParams = {}, options?: UseStoresOptio
     queryFn: () => getStores(params),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }
 

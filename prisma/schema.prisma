@@ -16,6 +16,7 @@ enum StoreCategory {
 }
 
 model Store {
+<<<<<<< HEAD
   id          String        @id @default(cuid())
   name        String
   category    StoreCategory @default(JEWELRY)
@@ -27,6 +28,15 @@ model Store {
   pointOfContactPhone String?
   email       String?
   isActive    Boolean       @default(true)
+=======
+  id             String        @id @default(cuid())
+  name           String
+  category       StoreCategory @default(JEWELRY)
+  customCategory String?
+  city           String
+  state          String
+  isActive       Boolean       @default(true)
+>>>>>>> e836b2e (Production fixes + latency improvements (admin dashboard, sync auth, prisma pool, migration))
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -230,6 +240,7 @@ enum SourceChannel {
   USER_CALLS
   TANISHQ_REF
   CARATLANE_REF
+  USER_CALLS
   OTHER
 }
 

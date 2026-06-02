@@ -146,11 +146,15 @@ function monthRange(year: number, month: number) {
   };
 }
 
-function buildFieldSaleWhere(params: ListFieldSalesParams): Prisma.FieldSaleWhereInput {
-  const where: Prisma.FieldSaleWhereInput = {
-    activityDate: monthRange(params.year, params.month),
-  };
+type FieldSaleFilterParams = Pick<
+  ListFieldSalesParams,
+  "storeId" | "staffId" | "search" | "enrollmentOutcome"
+>;
 
+function applyFieldSaleFilters(
+  where: Prisma.FieldSaleWhereInput,
+  params: FieldSaleFilterParams,
+): Prisma.FieldSaleWhereInput {
   if (params.storeId) where.storeId = params.storeId;
   if (params.staffId) where.staffId = params.staffId;
   if (params.enrollmentOutcome) where.enrollmentOutcome = params.enrollmentOutcome;
@@ -175,50 +179,71 @@ function buildFieldSaleWhere(params: ListFieldSalesParams): Prisma.FieldSaleWher
   return where;
 }
 
-async function countFieldSaleMonths(
-  params: Pick<ListFieldSalesParams, "storeId" | "staffId" | "year" | "search" | "enrollmentOutcome">,
-) {
-  const counts = await Promise.all(
-    Array.from({ length: 12 }, async (_, index) => {
-      const month = index + 1;
-      const count = await prisma.fieldSale.count({
-        where: buildFieldSaleWhere({ ...params, month, page: 1, pageSize: 1 }),
-      });
-      return { month, count };
-    }),
+function buildFieldSaleWhere(params: ListFieldSalesParams): Prisma.FieldSaleWhereInput {
+  return applyFieldSaleFilters(
+    { activityDate: monthRange(params.year, params.month) },
+    params,
   );
+}
+
+function buildFieldSaleYearWhere(
+  params: FieldSaleFilterParams & { year: number },
+): Prisma.FieldSaleWhereInput {
+  return applyFieldSaleFilters(
+    {
+      activityDate: {
+        gte: new Date(params.year, 0, 1),
+        lt: new Date(params.year + 1, 0, 1),
+      },
+    },
+    params,
+  );
+}
+
+function countFieldSaleMonthsFromDates(dates: Array<{ activityDate: Date }>) {
+  const counts = Array.from({ length: 12 }, (_, index) => ({
+    month: index + 1,
+    count: 0,
+  }));
+
+  for (const { activityDate } of dates) {
+    counts[activityDate.getMonth()].count += 1;
+  }
 
   return counts;
 }
 
 export async function listFieldSales(params: ListFieldSalesParams) {
   const where = buildFieldSaleWhere(params);
+  const yearWhere = buildFieldSaleYearWhere(params);
 
-  const [records, total, months, yearRecords] = await Promise.all([
-    prisma.fieldSale.findMany({
-      where,
-      orderBy: { activityDate: "desc" },
-      skip: (params.page - 1) * params.pageSize,
-      take: params.pageSize,
-      include: {
-        staff: { select: { id: true, name: true } },
-        store: { select: { id: true, name: true } },
-      },
-    }),
-    prisma.fieldSale.count({ where }),
-    countFieldSaleMonths(params),
-    prisma.fieldSale.findMany({
-      where: {
-        ...(params.storeId ? { storeId: params.storeId } : {}),
-        ...(params.staffId ? { staffId: params.staffId } : {}),
-        activityDate: {
-          gte: new Date(params.year, 0, 1),
-          lt: new Date(params.year + 1, 0, 1),
-        },
-      },
-      select: { activityDate: true },
-    }),
-  ]);
+  // Sequential queries: Supabase pooler uses connection_limit=1 in DATABASE_URL.
+  const records = await prisma.fieldSale.findMany({
+    where,
+    orderBy: { activityDate: "desc" },
+    skip: (params.page - 1) * params.pageSize,
+    take: params.pageSize,
+    include: {
+      staff: { select: { id: true, name: true } },
+      store: { select: { id: true, name: true } },
+    },
+  });
+
+  const total = await prisma.fieldSale.count({ where });
+
+  const yearActivityDates = await prisma.fieldSale.findMany({
+    where: yearWhere,
+    select: { activityDate: true },
+  });
+  const months = countFieldSaleMonthsFromDates(yearActivityDates);
+
+  const yearRecords = await prisma.fieldSale.findMany({
+    where: {
+      ...(params.storeId ? { storeId: params.storeId } : {}),
+      ...(params.staffId ? { staffId: params.staffId } : {}),
+    },
+    select: { activityDate: true },
+  });
 
   const availableYears = Array.from(
     new Set([

@@ -27,6 +27,7 @@ const sourceChannelSchema = z.enum([
   "USER_CALLS",
   "TANISHQ_REF",
   "CARATLANE_REF",
+  "USER_CALLS",
   "OTHER",
 ]);
 const productCategorySchema = z.enum([

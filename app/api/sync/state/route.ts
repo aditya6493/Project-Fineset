@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { getServerSession, requireRole, unauthorized } from "@/lib/auth/session";
 import { getSyncState } from "@/lib/services/sync";
+import {
+  getCachedSyncState,
+  setCachedSyncState,
+} from "@/lib/sync/state-cache";
 
 export async function GET() {
   const session = await getServerSession();
@@ -8,7 +12,11 @@ export async function GET() {
     return unauthorized();
   }
 
-  const state = await getSyncState(session);
+  const cached = getCachedSyncState(session);
+  const state = cached ?? (await getSyncState(session));
+  if (!cached) {
+    setCachedSyncState(session, state);
+  }
 
   return NextResponse.json(state, {
     headers: {

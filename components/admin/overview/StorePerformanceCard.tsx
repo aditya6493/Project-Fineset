@@ -48,6 +48,7 @@ export function StorePerformanceCard({
   return (
     <Link
       href={`/admin/dashboard/stores/${store.storeId}`}
+      prefetch={false}
       className="group block rounded-card border border-border bg-surface-card shadow-card transition hover:border-brand-gold/40 hover:shadow-md"
     >
       <div className="border-b border-border px-4 py-4 sm:px-5">

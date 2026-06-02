@@ -91,6 +91,7 @@ export function PortalShell({
                   <Link
                     key={item.href}
                     href={item.href}
+                    prefetch={false}
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
                       "text-sm transition-colors",
@@ -123,6 +124,7 @@ export function PortalShell({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "whitespace-nowrap rounded-chip px-3 py-2 text-xs",

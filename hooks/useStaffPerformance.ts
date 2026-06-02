@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStaffPerformance } from "@/lib/api/staff";
 import { staffPerformanceStoreFilterMatch } from "@/lib/query/initial-data";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
 import type { StaffPerformanceRow } from "@/types";
 
 interface UseStaffPerformanceOptions {
@@ -24,5 +24,6 @@ export function useStaffPerformance(
     queryFn: () => getStaffPerformance(storeId),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }

@@ -124,6 +124,7 @@ export const content = {
           USER_CALLS: "User Calls",
           TANISHQ_REF: "Tanishq Reference",
           CARATLANE_REF: "Caratlane Reference",
+          USER_CALLS: "User Calls",
           OTHER: "Other",
         },
       },

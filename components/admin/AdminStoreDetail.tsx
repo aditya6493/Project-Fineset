@@ -98,17 +98,26 @@ export function AdminStoreDetail({
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/dashboard/calls?storeId=${storeId}`}>
+                  <Link
+                    href={`/admin/dashboard/calls?storeId=${storeId}`}
+                    prefetch={false}
+                  >
                     {admin.storeDetail.viewCalls}
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/dashboard/field-sales?storeId=${storeId}`}>
+                  <Link
+                    href={`/admin/dashboard/field-sales?storeId=${storeId}`}
+                    prefetch={false}
+                  >
                     {admin.storeDetail.viewFieldSales}
                   </Link>
                 </Button>
                 <Button asChild size="sm" variant="outline">
-                  <Link href={`/admin/dashboard/staff?storeId=${storeId}`}>
+                  <Link
+                    href={`/admin/dashboard/staff?storeId=${storeId}`}
+                    prefetch={false}
+                  >
                     {admin.storeDetail.viewStaff}
                   </Link>
                 </Button>
@@ -176,6 +185,7 @@ function BackLink({ label }: { label: string }) {
   return (
     <Link
       href="/admin/dashboard"
+      prefetch={false}
       className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
     >
       <ArrowLeft className="h-4 w-4" />

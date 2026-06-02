@@ -5,7 +5,7 @@ import {
   SSE_HEARTBEAT_MS,
   SSE_SERVER_MAX_CONNECTION_MS,
 } from "@/lib/sync/constants";
-import { computeSyncVersion } from "@/lib/sync/version";
+import { computeSyncVersionLight } from "@/lib/sync/version";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
   const scope =
     session.role === "MASTER_ADMIN" ? "all" : session.storeId;
 
-  const initial = await computeSyncVersion(session);
+  const initial = await computeSyncVersionLight(session);
   const encoder = new TextEncoder();
 
   const stream = new ReadableStream({

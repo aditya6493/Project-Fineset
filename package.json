@@ -23,6 +23,8 @@
     "auth:bootstrap-dev": "dotenv -e .env.local -- tsx scripts/bootstrap-dev-users.ts",
     "auth:reset-password": "dotenv -e .env.local -- tsx scripts/reset-admin-password.ts",
     "auth:diagnose": "dotenv -e .env.local -- tsx scripts/diagnose-auth.ts",
+    "db:clear-business": "dotenv -e .env.local -- tsx scripts/clear-business-data.ts",
+    "db:snapshot": "dotenv -e .env.local -- tsx scripts/check-db-snapshot.ts",
     "auth:latency": "tsx scripts/summarize-auth-latency.ts",
     "db:studio": "dotenv -e .env.local -- prisma studio",
     "postinstall": "prisma generate"

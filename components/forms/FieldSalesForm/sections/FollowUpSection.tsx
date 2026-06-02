@@ -78,6 +78,7 @@ export function FollowUpSection({
                 rows={3}
                 maxLength={500}
                 {...field}
+                value={field.value ?? ""}
               />
             </FormControl>
             <FormMessage />

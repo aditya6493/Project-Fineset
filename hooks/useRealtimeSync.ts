@@ -25,11 +25,10 @@ export function useRealtimeSync(): void {
     let retryTimer: ReturnType<typeof setTimeout> | null = null;
     let disposed = false;
 
-    async function ensureAuthorizedSession(): Promise<boolean> {
+    async function hasAuthenticatedSync(): Promise<boolean> {
       try {
         const res = await fetch("/api/sync/state", {
-          method: "GET",
-          credentials: "same-origin",
+          credentials: "include",
           cache: "no-store",
         });
         return res.ok;
@@ -40,16 +39,20 @@ export function useRealtimeSync(): void {
 
     async function connect(): Promise<void> {
       if (disposed) return;
-      const authorized = await ensureAuthorizedSession();
-      if (!authorized) {
-        const delay = retryDelayRef.current;
-        retryDelayRef.current = Math.min(
-          delay * 2,
-          SSE_RECONNECT_MAX_MS,
-        );
+
+      const authed = await hasAuthenticatedSync();
+      if (!authed) {
+        consecutiveErrorsRef.current += 1;
+        if (consecutiveErrorsRef.current >= SSE_MAX_CONSECUTIVE_ERRORS) {
+          return;
+        }
         retryTimer = setTimeout(() => {
           void connect();
-        }, delay);
+        }, retryDelayRef.current);
+        retryDelayRef.current = Math.min(
+          retryDelayRef.current * 2,
+          SSE_RECONNECT_MAX_MS,
+        );
         return;
       }
 
@@ -87,15 +90,11 @@ export function useRealtimeSync(): void {
 
         consecutiveErrorsRef.current += 1;
         if (consecutiveErrorsRef.current >= SSE_MAX_CONSECUTIVE_ERRORS) {
-          // Prevent infinite reconnect loops on persistent 401/network failures.
           return;
         }
 
         const delay = retryDelayRef.current;
-        retryDelayRef.current = Math.min(
-          delay * 2,
-          SSE_RECONNECT_MAX_MS,
-        );
+        retryDelayRef.current = Math.min(delay * 2, SSE_RECONNECT_MAX_MS);
 
         retryTimer = setTimeout(() => {
           void connect();

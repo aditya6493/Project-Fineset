@@ -5,6 +5,7 @@ import {
 } from "@/lib/auth/dev-bypass";
 import { updateSession } from "@/lib/supabase/middleware";
 
+/** Dashboard routes that require an authenticated user with the matching role. */
 const PROTECTED_PREFIXES = [
   { prefix: "/staff/dashboard", role: "STAFF" },
   { prefix: "/store/dashboard", role: "STORE_MANAGER" },
@@ -18,6 +19,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith(r.prefix),
   );
 
+  // API routes in the matcher only need session refresh (handled above).
   if (!protectedRoute) {
     if (isDevAuthBypassEnabled()) {
       return NextResponse.next({ request });
@@ -64,6 +66,8 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
+    "/api/sync/:path*",
+    "/api/analytics/:path*",
     "/staff/dashboard/:path*",
     "/store/dashboard/:path*",
     "/admin/dashboard/:path*",

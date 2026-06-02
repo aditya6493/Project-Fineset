@@ -150,9 +150,39 @@ export async function computeSyncVersion(
   };
 }
 
-/** Lightweight version check for legacy /api/sync/state */
+/**
+ * Fast sync fingerprint (1 DB round-trip). Used for /api/sync/state and SSE open.
+ * Full computeSyncVersion remains for rare cases needing all entity timestamps.
+ */
+export async function computeSyncVersionLight(
+  session: AppSession,
+): Promise<SyncVersionPayload> {
+  const storeId = resolveStoreScope(session);
+  const scope = storeId ?? "all";
+  const visitWhere: Prisma.VisitWhereInput | undefined = storeId
+    ? { storeId }
+    : undefined;
+
+  const agg = await prisma.visit.aggregate({
+    where: visitWhere,
+    _max: { updatedAt: true },
+  });
+
+  const lastChangedAt = agg._max.updatedAt ?? new Date(0);
+  const entities: SyncEntity[] = ["visits", "fieldSales", "staff", "callLogs", "stores"];
+  const version = [scope, lastChangedAt.getTime(), "light"].join(":");
+
+  return {
+    version,
+    scope,
+    entities,
+    lastChangedAt: lastChangedAt.toISOString(),
+  };
+}
+
+/** Lightweight version check for /api/sync/state */
 export async function getSyncState(session: AppSession) {
-  const payload = await computeSyncVersion(session);
+  const payload = await computeSyncVersionLight(session);
   return {
     version: payload.version,
     lastChangedAt: payload.lastChangedAt,

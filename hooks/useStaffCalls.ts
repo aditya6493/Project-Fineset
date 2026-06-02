@@ -6,7 +6,7 @@ import {
 } from "@/lib/api/staff-calls";
 import { staffCallsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
 import type { GetStaffCallsParams, StaffCallListResponse } from "@/types";
 import type { StaffCallOutcomeInput } from "@/lib/validations/staff-calls.schema";
 
@@ -26,6 +26,7 @@ export function useStaffCalls(params: GetStaffCallsParams, options?: UseStaffCal
     queryFn: () => getStaffCalls(params),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }
 

@@ -6,7 +6,7 @@ import {
   getStoreAnalytics,
 } from "@/lib/api/analytics";
 import { analyticsParamsMatch } from "@/lib/query/initial-data";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
@@ -33,6 +33,7 @@ export function useStoreAnalytics(
     queryFn: () => getStoreAnalytics(params),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }
 
@@ -50,6 +51,7 @@ export function useAdminDashboardOverview(
     queryFn: () => getAdminDashboardOverview(params),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }
 
@@ -69,6 +71,7 @@ export function useAdminStoreDetailAnalytics(
     enabled: Boolean(storeId),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(Boolean(useInitialData)),
   });
 }
 

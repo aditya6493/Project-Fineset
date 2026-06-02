@@ -43,6 +43,7 @@ export function CustomerSection({ copy, control }: CustomerSectionProps) {
                   maxLength={10}
                   autoComplete="off"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -60,6 +61,7 @@ export function CustomerSection({ copy, control }: CustomerSectionProps) {
                   placeholder={fields.customerName.placeholder}
                   autoComplete="off"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -104,6 +106,7 @@ export function CustomerSection({ copy, control }: CustomerSectionProps) {
                   placeholder={fields.profession.placeholder}
                   autoComplete="off"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />
@@ -120,7 +123,11 @@ export function CustomerSection({ copy, control }: CustomerSectionProps) {
             <FormItem>
               <FormLabel>{fields.area.label}</FormLabel>
               <FormControl>
-                <Input placeholder={fields.area.placeholder} {...field} />
+                <Input
+                  placeholder={fields.area.placeholder}
+                  {...field}
+                  value={field.value ?? ""}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

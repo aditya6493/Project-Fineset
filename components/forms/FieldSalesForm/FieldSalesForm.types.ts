@@ -38,12 +38,12 @@ export function getDefaultFieldSaleValues(): FieldSalesFormValues {
     customerName: "",
     customerPhone: "",
     customerType: "NEW",
-    area: undefined,
+    area: "",
     gender: undefined,
     ageGroup: undefined,
-    profession: undefined,
+    profession: "",
     activityType: "DOOR_TO_DOOR",
-    locationLabel: undefined,
+    locationLabel: "",
     activityDate: now,
     startTime: now,
     endTime: undefined,
@@ -52,10 +52,10 @@ export function getDefaultFieldSaleValues(): FieldSalesFormValues {
     monthlyCommitment: undefined,
     intentTier: undefined,
     reasonNoEnrollment: undefined,
-    competitorMention: undefined,
+    competitorMention: "",
     followUpNeeded: false,
     followUpDate: undefined,
-    staffNotes: undefined,
+    staffNotes: "",
   };
 }
 

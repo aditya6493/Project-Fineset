@@ -72,7 +72,11 @@ export function ActivitySection({
             <FormItem>
               <FormLabel>{fields.locationLabel.label}</FormLabel>
               <FormControl>
-                <Input placeholder={fields.locationLabel.placeholder} {...field} />
+                <Input
+                  placeholder={fields.locationLabel.placeholder}
+                  {...field}
+                  value={field.value ?? ""}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>

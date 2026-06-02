@@ -62,7 +62,11 @@ export function NoEnrollmentSection({ copy, control }: NoEnrollmentSectionProps)
           <FormItem>
             <FormLabel>{fields.competitorMention.label}</FormLabel>
             <FormControl>
-              <Input placeholder={fields.competitorMention.placeholder} {...field} />
+              <Input
+                placeholder={fields.competitorMention.placeholder}
+                {...field}
+                value={field.value ?? ""}
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

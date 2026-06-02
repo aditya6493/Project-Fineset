@@ -5,6 +5,16 @@ export const LIVE_QUERY_OPTIONS = {
   refetchOnReconnect: true,
 } as const;
 
+/** Avoid duplicate client fetch right after matching SSR initialData. */
+export const SSR_HYDRATED_QUERY_OPTIONS = {
+  refetchOnMount: false,
+  staleTime: 60_000,
+} as const;
+
+export function queryOptionsForHydration(isHydrated: boolean) {
+  return isHydrated ? SSR_HYDRATED_QUERY_OPTIONS : {};
+}
+
 /** SSE heartbeat interval (ms). */
 export const SSE_HEARTBEAT_MS = 30_000;
 

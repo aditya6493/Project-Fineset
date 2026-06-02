@@ -93,7 +93,17 @@ async function resolveAppSession(): Promise<AppSession | null> {
     return null;
   }
 
-  if (error || !user?.email) {
+  if (error) {
+    const code = (error as { code?: string }).code;
+    if (code === "refresh_token_not_found") {
+      console.warn("[getAppSession] refresh token missing — user must sign in again");
+    } else {
+      console.warn("[getAppSession] supabase getUser failed", error.message);
+    }
+    return null;
+  }
+
+  if (!user?.email) {
     return null;
   }
 
