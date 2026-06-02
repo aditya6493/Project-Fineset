@@ -5,6 +5,7 @@ import {
   ArrowLeftRight,
   BarChart3,
   CalendarRange,
+  Clock3,
   Crown,
   Gem,
   LayoutGrid,
@@ -25,6 +26,7 @@ import { KPICard } from "@/components/analytics/KPICard";
 import { SalesLineChart } from "@/components/charts/lazy";
 import { QueryLoadState } from "@/components/shared/QueryLoadState";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useAdminBusinessAnalyticsAsk } from "@/hooks/useAdminBusinessAnalyticsAsk";
 import { buildAnalyticsAskExamples } from "@/lib/analytics/ask-example-prompts";
@@ -71,6 +73,10 @@ export function AnalyticsAskPanel({
 }: AnalyticsAskPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [activePrompt, setActivePrompt] = useState<string | null>(null);
+  const [activeLeftTab, setActiveLeftTab] = useState<"recommendations" | "history">(
+    "recommendations",
+  );
+  const [historyPrompts, setHistoryPrompts] = useState<string[]>([]);
   const [result, setResult] = useState<AdminBusinessAnalyticsAskResult | null>(null);
 
   const { mutate, isPending, isError, error, reset } = useAdminBusinessAnalyticsAsk();
@@ -90,6 +96,7 @@ export function AnalyticsAskPanel({
     if (text.length < 3) return;
 
     setActivePrompt(text);
+    setHistoryPrompts((current) => [text, ...current.filter((item) => item !== text)].slice(0, 25));
     setResult(null);
     mutate(
       { prompt: text, storeId },
@@ -116,7 +123,7 @@ export function AnalyticsAskPanel({
           onChange={(e) => setPrompt(e.target.value)}
           placeholder={copy.promptPlaceholder}
           rows={3}
-          className="min-h-[4.5rem] flex-1 resize-none bg-surface-card sm:min-h-[3.5rem]"
+          className="min-h-[4.5rem] flex-1 resize-none bg-surface-primary focus-visible:bg-surface-primary sm:min-h-[3.5rem]"
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
               e.preventDefault();
@@ -152,58 +159,131 @@ export function AnalyticsAskPanel({
           )}
           aria-labelledby="analytics-ask-examples"
         >
-          <h2
-            id="analytics-ask-examples"
-            className="shrink-0 text-sm font-medium tracking-tight text-text-primary"
+          <Tabs
+            value={activeLeftTab}
+            onValueChange={(value) =>
+              setActiveLeftTab(value === "history" ? "history" : "recommendations")
+            }
+            className="flex min-h-0 flex-1 flex-col"
           >
-            {copy.examplesLabel}
-          </h2>
-          <ul
-            data-recommendations-scroll
-            className="mt-3 flex flex-col gap-2 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-none lg:[scrollbar-width:none] lg:[-ms-overflow-style:none] lg:[&::-webkit-scrollbar]:hidden"
-          >
-            {examples.map((example) => {
-              const Icon = EXAMPLE_ICONS[example.id as keyof typeof EXAMPLE_ICONS] ?? LayoutGrid;
-              const isActive = activePrompt === example.prompt;
-              return (
-                <li key={example.id}>
-                  <button
-                    type="button"
-                    disabled={isPending}
-                    onClick={() => runAsk(example.prompt)}
-                    className={cn(
-                      "group flex w-full gap-3 rounded-card border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow]",
-                      "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 disabled:cursor-not-allowed disabled:opacity-60",
-                      isActive
-                        ? "border-brand-gold/50 bg-brand-gold/5 shadow-sm"
-                        : "border-border bg-surface-card shadow-sm hover:border-brand-gold/35 hover:bg-surface-secondary/40",
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
-                        isActive
-                          ? "bg-brand-gold/20 text-brand-gold"
-                          : "bg-brand-gold/10 text-brand-gold group-hover:bg-brand-gold/15",
-                      )}
-                    >
-                      <Icon className="h-4 w-4" aria-hidden />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      {example.hint ? (
-                        <span className="block text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                          {example.hint}
+            <TabsList
+              aria-labelledby="analytics-ask-examples"
+              className="grid h-10 w-full grid-cols-2"
+            >
+              <TabsTrigger
+                value="recommendations"
+                className="min-w-0 overflow-hidden px-2 text-xs sm:px-3 sm:text-sm"
+                title={copy.examplesLabel}
+              >
+                <span className="truncate sm:hidden">Recommendations</span>
+                <span className="hidden truncate sm:inline">{copy.examplesLabel}</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="history"
+                className="min-w-0 overflow-hidden px-2 text-xs sm:px-3 sm:text-sm"
+                title={copy.historyTabLabel}
+              >
+                {copy.historyTabLabel}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent
+              value="recommendations"
+              className="mt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-none lg:[scrollbar-width:none] lg:[-ms-overflow-style:none] lg:[&::-webkit-scrollbar]:hidden"
+              data-recommendations-scroll
+            >
+              <ul className="flex flex-col gap-2">
+                {examples.map((example) => {
+                  const Icon = EXAMPLE_ICONS[example.id as keyof typeof EXAMPLE_ICONS] ?? LayoutGrid;
+                  const isActive = activePrompt === example.prompt;
+                  return (
+                    <li key={example.id}>
+                      <button
+                        type="button"
+                        disabled={isPending}
+                        onClick={() => runAsk(example.prompt)}
+                        className={cn(
+                          "group flex w-full gap-3 rounded-card border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow]",
+                          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 disabled:cursor-not-allowed disabled:opacity-60",
+                          isActive
+                            ? "border-brand-gold/50 bg-brand-gold/5 shadow-sm"
+                            : "border-border bg-surface-card shadow-sm hover:border-brand-gold/35 hover:bg-surface-secondary/40",
+                        )}
+                      >
+                        <span
+                          className={cn(
+                            "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                            isActive
+                              ? "bg-brand-gold/20 text-brand-gold"
+                              : "bg-brand-gold/10 text-brand-gold group-hover:bg-brand-gold/15",
+                          )}
+                        >
+                          <Icon className="h-4 w-4" aria-hidden />
                         </span>
-                      ) : null}
-                      <span className="mt-0.5 block text-sm leading-snug text-text-secondary transition-colors group-hover:text-text-primary">
-                        {example.prompt}
-                      </span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+                        <span className="min-w-0 flex-1">
+                          {example.hint ? (
+                            <span className="block text-[11px] font-medium uppercase tracking-wider text-text-muted">
+                              {example.hint}
+                            </span>
+                          ) : null}
+                          <span className="mt-0.5 block text-sm leading-snug text-text-secondary transition-colors group-hover:text-text-primary">
+                            {example.prompt}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </TabsContent>
+
+            <TabsContent
+              value="history"
+              className="mt-3 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-none lg:[scrollbar-width:none] lg:[-ms-overflow-style:none] lg:[&::-webkit-scrollbar]:hidden"
+            >
+              {historyPrompts.length === 0 ? (
+                <p className="rounded-card border border-border bg-surface-secondary/30 px-3.5 py-3 text-sm text-text-muted">
+                  {copy.historyEmpty}
+                </p>
+              ) : (
+                <ul className="flex flex-col gap-2">
+                  {historyPrompts.map((question) => {
+                    const isActive = activePrompt === question;
+                    return (
+                      <li key={question}>
+                        <button
+                          type="button"
+                          disabled={isPending}
+                          onClick={() => runAsk(question)}
+                          className={cn(
+                            "group flex w-full gap-3 rounded-card border px-3.5 py-3 text-left transition-[border-color,background-color,box-shadow]",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/45 disabled:cursor-not-allowed disabled:opacity-60",
+                            isActive
+                              ? "border-brand-gold/50 bg-brand-gold/5 shadow-sm"
+                              : "border-border bg-surface-card shadow-sm hover:border-brand-gold/35 hover:bg-surface-secondary/40",
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              "mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg transition-colors",
+                              isActive
+                                ? "bg-brand-gold/20 text-brand-gold"
+                                : "bg-brand-gold/10 text-brand-gold group-hover:bg-brand-gold/15",
+                            )}
+                          >
+                            <Clock3 className="h-4 w-4" aria-hidden />
+                          </span>
+                          <span className="min-w-0 flex-1 text-sm leading-snug text-text-secondary transition-colors group-hover:text-text-primary">
+                            {question}
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </TabsContent>
+          </Tabs>
         </aside>
       </div>
 

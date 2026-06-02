@@ -19,16 +19,34 @@ export function buildVisitColumns({
 }: VisitColumnLabels): ColumnDef<VisitListItem>[] {
   return [
     {
-      accessorKey: "id",
-      header: copy.columns.visitId,
-      cell: ({ row }) => (
-        <span className="font-mono text-xs">{row.original.id.slice(0, 8)}</span>
-      ),
-    },
-    {
       accessorKey: "visitDate",
       header: copy.columns.date,
       cell: ({ row }) => formatDate(row.original.visitDate),
+    },
+    { accessorKey: "staffName", header: copy.columns.staff },
+    { accessorKey: "customerName", header: copy.columns.customer },
+    {
+      accessorKey: "customerPhone",
+      header: copy.columns.phone,
+      cell: ({ row }) => maskPhone(row.original.customerPhone),
+    },
+    {
+      accessorKey: "customerType",
+      header: copy.columns.customerType,
+      cell: ({ row }) =>
+        labelFor(fieldLabels.customerType.options, row.original.customerType),
+    },
+    {
+      accessorKey: "purchaseStatus",
+      header: copy.columns.status,
+      cell: ({ row }) =>
+        labelFor(fieldLabels.purchaseStatus.options, row.original.purchaseStatus),
+    },
+    {
+      id: "productsPurchased",
+      header: copy.columns.productsPurchased,
+      cell: ({ row }) =>
+        formatProducts(row.original.productsPurchased, productLabels),
     },
     {
       accessorKey: "inTime",
@@ -49,19 +67,6 @@ export function buildVisitColumns({
         row.original.durationMins != null
           ? formatDurationMins(row.original.durationMins)
           : "—",
-    },
-    { accessorKey: "staffName", header: copy.columns.staff },
-    { accessorKey: "customerName", header: copy.columns.customer },
-    {
-      accessorKey: "customerPhone",
-      header: copy.columns.phone,
-      cell: ({ row }) => maskPhone(row.original.customerPhone),
-    },
-    {
-      accessorKey: "customerType",
-      header: copy.columns.customerType,
-      cell: ({ row }) =>
-        labelFor(fieldLabels.customerType.options, row.original.customerType),
     },
     {
       accessorKey: "visitType",
@@ -93,22 +98,10 @@ export function buildVisitColumns({
         labelFor(fieldLabels.ageGroup.options, row.original.ageGroup),
     },
     {
-      accessorKey: "purchaseStatus",
-      header: copy.columns.status,
-      cell: ({ row }) =>
-        labelFor(fieldLabels.purchaseStatus.options, row.original.purchaseStatus),
-    },
-    {
       id: "productsExplored",
       header: copy.columns.productsExplored,
       cell: ({ row }) =>
         formatProducts(row.original.productsExplored, productLabels),
-    },
-    {
-      id: "productsPurchased",
-      header: copy.columns.productsPurchased,
-      cell: ({ row }) =>
-        formatProducts(row.original.productsPurchased, productLabels),
     },
     {
       accessorKey: "transactionAmount",

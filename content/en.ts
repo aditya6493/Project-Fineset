@@ -829,7 +829,13 @@ export const content = {
         products: "Products",
       },
       detailTitle: "Visit Details",
-      exportCsv: "Export CSV",
+      importCsv: "Import CSV",
+      importingCsv: "Importing...",
+      importHint:
+        "Upload a CSV with visit fields. Data is validated and saved to your store database.",
+      importSuccess: "Imported {count} rows successfully.",
+      importPartial: "Imported {created} rows. {failed} rows failed validation.",
+      importFailed: "CSV import failed. Check your file and try again.",
       sections: {
         customer: "Customer Details",
         visit: "Visit Details",
@@ -909,6 +915,8 @@ export const content = {
         title: "AI analytics",
         chatPanelIntro:
           "Ask questions in plain language. Charts, metrics, and recommendations are computed from your live store data on the server.",
+        historyTabLabel: "History",
+        historyEmpty: "Your recent questions will appear here.",
         promptLabel: "Your question",
         promptPlaceholder:
           "e.g. Compare this month vs last year revenue by customer type for high value new customers",

@@ -23,7 +23,6 @@ import { buildVisitColumns } from "./visits-columns";
 import { VisitDetailDialog } from "./VisitDetailDialog";
 import { VisitsTableToolbar } from "./VisitsTableToolbar";
 import { VisitsTablePagination } from "./VisitsTablePagination";
-import { exportVisitsCsv } from "./visit-export";
 import type { VisitsTableProps } from "./types";
 
 export function VisitsTable({
@@ -41,6 +40,10 @@ export function VisitsTable({
   search,
   onSearchChange,
   onPageChange,
+  onImportCsv,
+  isImportingCsv,
+  importStatusMessage,
+  importStatusTone,
   fieldLabels,
   isLoading,
 }: VisitsTableProps) {
@@ -81,26 +84,19 @@ export function VisitsTable({
 
   const pageLabel = copy.page.replace("{page}", String(page));
 
-  function handleExport() {
-    exportVisitsCsv({
-      copy,
-      data,
-      fieldLabels,
-      productLabels,
-      yesLabel,
-      noLabel,
-    });
-  }
-
   return (
     <div className="space-y-4">
       <VisitsTableToolbar
         copy={copy}
+        total={total}
         searchPlaceholder={searchPlaceholder}
         search={search}
         onSearchChange={onSearchChange}
-        onExport={handleExport}
-        exportDisabled={data.length === 0}
+        onImport={onImportCsv}
+        importDisabled={false}
+        isImporting={isImportingCsv}
+        importStatusMessage={importStatusMessage}
+        importStatusTone={importStatusTone}
       />
 
       {isLoading ? (

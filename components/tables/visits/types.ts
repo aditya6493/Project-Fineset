@@ -19,6 +19,10 @@ export interface VisitsTableProps {
   search: string;
   onSearchChange: (value: string) => void;
   onPageChange: (page: number) => void;
+  onImportCsv: (file: File) => void;
+  isImportingCsv: boolean;
+  importStatusMessage?: string;
+  importStatusTone?: "default" | "success" | "error";
   fieldLabels: VisitFormFields;
   isLoading?: boolean;
 }

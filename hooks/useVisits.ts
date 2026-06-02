@@ -1,10 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { createVisit, getVisits } from "@/lib/api/visits";
+import { createVisit, getVisits, importVisitsCsv } from "@/lib/api/visits";
 import { visitsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
 import type { CreateVisitInput } from "@/lib/validations/visit.schema";
-import type { GetVisitsParams, PaginatedResponse, VisitListItem } from "@/types";
+import type {
+  GetVisitsParams,
+  PaginatedResponse,
+  VisitListItem,
+} from "@/types";
+import type { VisitsImportResult } from "@/lib/api/visits";
 
 interface UseVisitsOptions {
   initialData?: PaginatedResponse<VisitListItem>;
@@ -31,6 +36,17 @@ export function useCreateVisit() {
 
   return useMutation({
     mutationFn: (payload: CreateVisitInput) => createVisit(payload),
+    onSuccess: () => {
+      void invalidatePortalData(queryClient);
+    },
+  });
+}
+
+export function useImportVisitsCsv() {
+  const queryClient = useQueryClient();
+
+  return useMutation<VisitsImportResult, Error, File>({
+    mutationFn: (file) => importVisitsCsv(file),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },

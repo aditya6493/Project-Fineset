@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useVisits } from "@/hooks/useVisits";
+import { useImportVisitsCsv, useVisits } from "@/hooks/useVisits";
 import { VisitsTable } from "@/components/tables/VisitsTable";
 import { QueryLoadState } from "@/components/shared/QueryLoadState";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -38,6 +38,10 @@ export function StoreVisitsLog({
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
+  const [importStatus, setImportStatus] = useState<{
+    tone: "default" | "success" | "error";
+    message: string;
+  } | null>(null);
 
   const queryParams = {
     page: String(page),
@@ -52,6 +56,7 @@ export function StoreVisitsLog({
     initialData: initialVisits,
     initialParams: initialVisitsParams,
   });
+  const importCsvMutation = useImportVisitsCsv();
 
   const filters: Array<{ key: VisitFilter; label: string }> = [
     { key: "all", label: store.visits.filters.all },
@@ -132,6 +137,47 @@ export function StoreVisitsLog({
             setPage(1);
           }}
           onPageChange={setPage}
+          onImportCsv={(file) => {
+            setImportStatus({
+              tone: "default",
+              message: store.visits.importHint,
+            });
+            importCsvMutation.mutate(file, {
+              onSuccess: (result) => {
+                if (result.failedCount === 0) {
+                  setImportStatus({
+                    tone: "success",
+                    message: store.visits.importSuccess.replace(
+                      "{count}",
+                      String(result.createdCount),
+                    ),
+                  });
+                } else if (result.createdCount > 0) {
+                  setImportStatus({
+                    tone: "error",
+                    message: store.visits.importPartial
+                      .replace("{created}", String(result.createdCount))
+                      .replace("{failed}", String(result.failedCount)),
+                  });
+                } else {
+                  setImportStatus({
+                    tone: "error",
+                    message: store.visits.importFailed,
+                  });
+                }
+                void refetch();
+              },
+              onError: (error) => {
+                setImportStatus({
+                  tone: "error",
+                  message: error.message || store.visits.importFailed,
+                });
+              },
+            });
+          }}
+          isImportingCsv={importCsvMutation.isPending}
+          importStatusMessage={importStatus?.message}
+          importStatusTone={importStatus?.tone}
           fieldLabels={visitFields}
           isLoading={false}
         />
