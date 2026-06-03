@@ -33,8 +33,10 @@ export function StoreOverview({
   const store = { ...content.store, ...storeFromPage };
 
   const { data: myStoresPayload, isLoading: storesLoading } = useMyStores();
-  const stores = myStoresPayload?.data ?? [];
-  const storesKey = stores.map((s) => s.id).join(",");
+  const stores = useMemo(
+    () => myStoresPayload?.data ?? [],
+    [myStoresPayload?.data],
+  );
 
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
 
@@ -56,7 +58,7 @@ export function StoreOverview({
         : null) ??
       stores[0]!.id
     );
-  }, [storesKey, initialStoreId, myStoresPayload?.selectedStoreId, stores]);
+  }, [stores, initialStoreId, myStoresPayload?.selectedStoreId]);
 
   const selectedStoreId =
     manualStoreId && stores.some((store) => store.id === manualStoreId)
