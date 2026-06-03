@@ -98,6 +98,39 @@ export function StaffManagement({
     }
   }
 
+  function staffCreateErrorMessage(error: unknown): string {
+    if (error instanceof ApiError) {
+      const message = error.body.message?.trim();
+      if (message && message !== "Request failed") return message;
+
+      if (error.status === 400 && error.body.details) {
+        return "Check the form fields — one or more values are invalid.";
+      }
+      if (error.status === 503) {
+        return "Database connection is temporarily unavailable. Ask your teammate to fix Vercel DATABASE_URL and redeploy.";
+      }
+      if (error.status === 500) {
+        return "Server error while creating staff (usually database login). Check Vercel logs for [api.staff] create failed.";
+      }
+      if (error.status === 401 || error.status === 403) {
+        return "Your session expired. Sign out and sign in again.";
+      }
+      if (error.status === 409) {
+        return message || "This email or employee ID is already in use.";
+      }
+    }
+    if (error instanceof Error && /failed to fetch|network/i.test(error.message)) {
+      return "Cannot reach the server. Check your internet connection and try again.";
+    }
+    return errors.generic;
+  }
+
+  function onInvalid() {
+    setSubmitError(
+      "Fix the highlighted fields (employee ID must be uppercase letters/numbers only).",
+    );
+  }
+
   async function onSubmit(values: CreateStaffInput) {
     setSubmitError(null);
     try {
@@ -109,9 +142,10 @@ export function StaffManagement({
       form.reset();
       setShowPassword(false);
       setModalOpen(false);
-    } catch {
-      setSubmitError(errors.generic);
-      toast({ title: errors.generic });
+    } catch (error) {
+      const message = staffCreateErrorMessage(error);
+      setSubmitError(message);
+      toast({ title: message });
     }
   }
 
@@ -305,7 +339,13 @@ export function StaffManagement({
             <DialogTitle>{store.staff.modal.title}</DialogTitle>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <form
+              onSubmit={(event) => {
+                setSubmitError(null);
+                void form.handleSubmit(onSubmit, onInvalid)(event);
+              }}
+              className="space-y-4"
+            >
               <FormField
                 control={form.control}
                 name="name"
@@ -339,7 +379,13 @@ export function StaffManagement({
                   <FormItem>
                     <FormLabel>{store.staff.modal.employeeIdLabel}</FormLabel>
                     <FormControl>
-                      <Input {...field} className="uppercase" />
+                      <Input
+                        {...field}
+                        className="uppercase"
+                        onChange={(event) =>
+                          field.onChange(event.target.value.toUpperCase())
+                        }
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

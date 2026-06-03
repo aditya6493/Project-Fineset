@@ -30,8 +30,14 @@ export async function GET() {
     supabaseHost = "(invalid URL)";
   }
 
+  const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+
   return NextResponse.json({
-    ok: dbOk && !dbUrlLikelyBroken && Boolean(supabaseUrl),
+    ok:
+      dbOk &&
+      !dbUrlLikelyBroken &&
+      Boolean(supabaseUrl) &&
+      hasServiceRole,
     checks: {
       hasDatabaseUrl: dbUrl.length > 0,
       databaseUrlLikelyBroken: dbUrlLikelyBroken,
@@ -40,7 +46,9 @@ export async function GET() {
       hasSupabaseUrl: supabaseUrl.length > 0,
       supabaseHost,
       hasAnonKey: Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim()),
-      hasServiceRoleKey: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()),
+      hasServiceRoleKey: hasServiceRole,
+      staffCreateNeedsServiceRole:
+        "POST /api/staff requires SUPABASE_SERVICE_ROLE_KEY to create login users",
       appUrl: process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "(not set)",
       nodeEnv: process.env.NODE_ENV,
     },
@@ -50,6 +58,8 @@ export async function GET() {
         ? "Database unreachable — fix DATABASE_URL on Vercel and redeploy."
         : !supabaseUrl
           ? "Set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY on Vercel, then redeploy."
-          : "Env looks OK — if login still fails, check Supabase Auth redirect URLs for your Vercel domain.",
+          : !hasServiceRole
+            ? "Add SUPABASE_SERVICE_ROLE_KEY on Vercel — required for Add Staff (Supabase Auth)."
+            : "Env looks OK — if Add Staff still fails, open Vercel logs for [api.staff] create failed.",
   });
 }

@@ -1,6 +1,7 @@
 import { apiFetch, buildQueryString } from "@/lib/api/client";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { PaginatedResponse, StoreCategory } from "@/types";
+import type { CreateStoreResult } from "@/lib/services/stores";
 import type { Store } from "@prisma/client";
 
 interface StoreListItem {
@@ -36,8 +37,8 @@ export async function getStores(
   return apiFetch<PaginatedResponse<StoreListItem>>(`/api/stores${qs}`);
 }
 
-export async function createStore(payload: CreateStoreInput): Promise<Store> {
-  return apiFetch<Store>("/api/stores", {
+export async function createStore(payload: CreateStoreInput): Promise<CreateStoreResult> {
+  return apiFetch<CreateStoreResult>("/api/stores", {
     method: "POST",
     body: JSON.stringify(payload),
   });

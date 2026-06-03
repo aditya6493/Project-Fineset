@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import {
   badRequest,
   getServerSession,
@@ -64,13 +65,33 @@ export async function POST(req: Request) {
 
     const body: unknown = await req.json();
     const parsed = createStaffSchema.safeParse(body);
-    if (!parsed.success) return badRequest(parsed.error.flatten());
+    if (!parsed.success) {
+      const flattened = parsed.error.flatten();
+      const fieldMessages = Object.values(flattened.fieldErrors)
+        .flat()
+        .filter((msg): msg is string => Boolean(msg));
+      const message = fieldMessages[0] ?? "Invalid staff details";
+      return badRequest(flattened, message);
+    }
 
     const staff = await createStaff(session.storeId, parsed.data);
     return NextResponse.json(staff, { status: 201 });
   } catch (error) {
     if (error instanceof InviteError) {
       return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      console.error("[api.staff] create failed — database auth", {
+        elapsedMs: Date.now() - startedAt,
+        error,
+      });
+      return NextResponse.json(
+        {
+          message:
+            "Database connection failed. Fix Vercel DATABASE_URL and DIRECT_URL (correct Supabase password, % encoded as %25), then redeploy.",
+        },
+        { status: 503 },
+      );
     }
     console.error("[api.staff] create failed", {
       elapsedMs: Date.now() - startedAt,

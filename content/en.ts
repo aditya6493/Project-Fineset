@@ -1065,7 +1065,13 @@ export const content = {
         pointOfContactPhoneLabel: "POC Phone",
         customCategoryLabel: "Custom Category",
         customCategoryPlaceholder: "Enter category name",
-        emailLabel: "Email",
+        emailLabel: "Store manager email",
+        managerPasswordLabel: "Store manager password",
+        managerPasswordHint:
+          "Share this email and password with the store. Password is stored securely (not in the shop record).",
+        createSuccessTitle: "Store created",
+        createSuccessDescription:
+          "Share these login details with the store manager. They sign in at the store portal.",
       },
     },
     staff: {

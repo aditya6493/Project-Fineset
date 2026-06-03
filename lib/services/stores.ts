@@ -1,5 +1,7 @@
+import { InviteError, inviteUser } from "@/lib/auth/invite-user";
 import { prisma } from "@/lib/db/prisma";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
+import type { Store } from "@prisma/client";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
 import type { Prisma, PurchaseStatus } from "@prisma/client";
 import {
@@ -73,26 +75,65 @@ export async function listStores(params: {
   };
 }
 
-export async function createStore(input: CreateStoreInput) {
+export type CreateStoreResult = {
+  store: Store;
+  manager: {
+    email: string;
+    appUserId: string;
+  };
+};
+
+export async function createStore(input: CreateStoreInput): Promise<CreateStoreResult> {
   const normalizedCustomCategory =
     input.category === "OTHER" ? input.customCategory?.trim() : undefined;
+  const managerEmail = input.email.trim().toLowerCase();
+  const managerName = input.pocName?.trim() || input.name.trim();
 
   const store = await prisma.store.create({
     data: {
-      ...input,
+      name: input.name.trim(),
+      category: input.category,
       customCategory: normalizedCustomCategory,
+      city: input.city.trim(),
+      state: input.state.trim(),
+      pincode: input.pincode,
+      pocName: input.pocName,
+      pointOfContactPhone: input.pointOfContactPhone,
+      email: managerEmail,
     },
   });
 
-  if (normalizedCustomCategory) {
-    await prisma.storeCategoryOption.upsert({
-      where: { name: normalizedCustomCategory },
-      update: {},
-      create: { name: normalizedCustomCategory },
-    });
-  }
+  try {
+    if (normalizedCustomCategory) {
+      await prisma.storeCategoryOption.upsert({
+        where: { name: normalizedCustomCategory },
+        update: {},
+        create: { name: normalizedCustomCategory },
+      });
+    }
 
-  return store;
+    const manager = await inviteUser({
+      name: managerName,
+      email: managerEmail,
+      password: input.managerPassword,
+      role: "STORE_MANAGER",
+      storeId: store.id,
+    });
+
+    return {
+      store,
+      manager: {
+        email: manager.email,
+        appUserId: manager.appUserId,
+      },
+    };
+  } catch (error) {
+    await prisma.store.delete({ where: { id: store.id } }).catch(() => undefined);
+    if (error instanceof InviteError) {
+      throw error;
+    }
+    throw error;
+  }
 }
 
 export async function updateStore(storeId: string, input: UpdateStoreInput) {

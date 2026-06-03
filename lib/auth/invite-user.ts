@@ -47,6 +47,7 @@ export async function inviteUser(
 ): Promise<InviteUserResult> {
   const email = input.email.trim().toLowerCase();
   const name = input.name.trim();
+  const startedAt = Date.now();
 
   const existing = await prisma.appUser.findUnique({ where: { email } });
   if (existing) {
@@ -88,7 +89,23 @@ export async function inviteUser(
     staffId = staff.id;
   }
 
-  const supabase = createAdminClient();
+  let supabase;
+  try {
+    supabase = createAdminClient();
+  } catch (error) {
+    if (staffId) {
+      await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+    }
+    const message =
+      error instanceof Error ? error.message : "Supabase admin client failed";
+    throw new InviteError(
+      message.includes("SERVICE_ROLE")
+        ? "Server missing SUPABASE_SERVICE_ROLE_KEY in Vercel. Add it and redeploy."
+        : message,
+      502,
+    );
+  }
+
   const now = new Date();
   let authId: string;
   let provisionedWithPassword = false;
@@ -115,7 +132,14 @@ export async function inviteUser(
       if (staffId) {
         await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
       }
-      throw error;
+      console.error("[invite-user] supabase createUser failed", { email, error });
+      if (error instanceof InviteError) throw error;
+      throw new InviteError(
+        error instanceof Error
+          ? error.message
+          : "Failed to create Supabase login for this email",
+        502,
+      );
     }
   } else {
     const redirectTo = `${getAuthRedirectBaseUrl()}/auth/callback`;
@@ -193,6 +217,12 @@ export async function inviteUser(
     authId,
     email,
     metadata: { role: input.role, storeId: input.storeId, appUserId: appUser.id },
+  });
+
+  console.info("[invite-user] success", {
+    email,
+    role: input.role,
+    elapsedMs: Date.now() - startedAt,
   });
 
   return {

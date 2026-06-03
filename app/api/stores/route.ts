@@ -1,4 +1,7 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
+import { InviteError } from "@/lib/auth/invite-user";
+import { handleRouteError } from "@/lib/api/route-handler";
 import {
   badRequest,
   getServerSession,
@@ -35,13 +38,45 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession();
-  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+  const startedAt = Date.now();
+  try {
+    const session = await getServerSession();
+    if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
 
-  const body: unknown = await req.json();
-  const parsed = createStoreSchema.safeParse(body);
-  if (!parsed.success) return badRequest(parsed.error.flatten());
+    const body: unknown = await req.json();
+    const parsed = createStoreSchema.safeParse(body);
+    if (!parsed.success) {
+      const flattened = parsed.error.flatten();
+      const fieldMessages = Object.values(flattened.fieldErrors)
+        .flat()
+        .filter((msg): msg is string => Boolean(msg));
+      const message = fieldMessages[0] ?? "Invalid store details";
+      return badRequest(flattened, message);
+    }
 
-  const store = await createStore(parsed.data);
-  return NextResponse.json(store, { status: 201 });
+    const result = await createStore(parsed.data);
+    return NextResponse.json(result, { status: 201 });
+  } catch (error) {
+    if (error instanceof InviteError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+    if (error instanceof Prisma.PrismaClientInitializationError) {
+      console.error("[api.stores] create failed — database auth", {
+        elapsedMs: Date.now() - startedAt,
+        error,
+      });
+      return NextResponse.json(
+        {
+          message:
+            "Database connection failed. Fix Vercel DATABASE_URL and DIRECT_URL (correct Supabase password, % encoded as %25), then redeploy.",
+        },
+        { status: 503 },
+      );
+    }
+    console.error("[api.stores] create failed", {
+      elapsedMs: Date.now() - startedAt,
+      error,
+    });
+    return handleRouteError(error);
+  }
 }
