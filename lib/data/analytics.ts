@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
+import { resolveManagerStoreId } from "@/lib/services/manager-stores";
 import {
   getAdminDashboardOverview,
   getAdminStoreDetailAnalytics,
@@ -42,10 +43,15 @@ export const fetchInitialStoreAnalytics = cache(
       ...overrides,
     };
     const period = params.period ?? "week";
+    const storeId = await resolveManagerStoreId(
+      session.email,
+      session.storeId,
+      params.storeId,
+    );
     try {
-      const data = await getStoreAnalytics(session.storeId, period);
+      const data = await getStoreAnalytics(storeId, period);
 
-      return { params: { period }, data };
+      return { params: { period, storeId }, data };
     } catch (error) {
       console.error("[data.analytics] fetchInitialStoreAnalytics failed", {
         period,

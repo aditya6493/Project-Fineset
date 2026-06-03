@@ -13,6 +13,7 @@ interface StoreRsoPerformanceSectionProps {
   periodLabels: PeriodLabels;
   period: PeriodValue;
   emptyMessage: string;
+  storeId: string;
   errorLabel?: string;
   retryLabel?: string;
 }
@@ -22,10 +23,14 @@ export function StoreRsoPerformanceSection({
   periodLabels,
   period,
   emptyMessage,
+  storeId,
   errorLabel,
   retryLabel,
 }: StoreRsoPerformanceSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreRsoPerformance({ period });
+  const { data, isLoading, isError, refetch } = useStoreRsoPerformance({
+    period,
+    storeId: storeId || undefined,
+  });
   const periodLabel = periodLabels[period];
   const title = copy.title.replace("{period}", periodLabel);
 

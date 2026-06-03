@@ -46,6 +46,7 @@ export function LoginScreen({ showLogo = false }: LoginScreenProps) {
             errorInactive={c.errorInactive}
             errorGeneric={c.errorGeneric}
             errorWrongPortal={c.errorWrongPortal}
+            errorSessionExpired={c.errorSessionExpired}
             forgotPasswordLabel={c.forgotPassword}
             forgotPasswordEmailRequired={c.forgotPasswordEmailRequired}
             resetEmailSent={c.resetEmailSent}

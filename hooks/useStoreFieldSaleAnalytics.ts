@@ -7,6 +7,7 @@ export function useStoreFieldSaleAnalytics(params: GetAnalyticsParams = {}) {
   return useQuery({
     queryKey: ["analytics", "store", "field-sales", params],
     queryFn: () => getStoreFieldSaleAnalytics(params),
+    enabled: Boolean(params.storeId),
     ...LIVE_QUERY_OPTIONS,
   });
 }

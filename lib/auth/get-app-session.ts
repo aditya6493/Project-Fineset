@@ -8,6 +8,7 @@ import {
 } from "@/lib/auth/dev-bypass";
 import { appSessionFromSupabaseUser } from "@/lib/auth/session-from-metadata";
 import { createClient } from "@/lib/supabase/server";
+import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
 import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
 import type { AppSession } from "@/types";
 import type { AppRole, AppUser, Store } from "@prisma/client";
@@ -94,9 +95,12 @@ async function resolveAppSession(): Promise<AppSession | null> {
   }
 
   if (error) {
-    const code = (error as { code?: string }).code;
-    if (code === "refresh_token_not_found") {
-      console.warn("[getAppSession] refresh token missing — user must sign in again");
+    if (isInvalidRefreshTokenError(error)) {
+      try {
+        await supabase.auth.signOut();
+      } catch {
+        // ignore — cookies cleared on next middleware pass
+      }
     } else {
       console.warn("[getAppSession] supabase getUser failed", error.message);
     }

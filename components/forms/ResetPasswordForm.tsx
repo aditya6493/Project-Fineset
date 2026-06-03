@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -54,10 +55,13 @@ export function ResetPasswordForm({
     const supabase = createClient();
 
     async function syncSession() {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      setHasSession(Boolean(session));
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error && isInvalidRefreshTokenError(error)) {
+        await supabase.auth.signOut();
+        setHasSession(false);
+      } else {
+        setHasSession(Boolean(user));
+      }
       setSessionChecked(true);
     }
 

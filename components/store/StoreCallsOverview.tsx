@@ -121,6 +121,7 @@ interface StoreCallsOverviewSectionProps {
   period: PeriodValue;
   periodLabel: string;
   deltaPeriod: string;
+  storeId: string;
 }
 
 export function StoreCallsOverviewSection({
@@ -128,8 +129,12 @@ export function StoreCallsOverviewSection({
   period,
   periodLabel,
   deltaPeriod,
+  storeId,
 }: StoreCallsOverviewSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreCallAnalytics({ period });
+  const { data, isLoading, isError, refetch } = useStoreCallAnalytics({
+    period,
+    storeId: storeId || undefined,
+  });
   const title = copy.title.replace("{period}", periodLabel);
 
   return (

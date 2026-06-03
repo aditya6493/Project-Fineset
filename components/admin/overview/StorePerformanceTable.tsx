@@ -35,11 +35,12 @@ function SortHeader({
     activeKey === sortKey ? (sortAsc ? "ascending" : "descending") : "none";
 
   return (
-    <TableHead scope="col" aria-sort={sortState}>
+    <TableHead scope="col">
       <button
         type="button"
         className="font-medium text-text-secondary hover:text-brand-gold"
         onClick={onClick}
+        aria-sort={sortState}
       >
         {label}
       </button>

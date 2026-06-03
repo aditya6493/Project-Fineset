@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
+import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
 import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
 import type { AppSession } from "@/types";
 
@@ -22,9 +23,15 @@ export function RestoreSessionRedirect() {
 
     const supabase = createClient();
 
-    void supabase.auth.getSession().then(({ data: { session } }) => {
-      const role = session?.user.app_metadata?.role;
-      if (session?.user && isAppRole(role)) {
+    void supabase.auth.getUser().then(({ data: { user }, error }) => {
+      if (error) {
+        if (isInvalidRefreshTokenError(error)) {
+          void supabase.auth.signOut();
+        }
+        return;
+      }
+      const role = user?.app_metadata?.role;
+      if (user && isAppRole(role)) {
         router.replace(getRedirectForRole(role));
       }
     });

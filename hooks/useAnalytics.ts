@@ -17,6 +17,7 @@ import type {
 interface UseAnalyticsOptions<T> {
   initialData?: T;
   initialParams?: GetAnalyticsParams;
+  enabled?: boolean;
 }
 
 export function useStoreAnalytics(
@@ -31,6 +32,7 @@ export function useStoreAnalytics(
   return useQuery({
     queryKey: ["analytics", "store", params],
     queryFn: () => getStoreAnalytics(params),
+    enabled: options?.enabled !== false && Boolean(params.storeId),
     initialData: useInitialData ? options.initialData : undefined,
     ...LIVE_QUERY_OPTIONS,
     ...queryOptionsForHydration(Boolean(useInitialData)),

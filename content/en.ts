@@ -30,6 +30,8 @@ export const content = {
       errorGeneric: "Sign-in failed. Please try again.",
       errorWrongPortal:
         "This account uses a different dashboard. Sign in from the correct portal link for your role.",
+      errorSessionExpired:
+        "Your session expired. Sign in again with your email and password.",
       forgotPassword: "Forgot password?",
       resetSuccess: "Your password has been updated. Sign in with your new password.",
       forgotPasswordEmailRequired:
@@ -566,6 +568,11 @@ export const content = {
       last6months: "Last 6 Months",
     },
     deltaPeriod: "vs last period",
+    storeSelector: {
+      label: "Store",
+      placeholder: "Select store",
+      loading: "Loading stores…",
+    },
     businessOverview: {
       title: "Business Overview ({period})",
       subtitle:

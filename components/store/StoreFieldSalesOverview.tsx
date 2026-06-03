@@ -134,6 +134,7 @@ interface StoreFieldSalesOverviewSectionProps {
   period: PeriodValue;
   periodLabel: string;
   deltaPeriod: string;
+  storeId: string;
 }
 
 export function StoreFieldSalesOverviewSection({
@@ -141,8 +142,12 @@ export function StoreFieldSalesOverviewSection({
   period,
   periodLabel,
   deltaPeriod,
+  storeId,
 }: StoreFieldSalesOverviewSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreFieldSaleAnalytics({ period });
+  const { data, isLoading, isError, refetch } = useStoreFieldSaleAnalytics({
+    period,
+    storeId: storeId || undefined,
+  });
   const title = copy.title.replace("{period}", periodLabel);
 
   return (

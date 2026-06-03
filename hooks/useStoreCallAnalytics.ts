@@ -7,6 +7,7 @@ export function useStoreCallAnalytics(params: GetAnalyticsParams = {}) {
   return useQuery({
     queryKey: ["analytics", "store", "calls", params],
     queryFn: () => getStoreCallAnalytics(params),
+    enabled: Boolean(params.storeId),
     ...LIVE_QUERY_OPTIONS,
   });
 }

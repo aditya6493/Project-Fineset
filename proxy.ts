@@ -46,11 +46,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next({ request });
   }
 
-  const { response, user } = await updateSession(request);
+  const { response, user, sessionExpired } = await updateSession(request);
 
   if (!user) {
     const loginUrl = new URL("/", request.url);
     loginUrl.searchParams.set("callbackUrl", pathname);
+    if (sessionExpired) {
+      loginUrl.searchParams.set("error", "session_expired");
+    }
     return NextResponse.redirect(loginUrl);
   }
 

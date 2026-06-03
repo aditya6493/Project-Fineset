@@ -1,11 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import {
-  createStore,
-  deleteStore,
-  getStores,
-  updateStore,
-  updateStoreManagerPassword,
-} from "@/lib/api/stores";
+import { createStore, deleteStore, getStores, updateStore } from "@/lib/api/stores";
 import { storesParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
 import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
@@ -90,23 +84,6 @@ export function useDeleteStore() {
 
   return useMutation({
     mutationFn: (storeId: string) => deleteStore(storeId),
-    onSuccess: () => {
-      void invalidatePortalData(queryClient);
-    },
-  });
-}
-
-export function useUpdateStoreManagerPassword() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({
-      storeId,
-      password,
-    }: {
-      storeId: string;
-      password: string;
-    }) => updateStoreManagerPassword(storeId, password),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },

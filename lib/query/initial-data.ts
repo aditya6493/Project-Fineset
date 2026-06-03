@@ -112,7 +112,10 @@ export function analyticsParamsMatch(
   current: GetAnalyticsParams,
   initial: GetAnalyticsParams,
 ): boolean {
-  return (current.period ?? "week") === (initial.period ?? "week");
+  return (
+    (current.period ?? "week") === (initial.period ?? "week") &&
+    (current.storeId ?? "") === (initial.storeId ?? "")
+  );
 }
 
 export function storesParamsMatch(

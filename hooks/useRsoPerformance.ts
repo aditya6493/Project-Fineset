@@ -7,6 +7,7 @@ export function useStoreRsoPerformance(params: GetAnalyticsParams = {}) {
   return useQuery({
     queryKey: ["analytics", "store", "rso-performance", params],
     queryFn: () => getStoreRsoPerformance(params),
+    enabled: Boolean(params.storeId),
     ...LIVE_QUERY_OPTIONS,
   });
 }

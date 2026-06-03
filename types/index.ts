@@ -610,6 +610,16 @@ export interface GetAnalyticsParams {
   storeId?: string;
 }
 
+export interface ManagerStoreOption {
+  id: string;
+  name: string;
+}
+
+export interface MyStoresResponse {
+  data: ManagerStoreOption[];
+  selectedStoreId: string;
+}
+
 export type ProductCategory =
   | "RINGS"
   | "NECKLACES"

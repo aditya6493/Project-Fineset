@@ -6,6 +6,7 @@ import {
   unauthorized,
 } from "@/lib/auth/session";
 import { handleRouteError } from "@/lib/api/route-handler";
+import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { getStoreCallAnalytics } from "@/lib/services/store-call-analytics";
 import { getAnalyticsQuerySchema } from "@/lib/validations/analytics.schema";
 
@@ -21,7 +22,13 @@ export async function GET(req: Request) {
     );
     if (!query.success) return badRequest(query.error.flatten());
 
-    const data = await getStoreCallAnalytics(session.storeId, query.data.period);
+    const storeId = await resolveStoreManagerAnalyticsStoreId(
+      session,
+      query.data.storeId,
+    );
+    if (storeId instanceof NextResponse) return storeId;
+
+    const data = await getStoreCallAnalytics(storeId, query.data.period);
     return NextResponse.json(data);
   } catch (error) {
     console.error("[api.analytics.store.calls] failed", {
