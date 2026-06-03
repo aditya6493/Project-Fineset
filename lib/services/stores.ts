@@ -89,15 +89,24 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
   const { password, ...storeFields } = input;
   const normalizedCustomCategory =
     storeFields.category === "OTHER" ? storeFields.customCategory?.trim() : undefined;
+  const managerEmail = storeFields.email?.trim().toLowerCase();
 
-  const store = await prisma.store.create({
-    data: {
-      ...storeFields,
-      customCategory: normalizedCustomCategory,
-    },
-  });
-
+  let store: Store | undefined;
   try {
+    store = await prisma.store.create({
+      data: {
+        name: storeFields.name.trim(),
+        category: storeFields.category,
+        customCategory: normalizedCustomCategory ?? null,
+        city: storeFields.city.trim(),
+        state: storeFields.state.trim(),
+        pincode: storeFields.pincode ?? null,
+        pocName: storeFields.pocName ?? null,
+        pointOfContactPhone: storeFields.pointOfContactPhone ?? null,
+        email: managerEmail ?? null,
+      },
+    });
+
     if (normalizedCustomCategory) {
       await prisma.storeCategoryOption.upsert({
         where: { name: normalizedCustomCategory },
@@ -107,10 +116,10 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     }
 
     let manager: CreateStoreResult["manager"];
-    if (password && storeFields.email) {
+    if (password && managerEmail) {
       const invited = await inviteUser({
         name: storeFields.pocName?.trim() || store.name,
-        email: storeFields.email,
+        email: managerEmail,
         password,
         role: "STORE_MANAGER",
         storeId: store.id,
@@ -118,9 +127,11 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
       manager = { email: invited.email, appUserId: invited.appUserId };
     }
 
-    return { store, manager };
+    return { store: store!, manager };
   } catch (error) {
-    await prisma.store.delete({ where: { id: store.id } }).catch(() => undefined);
+    if (store) {
+      await prisma.store.delete({ where: { id: store.id } }).catch(() => undefined);
+    }
     if (error instanceof InviteError) {
       throw error;
     }

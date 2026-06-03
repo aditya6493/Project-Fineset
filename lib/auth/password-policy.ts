@@ -18,7 +18,7 @@ export function validatePassword(password: string): {
 } {
   const result = passwordPolicySchema.safeParse(password);
   if (!result.success) {
-    return { success: false, error: result.error.errors[0]?.message };
+    return { success: false, error: result.error.issues[0]?.message };
   }
   return { success: true };
 }

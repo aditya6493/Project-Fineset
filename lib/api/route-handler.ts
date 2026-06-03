@@ -44,10 +44,35 @@ export function handleRouteError(error: unknown): NextResponse {
         { status: 409 },
       );
     }
+    if (error.code === "P2021" || error.code === "P2022") {
+      return NextResponse.json(
+        {
+          message:
+            "Database schema is out of date. Run prisma migrate deploy on the production database.",
+          code: error.code,
+        },
+        { status: 503 },
+      );
+    }
+  }
+
+  if (error instanceof Prisma.PrismaClientValidationError) {
+    return NextResponse.json(
+      {
+        message: "Invalid store data for the database. Check required fields and try again.",
+        code: "PRISMA_VALIDATION",
+      },
+      { status: 400 },
+    );
   }
 
   console.error("[api]", error);
-  return NextResponse.json({ message: "Internal server error" }, { status: 500 });
+  const detail =
+    error instanceof Error ? error.message.slice(0, 300) : "Unknown error";
+  return NextResponse.json(
+    { message: "Internal server error", detail },
+    { status: 500 },
+  );
 }
 
 export async function withAuth<T extends Role>(

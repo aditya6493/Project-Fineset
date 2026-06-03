@@ -199,7 +199,7 @@ export async function inviteUser(
     employeeId = input.employeeId ?? null;
   }
 
-  await supabase.auth.admin.updateUserById(authId, {
+  const { error: metadataError } = await supabase.auth.admin.updateUserById(authId, {
     app_metadata: {
       role: input.role,
       storeId: input.storeId ?? null,
@@ -211,6 +211,18 @@ export async function inviteUser(
       isActive: provisionedWithPassword,
     },
   });
+
+  if (metadataError) {
+    await prisma.appUser.delete({ where: { id: appUser.id } }).catch(() => undefined);
+    await supabase.auth.admin.deleteUser(authId).catch(() => undefined);
+    if (staffId) {
+      await prisma.staff.delete({ where: { id: staffId } }).catch(() => undefined);
+    }
+    throw new InviteError(
+      metadataError.message ?? "Failed to finalize user login metadata",
+      502,
+    );
+  }
 
   await logAuthEvent({
     event: provisionedWithPassword ? "USER_CREATED_WITH_PASSWORD" : "INVITE_SENT",

@@ -44,7 +44,13 @@ export async function POST(req: Request) {
     if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
 
     const body: unknown = await req.json();
-    const parsed = createStoreSchema.safeParse(body);
+    let parsed: ReturnType<typeof createStoreSchema.safeParse>;
+    try {
+      parsed = createStoreSchema.safeParse(body);
+    } catch (parseError) {
+      console.error("[api.stores] schema parse threw", parseError);
+      return badRequest({}, "Invalid store details");
+    }
     if (!parsed.success) {
       const flattened = parsed.error.flatten();
       const fieldMessages = Object.values(flattened.fieldErrors)

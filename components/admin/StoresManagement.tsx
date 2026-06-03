@@ -145,6 +145,9 @@ export function StoresManagement({
       if (error.status === 409) {
         return message || "This manager email is already registered.";
       }
+      if (error.status === 500 && error.body.detail) {
+        return `${message ?? "Server error"}: ${String(error.body.detail)}`;
+      }
     }
     if (error instanceof Error && /failed to fetch|network/i.test(error.message)) {
       return "Cannot reach the server. Check your connection and try again.";

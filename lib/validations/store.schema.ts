@@ -62,7 +62,7 @@ export const createStoreSchema = z
       if (!passwordCheck.success) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: passwordCheck.error.errors[0]?.message ?? "Invalid password",
+          message: passwordCheck.error.issues[0]?.message ?? "Invalid password",
           path: ["password"],
         });
       }

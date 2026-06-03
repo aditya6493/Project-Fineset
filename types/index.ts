@@ -67,6 +67,7 @@ export interface SyncState {
 export interface ApiErrorResponse {
   message: string;
   code?: string;
+  detail?: string;
   details?: unknown;
 }
 
