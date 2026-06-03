@@ -2,6 +2,8 @@
 
 Multi-tenant SaaS platform for jewelry store chains with Staff, Store, and Master Admin portals.
 
+**Vercel build `Unexpected character '\0'`:** OneDrive corrupts files under `OneDrive\Documents`. See [docs/ONEDRIVE_FILE_CORRUPTION.md](docs/ONEDRIVE_FILE_CORRUPTION.md). **Move the repo to `C:\dev\Project-Fineset`** (outside OneDrive) to stop this.
+
 ## Tech Stack
 
 - Next.js 16 (App Router) + TypeScript (strict)
@@ -58,8 +60,9 @@ Recommended:
 ### Production DB credential runbook
 
 - `DATABASE_URL` must use the Supabase pooler host (`*.pooler.supabase.com:6543`) and include `pgbouncer=true&connection_limit=5` (or higher).
-- `DIRECT_URL` is for **local** `npm run db:migrate` only. Vercel build does **not** run migrations (Supabase direct host is often unreachable from Vercel → P1001).
-- Apply production schema: `npm run db:migrate` locally, or `scripts/apply-production-store-schema.sql` in Supabase SQL Editor.
+- `DIRECT_URL` on Vercel must be Supabase **Session pooler** (`*.pooler.supabase.com:5432`, same password as `DATABASE_URL`). The app auto-applies Store DDL on first stores request using `DIRECT_URL`.
+- `DATABASE_URL` = transaction pooler `:6543?pgbouncer=true` (runtime queries only).
+- Vercel build does **not** run migrations (P1001 on `db.*.supabase.co`). Use GitHub Action `db-migrate.yml` (add repo secrets `DATABASE_URL` + `DIRECT_URL`) or `npm run db:migrate` locally.
 - Keep both URLs on the same Supabase project and same active database password.
 - If you rotate DB password in Supabase:
   - update both `DATABASE_URL` and `DIRECT_URL` in Vercel immediately,

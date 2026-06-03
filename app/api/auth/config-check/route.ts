@@ -1,4 +1,8 @@
 import { NextResponse } from "next/server";
+import {
+  ensureProductionStoreSchema,
+  getDatabaseHostForDiagnostics,
+} from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
 
 const REQUIRED_STORE_COLUMNS = [
@@ -15,8 +19,10 @@ async function getStoreSchemaHealth() {
     FROM information_schema.columns
     WHERE table_schema = 'public'
       AND table_name = 'Store'
+    ORDER BY column_name
   `;
-  const present = new Set(rows.map((row) => row.column_name));
+  const storeColumns = rows.map((row) => row.column_name);
+  const present = new Set(storeColumns);
   const missingStoreColumns = REQUIRED_STORE_COLUMNS.filter(
     (column) => !present.has(column),
   );
@@ -51,6 +57,7 @@ async function getStoreSchemaHealth() {
 
   return {
     missingStoreColumns,
+    storeColumns,
     storeCategoryOptionTableExists,
     storeRowCount,
     prismaStoreQueryOk,
@@ -92,6 +99,7 @@ export async function GET() {
   let storeSchemaOk = false;
   if (dbOk) {
     try {
+      await ensureProductionStoreSchema();
       storeHealth = await getStoreSchemaHealth();
       storeSchemaOk =
         storeHealth.missingStoreColumns.length === 0 &&
@@ -124,14 +132,16 @@ export async function GET() {
       appUrl: process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "(not set)",
       nodeEnv: process.env.NODE_ENV,
       hasDirectUrl,
+      databaseHost: getDatabaseHostForDiagnostics(),
       storeSchemaOk,
       missingStoreColumns,
+      storeColumns: storeHealth?.storeColumns,
       storeCategoryOptionTableExists: storeHealth?.storeCategoryOptionTableExists,
       storeRowCount: storeHealth?.storeRowCount,
       prismaStoreQueryOk: storeHealth?.prismaStoreQueryOk,
     },
     hint: !storeSchemaOk
-      ? `Production DB missing Store columns: ${missingStoreColumns.join(", ")}. Run scripts/apply-production-store-schema.sql in Supabase, then redeploy.`
+      ? `Production DB (host ${getDatabaseHostForDiagnostics()}) missing columns: ${missingStoreColumns.join(", ")}. Set Vercel DIRECT_URL to Supabase Session pooler :5432, redeploy, or run scripts/apply-production-store-schema.sql on that exact project.`
       : dbUrlLikelyBroken
         ? "DATABASE_URL password contains @ — encode as %40 in Vercel env vars."
         : !dbOk

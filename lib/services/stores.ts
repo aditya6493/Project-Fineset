@@ -1,5 +1,6 @@
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
 import { validatePassword } from "@/lib/auth/password-policy";
+import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
@@ -21,6 +22,7 @@ export async function listStores(params: {
   activeOnly?: boolean;
   period?: AnalyticsPeriodLabel;
 }) {
+  await ensureProductionStoreSchema();
   const period = params.period ?? "month";
   const { start, end } = getPeriodRange(period);
   const where: Prisma.StoreWhereInput = {};
@@ -86,6 +88,7 @@ export type CreateStoreResult = {
 };
 
 export async function createStore(input: CreateStoreInput): Promise<CreateStoreResult> {
+  await ensureProductionStoreSchema();
   const { password, ...storeFields } = input;
   const normalizedCustomCategory =
     storeFields.category === "OTHER" ? storeFields.customCategory?.trim() : undefined;
