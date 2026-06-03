@@ -33,32 +33,27 @@ export function StoreOverview({
   const store = { ...content.store, ...storeFromPage };
 
   const { data: myStoresPayload, isLoading: storesLoading } = useMyStores();
-  const stores = useMemo(
-    () => myStoresPayload?.data ?? [],
-    [myStoresPayload?.data],
-  );
+  const stores = myStoresPayload?.data ?? [];
 
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
 
-  const resolvedStoreId = useMemo(() => {
-    if (stores.length === 0) return initialStoreId ?? "";
-
+  let resolvedStoreId = initialStoreId ?? "";
+  if (stores.length > 0) {
     const allowedIds = new Set(stores.map((s) => s.id));
     const fromStorage =
       typeof window !== "undefined"
         ? window.localStorage.getItem(SELECTED_STORE_STORAGE_KEY)
         : null;
 
-    return (
+    resolvedStoreId =
       (fromStorage && allowedIds.has(fromStorage) ? fromStorage : null) ??
       (initialStoreId && allowedIds.has(initialStoreId) ? initialStoreId : null) ??
       (myStoresPayload?.selectedStoreId &&
       allowedIds.has(myStoresPayload.selectedStoreId)
         ? myStoresPayload.selectedStoreId
         : null) ??
-      stores[0]!.id
-    );
-  }, [stores, initialStoreId, myStoresPayload?.selectedStoreId]);
+      stores[0]!.id;
+  }
 
   const selectedStoreId =
     manualStoreId && stores.some((store) => store.id === manualStoreId)
