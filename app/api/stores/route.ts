@@ -12,29 +12,34 @@ import { createStore, listStores } from "@/lib/services/stores";
 import { createStoreSchema, getStoresQuerySchema } from "@/lib/validations/store.schema";
 
 export async function GET(req: Request) {
-  const session = await getServerSession();
-  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+  try {
+    const session = await getServerSession();
+    if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
 
-  const { searchParams } = new URL(req.url);
-  const query = getStoresQuerySchema.safeParse(
-    Object.fromEntries(searchParams.entries()),
-  );
-  if (!query.success) return badRequest(query.error.flatten());
+    const { searchParams } = new URL(req.url);
+    const query = getStoresQuerySchema.safeParse(
+      Object.fromEntries(searchParams.entries()),
+    );
+    if (!query.success) return badRequest(query.error.flatten());
 
-  const { data, total } = await listStores({
-    page: query.data.page,
-    pageSize: query.data.pageSize,
-    search: query.data.search,
-    activeOnly: query.data.activeOnly,
-    period: query.data.period,
-  });
+    const { data, total } = await listStores({
+      page: query.data.page,
+      pageSize: query.data.pageSize,
+      search: query.data.search,
+      activeOnly: query.data.activeOnly,
+      period: query.data.period,
+    });
 
-  return NextResponse.json({
-    data,
-    total,
-    page: query.data.page,
-    pageSize: query.data.pageSize,
-  });
+    return NextResponse.json({
+      data,
+      total,
+      page: query.data.page,
+      pageSize: query.data.pageSize,
+    });
+  } catch (error) {
+    console.error("[api.stores] list failed", error);
+    return handleRouteError(error);
+  }
 }
 
 export async function POST(req: Request) {

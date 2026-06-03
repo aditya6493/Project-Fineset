@@ -1,4 +1,4 @@
 {
   "regions": ["iad1"],
-  "buildCommand": "next build"
+  "buildCommand": "prisma migrate deploy && next build"
 }

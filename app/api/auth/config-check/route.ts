@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db/prisma";
+import { getStoreSchemaHealth, isStoreSchemaReady } from "@/lib/db/store-schema-health";
 
 /**
  * Safe production debug — no secrets returned. Remove or protect if desired later.
@@ -31,13 +32,27 @@ export async function GET() {
   }
 
   const hasServiceRole = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim());
+  const hasDirectUrl = Boolean(process.env.DIRECT_URL?.trim());
+
+  let storeHealth: Awaited<ReturnType<typeof getStoreSchemaHealth>> | null = null;
+  let storeSchemaOk = false;
+  if (dbOk) {
+    try {
+      storeHealth = await getStoreSchemaHealth();
+      storeSchemaOk = await isStoreSchemaReady();
+    } catch (err) {
+      console.error("[config-check] store schema probe failed", err);
+    }
+  }
+  const missingStoreColumns = storeHealth?.missingStoreColumns ?? [];
 
   return NextResponse.json({
     ok:
       dbOk &&
       !dbUrlLikelyBroken &&
       Boolean(supabaseUrl) &&
-      hasServiceRole,
+      hasServiceRole &&
+      storeSchemaOk,
     checks: {
       hasDatabaseUrl: dbUrl.length > 0,
       databaseUrlLikelyBroken: dbUrlLikelyBroken,
@@ -51,8 +66,16 @@ export async function GET() {
         "POST /api/staff requires SUPABASE_SERVICE_ROLE_KEY to create login users",
       appUrl: process.env.NEXT_PUBLIC_APP_URL?.trim() ?? "(not set)",
       nodeEnv: process.env.NODE_ENV,
+      hasDirectUrl,
+      storeSchemaOk,
+      missingStoreColumns,
+      storeCategoryOptionTableExists: storeHealth?.storeCategoryOptionTableExists,
+      storeRowCount: storeHealth?.storeRowCount,
+      prismaStoreQueryOk: storeHealth?.prismaStoreQueryOk,
     },
-    hint: dbUrlLikelyBroken
+    hint: !storeSchemaOk
+      ? `Production DB missing Store columns: ${missingStoreColumns.join(", ")}. Set DIRECT_URL on Vercel and redeploy (build runs prisma migrate deploy), or run npm run db:migrate locally.`
+      : dbUrlLikelyBroken
       ? "DATABASE_URL password contains @ — encode as %40 in Vercel env vars."
       : !dbOk
         ? "Database unreachable — fix DATABASE_URL on Vercel and redeploy."
