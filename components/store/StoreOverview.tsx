@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useStoreAnalytics } from "@/hooks/useAnalytics";
 import { useMyStores } from "@/hooks/useMyStores";
 import { StoreBusinessOverviewSection } from "@/components/store/StoreBusinessOverview";
@@ -34,13 +34,12 @@ export function StoreOverview({
 
   const { data: myStoresPayload, isLoading: storesLoading } = useMyStores();
   const stores = myStoresPayload?.data ?? [];
+  const storesKey = stores.map((s) => s.id).join(",");
 
-  const [selectedStoreId, setSelectedStoreId] = useState<string>(
-    initialStoreId ?? "",
-  );
+  const [manualStoreId, setManualStoreId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (stores.length === 0) return;
+  const resolvedStoreId = useMemo(() => {
+    if (stores.length === 0) return initialStoreId ?? "";
 
     const allowedIds = new Set(stores.map((s) => s.id));
     const fromStorage =
@@ -48,17 +47,24 @@ export function StoreOverview({
         ? window.localStorage.getItem(SELECTED_STORE_STORAGE_KEY)
         : null;
 
-    const candidate =
+    return (
       (fromStorage && allowedIds.has(fromStorage) ? fromStorage : null) ??
       (initialStoreId && allowedIds.has(initialStoreId) ? initialStoreId : null) ??
-      myStoresPayload?.selectedStoreId ??
-      stores[0]!.id;
+      (myStoresPayload?.selectedStoreId &&
+      allowedIds.has(myStoresPayload.selectedStoreId)
+        ? myStoresPayload.selectedStoreId
+        : null) ??
+      stores[0]!.id
+    );
+  }, [storesKey, initialStoreId, myStoresPayload?.selectedStoreId, stores]);
 
-    setSelectedStoreId(candidate);
-  }, [stores, initialStoreId, myStoresPayload?.selectedStoreId]);
+  const selectedStoreId =
+    manualStoreId && stores.some((store) => store.id === manualStoreId)
+      ? manualStoreId
+      : resolvedStoreId;
 
   const handleStoreChange = (storeId: string) => {
-    setSelectedStoreId(storeId);
+    setManualStoreId(storeId);
     if (typeof window !== "undefined") {
       window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, storeId);
     }

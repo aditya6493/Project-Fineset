@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { signInAction } from "@/lib/auth/sign-in-action";
@@ -63,27 +63,23 @@ export function SupabaseLoginForm({
       ? resetSuccessMessage
       : null;
 
-  const [urlBootstrapError, setUrlBootstrapError] = useState<string | null>(null);
+  const urlBootstrapError = useMemo(() => {
+    if (!urlError) return null;
+    if (urlError === "account_inactive") return errorInactive;
+    if (urlError === "wrong_portal") return errorWrongPortal;
+    if (urlError === "session_expired") return errorSessionExpired;
+    return errorInvalid;
+  }, [urlError, errorInactive, errorWrongPortal, errorSessionExpired, errorInvalid]);
 
   useEffect(() => {
     if (!urlError) return;
-
-    const message =
-      urlError === "account_inactive"
-        ? errorInactive
-        : urlError === "wrong_portal"
-          ? errorWrongPortal
-          : urlError === "session_expired"
-            ? errorSessionExpired
-            : errorInvalid;
-    setUrlBootstrapError(message);
 
     const url = new URL(window.location.href);
     if (!url.searchParams.has("error")) return;
     url.searchParams.delete("error");
     const next = `${url.pathname}${url.search}`;
     window.history.replaceState(null, "", next);
-  }, [urlError, errorInactive, errorWrongPortal, errorSessionExpired, errorInvalid]);
+  }, [urlError]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,7 +89,6 @@ export function SupabaseLoginForm({
 
     submitGuardRef.current = true;
     setError(null);
-    setUrlBootstrapError(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "")
