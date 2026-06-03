@@ -38,6 +38,12 @@ export function handleRouteError(error: unknown): NextResponse {
     if (error.code === "P2025") {
       return notFound();
     }
+    if (error.code === "P2003") {
+      return NextResponse.json(
+        { message: "Cannot delete: related records still exist", code: error.code },
+        { status: 409 },
+      );
+    }
   }
 
   console.error("[api]", error);

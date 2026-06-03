@@ -13,6 +13,7 @@ export default async function AdminStoresPage() {
   return (
     <StoresManagement
       admin={content.admin}
+      common={content.common}
       emptyMessage={content.empty.stores}
       errors={content.errors}
       initialStores={initial?.data}

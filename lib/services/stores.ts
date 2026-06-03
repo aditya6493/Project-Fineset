@@ -1,5 +1,7 @@
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
+import { validatePassword } from "@/lib/auth/password-policy";
 import { prisma } from "@/lib/db/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { Store } from "@prisma/client";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
@@ -77,29 +79,21 @@ export async function listStores(params: {
 
 export type CreateStoreResult = {
   store: Store;
-  manager: {
+  manager?: {
     email: string;
     appUserId: string;
   };
 };
 
 export async function createStore(input: CreateStoreInput): Promise<CreateStoreResult> {
+  const { password, ...storeFields } = input;
   const normalizedCustomCategory =
-    input.category === "OTHER" ? input.customCategory?.trim() : undefined;
-  const managerEmail = input.email.trim().toLowerCase();
-  const managerName = input.pocName?.trim() || input.name.trim();
+    storeFields.category === "OTHER" ? storeFields.customCategory?.trim() : undefined;
 
   const store = await prisma.store.create({
     data: {
-      name: input.name.trim(),
-      category: input.category,
+      ...storeFields,
       customCategory: normalizedCustomCategory,
-      city: input.city.trim(),
-      state: input.state.trim(),
-      pincode: input.pincode,
-      pocName: input.pocName,
-      pointOfContactPhone: input.pointOfContactPhone,
-      email: managerEmail,
     },
   });
 
@@ -112,21 +106,19 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
       });
     }
 
-    const manager = await inviteUser({
-      name: managerName,
-      email: managerEmail,
-      password: input.managerPassword,
-      role: "STORE_MANAGER",
-      storeId: store.id,
-    });
+    let manager: CreateStoreResult["manager"];
+    if (password && storeFields.email) {
+      const invited = await inviteUser({
+        name: storeFields.pocName?.trim() || store.name,
+        email: storeFields.email,
+        password,
+        role: "STORE_MANAGER",
+        storeId: store.id,
+      });
+      manager = { email: invited.email, appUserId: invited.appUserId };
+    }
 
-    return {
-      store,
-      manager: {
-        email: manager.email,
-        appUserId: manager.appUserId,
-      },
-    };
+    return { store, manager };
   } catch (error) {
     await prisma.store.delete({ where: { id: store.id } }).catch(() => undefined);
     if (error instanceof InviteError) {
@@ -158,6 +150,47 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
   }
 
   return store;
+}
+
+export class StoreServiceError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "StoreServiceError";
+  }
+}
+
+export async function updateStoreManagerPassword(storeId: string, password: string) {
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.success) {
+    throw new StoreServiceError(passwordCheck.error ?? "Invalid password", 400);
+  }
+
+  const manager = await prisma.appUser.findFirst({
+    where: { storeId, role: "STORE_MANAGER" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, authId: true, email: true },
+  });
+
+  if (!manager) {
+    throw new StoreServiceError(
+      "No store manager login exists for this store. Add a manager email and password when creating the store.",
+      404,
+    );
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.auth.admin.updateUserById(manager.authId, {
+    password,
+  });
+
+  if (error) {
+    throw new StoreServiceError(error.message ?? "Failed to update password", 502);
+  }
+
+  return { appUserId: manager.id, email: manager.email };
 }
 
 export async function deleteStore(storeId: string) {

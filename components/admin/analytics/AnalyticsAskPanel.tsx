@@ -149,7 +149,7 @@ export function AnalyticsAskPanel({
     "overflow-hidden rounded-card border border-border bg-surface-card shadow-card";
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] lg:items-stretch">
+    <div className="grid gap-6 lg:grid-cols-[minmax(16rem,20rem)_minmax(0,1fr)] lg:items-start">
       <div className="min-h-0 lg:flex lg:flex-col">
         <aside
           className={cn(
@@ -287,13 +287,16 @@ export function AnalyticsAskPanel({
         </aside>
       </div>
 
-      <section className={cn(chatPanelCard, "min-w-0")} aria-label="Analytics chat">
+      <section
+        className={cn(chatPanelCard, "min-w-0 w-full lg:self-start")}
+        aria-label="Analytics chat"
+      >
         <div className="border-b border-border bg-surface-card px-4 py-3 sm:px-5">
           <p className="text-sm leading-relaxed text-text-muted">{copy.chatPanelIntro}</p>
         </div>
         <div className="space-y-5 p-4 sm:p-5">
           {showEmptyChat ? (
-            <div className="flex flex-col items-center justify-center px-4 py-8 text-center">
+            <div className="flex flex-col items-center justify-center px-4 py-5 text-center">
                 <span className="mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-brand-gold/10 text-brand-gold">
                   <Sparkles className="h-5 w-5" aria-hidden />
                 </span>
