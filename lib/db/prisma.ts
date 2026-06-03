@@ -32,10 +32,10 @@ function createPrismaClient(): PrismaClient {
   if (
     process.env.NODE_ENV === "production" &&
     directUrl.length > 0 &&
-    !directUrl.includes(".supabase.co:5432")
+    !directUrl.includes(":5432")
   ) {
     console.warn(
-      "[prisma] DIRECT_URL does not look like a direct Supabase Postgres URL (:5432). Verify migration DB URL.",
+      "[prisma] DIRECT_URL should use port :5432 (Supabase session pooler or db.*.supabase.co) for local migrations.",
     );
   }
 

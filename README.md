@@ -27,7 +27,7 @@ cp .env.example .env.local
 Fill in:
 
 - `DATABASE_URL` — Supabase Postgres connection string (use **transaction pooler** URL in production: `*.pooler.supabase.com:6543?pgbouncer=true`)
-- `DIRECT_URL` — Direct Postgres URL for Prisma migrations only (`db.*.supabase.co:5432`; locally can match `DATABASE_URL`)
+- `DIRECT_URL` — Postgres URL for Prisma migrations only (run `npm run db:migrate` from your PC, not on Vercel build). Use Supabase **Session pooler** `:5432` on `*.pooler.supabase.com`, or direct `db.*.supabase.co:5432` if reachable from your network.
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase project URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` — server-only (invites, bootstrap)
@@ -58,7 +58,8 @@ Recommended:
 ### Production DB credential runbook
 
 - `DATABASE_URL` must use the Supabase pooler host (`*.pooler.supabase.com:6543`) and include `pgbouncer=true&connection_limit=5` (or higher).
-- `DIRECT_URL` must use direct Postgres host (`db.*.supabase.co:5432`) for migrations.
+- `DIRECT_URL` is for **local** `npm run db:migrate` only. Vercel build does **not** run migrations (Supabase direct host is often unreachable from Vercel → P1001).
+- Apply production schema: `npm run db:migrate` locally, or `scripts/apply-production-store-schema.sql` in Supabase SQL Editor.
 - Keep both URLs on the same Supabase project and same active database password.
 - If you rotate DB password in Supabase:
   - update both `DATABASE_URL` and `DIRECT_URL` in Vercel immediately,
@@ -73,6 +74,8 @@ npm run db:seed
 npm run auth:bootstrap
 npm run auth:bootstrap-dev
 ```
+
+**Production Add Store error ("Database schema out of date"):** run `npm run db:migrate` locally (with `DIRECT_URL` in `.env.local`), or execute `scripts/apply-production-store-schema.sql` in Supabase SQL Editor. Verify with `/api/auth/config-check` (`storeSchemaOk: true`). Redeploy app after schema fix (build is `prisma generate && next build` only).
 
 `auth:bootstrap` creates the production admin from `MASTER_ADMIN_*` env vars.
 

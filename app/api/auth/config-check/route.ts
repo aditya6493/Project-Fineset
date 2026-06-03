@@ -74,7 +74,7 @@ export async function GET() {
       prismaStoreQueryOk: storeHealth?.prismaStoreQueryOk,
     },
     hint: !storeSchemaOk
-      ? `Production DB missing Store columns: ${missingStoreColumns.join(", ")}. Set DIRECT_URL on Vercel and redeploy (build runs prisma migrate deploy), or run npm run db:migrate locally.`
+      ? `Production DB missing Store columns: ${missingStoreColumns.join(", ")}. Run npm run db:migrate locally or scripts/apply-production-store-schema.sql in Supabase, then redeploy.`
       : dbUrlLikelyBroken
       ? "DATABASE_URL password contains @ — encode as %40 in Vercel env vars."
       : !dbOk

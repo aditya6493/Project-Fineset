@@ -45,11 +45,19 @@ export function handleRouteError(error: unknown): NextResponse {
       );
     }
     if (error.code === "P2021" || error.code === "P2022") {
+      const column =
+        typeof error.meta === "object" &&
+        error.meta !== null &&
+        "column" in error.meta
+          ? String((error.meta as { column?: string }).column ?? "")
+          : "";
       return NextResponse.json(
         {
-          message:
-            "Database schema is out of date. Run prisma migrate deploy on the production database.",
+          message: column
+            ? `Database missing column "${column}". Run npm run db:migrate locally or scripts/apply-production-store-schema.sql in Supabase, then redeploy.`
+            : "Database schema is out of date. Run npm run db:migrate locally or scripts/apply-production-store-schema.sql in Supabase, then redeploy.",
           code: error.code,
+          column: column || undefined,
         },
         { status: 503 },
       );
