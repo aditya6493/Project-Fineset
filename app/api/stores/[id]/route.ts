@@ -6,6 +6,7 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
+import { handleRouteError } from "@/lib/api/route-handler";
 import { deleteStore, getStoreById, updateStore } from "@/lib/services/stores";
 import { updateStoreSchema } from "@/lib/validations/store.schema";
 
@@ -42,14 +43,14 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(_req: Request, { params }: RouteParams) {
-  const { id } = await params;
-  const session = await getServerSession();
-  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
-
   try {
+    const { id } = await params;
+    const session = await getServerSession();
+    if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+
     const store = await deleteStore(id);
     return NextResponse.json(store);
-  } catch {
-    return notFound("Store not found");
+  } catch (error) {
+    return handleRouteError(error);
   }
 }

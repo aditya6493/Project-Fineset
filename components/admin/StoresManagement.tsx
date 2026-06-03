@@ -1,13 +1,15 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff, Sparkles } from "lucide-react";
+import { generateSecurePassword } from "@/lib/auth/generate-password";
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store.schema";
-import { useCreateStore, useStores, useUpdateStore } from "@/hooks/useStores";
+import { useCreateStore, useStores } from "@/hooks/useStores";
+import { StoreListCard } from "@/components/admin/StoreListCard";
 import { toast } from "@/hooks/useToast";
-import { getStoreCategoryLabel } from "@/lib/utils/store-category";
+import { ApiError } from "@/types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,6 +43,7 @@ type ErrorsContent = Content["errors"];
 
 interface StoresManagementProps {
   admin: AdminContent;
+  common: Content["common"];
   emptyMessage: string;
   errors: ErrorsContent;
   initialStores?: import("@/types").PaginatedResponse<{
@@ -66,6 +69,7 @@ interface StoresManagementProps {
 
 export function StoresManagement({
   admin,
+  common,
   emptyMessage,
   errors,
   initialStores,
@@ -73,6 +77,7 @@ export function StoresManagement({
 }: StoresManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   const storesParams = { page: 1, pageSize: 50 };
   const { data, isLoading } = useStores(storesParams, {
@@ -80,7 +85,6 @@ export function StoresManagement({
     initialParams: initialStoresParams ?? storesParams,
   });
   const createStoreMutation = useCreateStore();
-  const updateStoreMutation = useUpdateStore();
 
   const form = useForm<CreateStoreInput>({
     resolver: zodResolver(createStoreSchema),
@@ -93,8 +97,13 @@ export function StoresManagement({
       pocName: "",
       pointOfContactPhone: "",
       email: "",
+      password: "",
     },
   });
+
+  function handleSuggestPassword() {
+    form.setValue("password", generateSecurePassword(), { shouldValidate: true });
+  }
 
   async function onSubmit(values: CreateStoreInput) {
     setSubmitError(null);
@@ -110,11 +119,15 @@ export function StoresManagement({
         pocName: "",
         pointOfContactPhone: "",
         email: "",
+        password: "",
       });
+      setShowPassword(false);
       setModalOpen(false);
-    } catch {
-      setSubmitError(errors.generic);
-      toast({ title: errors.generic });
+    } catch (error) {
+      const message =
+        error instanceof ApiError ? (error.body.message ?? errors.generic) : errors.generic;
+      setSubmitError(message);
+      toast({ title: message });
     }
   }
 
@@ -130,96 +143,58 @@ export function StoresManagement({
       </div>
 
       {isLoading ? (
-        <div aria-live="polite" aria-busy="true" className="space-y-3">
-          <Skeleton className="h-48 rounded-card" />
+        <div
+          aria-live="polite"
+          aria-busy="true"
+          className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3"
+        >
+          {Array.from({ length: 3 }).map((_, index) => (
+            <Skeleton key={index} className="h-56 rounded-card" />
+          ))}
         </div>
       ) : !data || data.data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
-        <div className="overflow-x-auto rounded-card border border-border bg-surface-card shadow-card">
-          <table className="w-full min-w-[980px] text-left text-sm">
-            <thead className="border-b border-border bg-surface-secondary">
-              <tr>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.name}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.category}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.city}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.pincode}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.email}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.staffCount}
-                </th>
-                <th className="px-4 py-3 font-medium text-text-secondary">
-                  {admin.stores.columns.status}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data.data.map((store) => (
-                <tr key={store.id} className="border-b border-border last:border-0">
-                  <td className="px-4 py-3">
-                    <Link
-                      href={`/admin/dashboard/stores/${store.id}`}
-                      prefetch={false}
-                      className="font-medium text-text-primary hover:text-brand-gold"
-                    >
-                      {store.name}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">
-                    {getStoreCategoryLabel(store.category as StoreCategory)}
-                  </td>
-                  <td className="px-4 py-3">{store.city}</td>
-                  <td className="px-4 py-3">{store.pincode || "-"}</td>
-                  <td className="px-4 py-3">{store.email || "-"}</td>
-                  <td className="px-4 py-3">{store.staffCount}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center">
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant={store.isActive ? "outline" : "secondary"}
-                        disabled={updateStoreMutation.isPending}
-                        onClick={() =>
-                          updateStoreMutation.mutate(
-                            {
-                              storeId: store.id,
-                              payload: { isActive: !store.isActive },
-                            },
-                            {
-                              onSuccess: () => {
-                                toast({
-                                  title: store.isActive
-                                    ? admin.table.inactive
-                                    : admin.table.active,
-                                });
-                              },
-                              onError: () => toast({ title: errors.generic }),
-                            },
-                          )
-                        }
-                      >
-                        {store.isActive ? admin.table.active : admin.table.inactive}
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <ul className="grid list-none gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          {data.data.map((store) => (
+            <li key={store.id}>
+              <StoreListCard
+                store={{
+                  id: store.id,
+                  name: store.name,
+                  category: store.category as StoreCategory,
+                  customCategory: store.customCategory,
+                  city: store.city,
+                  state: store.state,
+                  pincode: store.pincode,
+                  pocName: store.pocName,
+                  pointOfContactPhone: store.pointOfContactPhone,
+                  email: store.email,
+                  isActive: store.isActive,
+                  staffCount: store.staffCount,
+                }}
+                storesCopy={admin.stores}
+                categories={admin.categories}
+                common={common}
+                errors={errors}
+                statusActiveLabel={admin.table.active}
+                statusInactiveLabel={admin.table.inactive}
+              />
+            </li>
+          ))}
+        </ul>
       )}
 
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <Dialog
+        open={modalOpen}
+        onOpenChange={(open) => {
+          setModalOpen(open);
+          if (!open) {
+            setShowPassword(false);
+            setSubmitError(null);
+          }
+        }}
+      >
         <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{admin.stores.modal.title}</DialogTitle>
@@ -366,6 +341,54 @@ export function StoresManagement({
                         placeholder={admin.stores.modal.emailPlaceholder}
                       />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <div className="flex items-center justify-between gap-2">
+                      <FormLabel>{admin.stores.modal.passwordLabel}</FormLabel>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="h-auto px-2 py-1 text-xs text-brand-gold"
+                        onClick={handleSuggestPassword}
+                      >
+                        <Sparkles className="mr-1 size-3.5" aria-hidden="true" />
+                        {admin.stores.modal.suggestPassword}
+                      </Button>
+                    </div>
+                    <FormControl>
+                      <div className="relative">
+                        <Input
+                          {...field}
+                          type={showPassword ? "text" : "password"}
+                          autoComplete="new-password"
+                          placeholder={admin.stores.modal.passwordPlaceholder}
+                          className="pr-10"
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                          onClick={() => setShowPassword((value) => !value)}
+                          aria-label={showPassword ? "Hide password" : "Show password"}
+                        >
+                          {showPassword ? (
+                            <EyeOff className="size-4 text-text-muted" aria-hidden="true" />
+                          ) : (
+                            <Eye className="size-4 text-text-muted" aria-hidden="true" />
+                          )}
+                        </Button>
+                      </div>
+                    </FormControl>
+                    <p className="text-xs text-text-muted">{admin.stores.modal.passwordHint}</p>
                     <FormMessage />
                   </FormItem>
                 )}

@@ -1,4 +1,7 @@
+import { validatePassword } from "@/lib/auth/password-policy";
+import { inviteUser } from "@/lib/auth/invite-user";
 import { prisma } from "@/lib/db/prisma";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
 import type { Prisma, PurchaseStatus } from "@prisma/client";
@@ -74,15 +77,31 @@ export async function listStores(params: {
 }
 
 export async function createStore(input: CreateStoreInput) {
+  const { password, ...storeFields } = input;
   const normalizedCustomCategory =
-    input.category === "OTHER" ? input.customCategory?.trim() : undefined;
+    storeFields.category === "OTHER" ? storeFields.customCategory?.trim() : undefined;
 
   const store = await prisma.store.create({
     data: {
-      ...input,
+      ...storeFields,
       customCategory: normalizedCustomCategory,
     },
   });
+
+  try {
+    if (password && storeFields.email) {
+      await inviteUser({
+        name: storeFields.pocName?.trim() || store.name,
+        email: storeFields.email,
+        password,
+        role: "STORE_MANAGER",
+        storeId: store.id,
+      });
+    }
+  } catch (error) {
+    await prisma.store.delete({ where: { id: store.id } }).catch(() => undefined);
+    throw error;
+  }
 
   if (normalizedCustomCategory) {
     await prisma.storeCategoryOption.upsert({
@@ -117,6 +136,47 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
   }
 
   return store;
+}
+
+export class StoreServiceError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "StoreServiceError";
+  }
+}
+
+export async function updateStoreManagerPassword(storeId: string, password: string) {
+  const passwordCheck = validatePassword(password);
+  if (!passwordCheck.success) {
+    throw new StoreServiceError(passwordCheck.error ?? "Invalid password", 400);
+  }
+
+  const manager = await prisma.appUser.findFirst({
+    where: { storeId, role: "STORE_MANAGER" },
+    orderBy: { createdAt: "asc" },
+    select: { id: true, authId: true, email: true },
+  });
+
+  if (!manager) {
+    throw new StoreServiceError(
+      "No store manager login exists for this store. Add a manager email and password when creating the store.",
+      404,
+    );
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase.auth.admin.updateUserById(manager.authId, {
+    password,
+  });
+
+  if (error) {
+    throw new StoreServiceError(error.message ?? "Failed to update password", 502);
+  }
+
+  return { appUserId: manager.id, email: manager.email };
 }
 
 export async function deleteStore(storeId: string) {

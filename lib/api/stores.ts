@@ -62,3 +62,16 @@ export async function deleteStore(storeId: string): Promise<Store> {
     method: "DELETE",
   });
 }
+
+export async function updateStoreManagerPassword(
+  storeId: string,
+  password: string,
+): Promise<{ appUserId: string; email: string }> {
+  return apiFetch<{ appUserId: string; email: string }>(
+    `/api/stores/${storeId}/password`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({ password }),
+    },
+  );
+}

@@ -5,6 +5,8 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
+import { handleRouteError } from "@/lib/api/route-handler";
+import { InviteError } from "@/lib/auth/invite-user";
 import { createStore, listStores } from "@/lib/services/stores";
 import { createStoreSchema, getStoresQuerySchema } from "@/lib/validations/store.schema";
 
@@ -35,13 +37,20 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const session = await getServerSession();
-  if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
+  try {
+    const session = await getServerSession();
+    if (!requireRole(session, ["MASTER_ADMIN"])) return unauthorized();
 
-  const body: unknown = await req.json();
-  const parsed = createStoreSchema.safeParse(body);
-  if (!parsed.success) return badRequest(parsed.error.flatten());
+    const body: unknown = await req.json();
+    const parsed = createStoreSchema.safeParse(body);
+    if (!parsed.success) return badRequest(parsed.error.flatten());
 
-  const store = await createStore(parsed.data);
-  return NextResponse.json(store, { status: 201 });
+    const store = await createStore(parsed.data);
+    return NextResponse.json(store, { status: 201 });
+  } catch (error) {
+    if (error instanceof InviteError) {
+      return NextResponse.json({ message: error.message }, { status: error.status });
+    }
+    return handleRouteError(error);
+  }
 }

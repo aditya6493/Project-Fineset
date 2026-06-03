@@ -1054,7 +1054,49 @@ export const content = {
         staffCount: "Staff Count",
         revenue: "Revenue",
         status: "Status",
+        actions: "Actions",
       },
+      actions: {
+        menu: "Store actions",
+        edit: "Edit store",
+        makeInactive: "Make inactive",
+        makeActive: "Make active",
+        updatePassword: "Update password",
+        delete: "Delete store",
+      },
+      inactiveConfirm: {
+        title: "Make store inactive?",
+        description:
+          "{name} will be hidden from active lists. Staff and data remain until you reactivate or delete the store.",
+        confirm: "Make inactive",
+        cancel: "Cancel",
+      },
+      activeConfirm: {
+        title: "Make store active?",
+        description: "{name} will appear in active store lists again.",
+        confirm: "Make active",
+        cancel: "Cancel",
+      },
+      deleteConfirm: {
+        title: "Delete store?",
+        description:
+          "This permanently removes {name} and all related data. This cannot be undone.",
+        confirm: "Delete",
+        cancel: "Cancel",
+      },
+      deleteBlocked:
+        "Cannot delete a store that still has staff, visits, or customers. Remove or reassign data first.",
+      passwordModal: {
+        title: "Update store password",
+        description:
+          "Sets a new sign-in password for the store manager account linked to {name}.",
+        confirm: "Update password",
+        cancel: "Cancel",
+      },
+      passwordUpdated: "Store manager password updated",
+      statusUpdated: "Store status updated",
+      deleted: "Store deleted",
+      updated: "Store updated",
       modal: {
         title: "Add Store",
         nameLabel: "Store Name",
@@ -1074,6 +1116,15 @@ export const content = {
         customCategoryPlaceholder: "Enter category name",
         emailLabel: "Store email",
         emailPlaceholder: "manager@store.example",
+        passwordLabel: "Store password",
+        passwordPlaceholder: "Initial sign-in password",
+        suggestPassword: "Suggest password",
+        passwordHint:
+          "Manager signs in at the home page with the store email and this password. Requires store email.",
+      },
+      editModal: {
+        title: "Edit store",
+        save: "Save changes",
       },
     },
     staff: {
