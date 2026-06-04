@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { requestPasswordResetAction } from "@/lib/auth/request-password-reset-action";
 import { signInAction } from "@/lib/auth/sign-in-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ export function SupabaseLoginForm({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const submitGuardRef = useRef(false);
 
@@ -89,6 +90,7 @@ export function SupabaseLoginForm({
 
     submitGuardRef.current = true;
     setError(null);
+    setResetMessage(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "")
@@ -134,32 +136,37 @@ export function SupabaseLoginForm({
     });
   }
 
-  async function handleForgotPassword() {
+  function handleForgotPassword() {
     const emailInput = document.getElementById("email") as HTMLInputElement | null;
     const email = emailInput?.value?.trim().toLowerCase();
     if (!email) {
       setError(forgotPasswordEmailRequired);
+      setResetMessage(null);
       return;
     }
 
     setError(null);
+    setResetMessage(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
+    startTransition(async () => {
+      const result = await requestPasswordResetAction(email);
 
-    if (resetError) {
-      if (resetError.status === 429) {
-        setError(resetEmailRateLimited);
-      } else {
-        setError(resetEmailError);
+      if (!result.ok) {
+        switch (result.code) {
+          case "invalid_email":
+            setError(forgotPasswordEmailRequired);
+            break;
+          case "rate_limited":
+            setError(resetEmailRateLimited);
+            break;
+          default:
+            setError(resetEmailError);
+        }
+        return;
       }
-      return;
-    }
 
-    alert(resetEmailSent);
+      setResetMessage(resetEmailSent);
+    });
   }
 
   const isLoading = isPending;
@@ -209,9 +216,9 @@ export function SupabaseLoginForm({
             </div>
           </div>
 
-          {initialMessage && (
+          {(initialMessage || resetMessage) && (
             <p className="text-sm text-status-success" role="status">
-              {initialMessage}
+              {initialMessage ?? resetMessage}
             </p>
           )}
 
