@@ -40,6 +40,15 @@ export async function getStores(
   return apiFetch<PaginatedResponse<StoreListItem>>(`/api/stores${qs}`);
 }
 
+export async function getManagerLoginStatus(
+  email: string,
+): Promise<{ hasExistingLogin: boolean }> {
+  const qs = buildQueryString({ email: email.trim().toLowerCase() });
+  return apiFetch<{ hasExistingLogin: boolean }>(
+    `/api/stores/manager-login-status${qs}`,
+  );
+}
+
 export async function createStore(payload: CreateStoreInput): Promise<CreateStoreResult> {
   return apiFetch<CreateStoreResult>("/api/stores", {
     method: "POST",

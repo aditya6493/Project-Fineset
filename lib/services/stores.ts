@@ -1,5 +1,6 @@
 import { logAuthEvent } from "@/lib/auth/audit";
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
+import { findExistingStoreManagerByEmail } from "@/lib/services/manager-stores";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
@@ -101,6 +102,8 @@ export type CreateStoreResult = {
   manager?: {
     email: string;
     appUserId: string;
+    /** Store linked to an existing manager login; no new password was created. */
+    linkedExistingLogin?: boolean;
   };
 };
 
@@ -136,15 +139,24 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     }
 
     let manager: CreateStoreResult["manager"];
-    if (password && managerEmail) {
-      const invited = await inviteUser({
-        name: storeFields.pocName?.trim() || store.name,
-        email: managerEmail,
-        password,
-        role: "STORE_MANAGER",
-        storeId: store.id,
-      });
-      manager = { email: invited.email, appUserId: invited.appUserId };
+    if (managerEmail) {
+      const existingManager = await findExistingStoreManagerByEmail(managerEmail);
+      if (existingManager) {
+        manager = {
+          email: existingManager.email,
+          appUserId: existingManager.id,
+          linkedExistingLogin: true,
+        };
+      } else if (password) {
+        const invited = await inviteUser({
+          name: storeFields.pocName?.trim() || store.name,
+          email: managerEmail,
+          password,
+          role: "STORE_MANAGER",
+          storeId: store.id,
+        });
+        manager = { email: invited.email, appUserId: invited.appUserId };
+      }
     }
 
     return { store: store!, manager };

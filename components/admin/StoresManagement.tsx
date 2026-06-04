@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
 import { generateSecurePassword } from "@/lib/auth/generate-password";
+import { getManagerLoginStatus } from "@/lib/api/stores";
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store.schema";
 import { useCreateStore, useStores } from "@/hooks/useStores";
 import { StoreListCard } from "@/components/admin/StoreListCard";
@@ -119,6 +121,26 @@ export function StoresManagement({
   });
 
   const category = form.watch("category");
+  const emailValue = form.watch("email");
+  const debouncedManagerEmail = useDebouncedValue(emailValue?.trim().toLowerCase() ?? "", 400);
+  const emailLooksValid =
+    debouncedManagerEmail.length > 0 &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debouncedManagerEmail);
+
+  const { data: managerLoginStatus, isFetching: managerLoginChecking } = useQuery({
+    queryKey: ["stores", "manager-login-status", debouncedManagerEmail],
+    queryFn: () => getManagerLoginStatus(debouncedManagerEmail),
+    enabled: modalOpen && emailLooksValid,
+    staleTime: 30_000,
+  });
+
+  const managerHasExistingLogin = Boolean(managerLoginStatus?.hasExistingLogin);
+
+  useEffect(() => {
+    if (!managerHasExistingLogin) return;
+    form.setValue("password", "");
+    form.clearErrors("password");
+  }, [managerHasExistingLogin, form]);
 
   function resetModalState() {
     form.reset(defaultFormValues);
@@ -167,12 +189,22 @@ export function StoresManagement({
 
   async function onSubmit(values: CreateStoreInput) {
     setSubmitError(null);
+    const payload: CreateStoreInput = {
+      ...values,
+      password: managerHasExistingLogin ? undefined : values.password,
+    };
     try {
-      const result = await createStoreMutation.mutateAsync(values);
-      if (result.manager && values.password) {
+      const result = await createStoreMutation.mutateAsync(payload);
+      if (result.manager?.linkedExistingLogin) {
+        toast({
+          title: admin.stores.modal.createSuccessTitle,
+          description: admin.stores.modal.linkedExistingManagerDescription,
+        });
+        handleModalOpenChange(false);
+      } else if (result.manager && payload.password) {
         setCreatedCredentials({
           email: result.manager.email,
-          password: values.password,
+          password: payload.password,
         });
         toast({
           title: admin.stores.modal.createSuccessTitle,
@@ -469,58 +501,68 @@ export function StoresManagement({
                           placeholder={admin.stores.modal.emailPlaceholder}
                         />
                       </FormControl>
+                      {managerHasExistingLogin ? (
+                        <p className="text-xs text-status-success" role="status">
+                          {admin.stores.modal.existingManagerHint}
+                        </p>
+                      ) : null}
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <div className="flex items-center justify-between gap-2">
-                        <FormLabel>{admin.stores.modal.passwordLabel}</FormLabel>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="h-auto px-2 py-1 text-xs text-brand-gold"
-                          onClick={handleSuggestPassword}
-                        >
-                          <Sparkles className="mr-1 size-3.5" aria-hidden="true" />
-                          {admin.stores.modal.suggestPassword}
-                        </Button>
-                      </div>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            {...field}
-                            type={showPassword ? "text" : "password"}
-                            autoComplete="new-password"
-                            placeholder={admin.stores.modal.passwordPlaceholder}
-                            className="pr-10"
-                          />
+                {!managerHasExistingLogin ? (
+                  <FormField
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <div className="flex items-center justify-between gap-2">
+                          <FormLabel>{admin.stores.modal.passwordLabel}</FormLabel>
                           <Button
                             type="button"
                             variant="ghost"
-                            size="icon"
-                            className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
-                            onClick={() => setShowPassword((value) => !value)}
-                            aria-label={showPassword ? "Hide password" : "Show password"}
+                            size="sm"
+                            className="h-auto px-2 py-1 text-xs text-brand-gold"
+                            onClick={handleSuggestPassword}
+                            disabled={managerLoginChecking}
                           >
-                            {showPassword ? (
-                              <EyeOff className="size-4 text-text-muted" aria-hidden="true" />
-                            ) : (
-                              <Eye className="size-4 text-text-muted" aria-hidden="true" />
-                            )}
+                            <Sparkles className="mr-1 size-3.5" aria-hidden="true" />
+                            {admin.stores.modal.suggestPassword}
                           </Button>
                         </div>
-                      </FormControl>
-                      <p className="text-xs text-text-muted">{admin.stores.modal.passwordHint}</p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                        <FormControl>
+                          <div className="relative">
+                            <Input
+                              {...field}
+                              type={showPassword ? "text" : "password"}
+                              autoComplete="new-password"
+                              placeholder={admin.stores.modal.passwordPlaceholder}
+                              className="pr-10"
+                            />
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                              onClick={() => setShowPassword((value) => !value)}
+                              aria-label={showPassword ? "Hide password" : "Show password"}
+                            >
+                              {showPassword ? (
+                                <EyeOff className="size-4 text-text-muted" aria-hidden="true" />
+                              ) : (
+                                <Eye className="size-4 text-text-muted" aria-hidden="true" />
+                              )}
+                            </Button>
+                          </div>
+                        </FormControl>
+                        <p className="text-xs text-text-muted">
+                          {admin.stores.modal.passwordHint}
+                        </p>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                ) : null}
                 {submitError && (
                   <p className="text-sm text-status-error" role="alert">
                     {submitError}

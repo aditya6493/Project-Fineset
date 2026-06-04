@@ -1181,6 +1181,10 @@ export const content = {
         suggestPassword: "Suggest password",
         passwordHint:
           "Manager signs in at the home page with the store email and this password. Requires store email.",
+        existingManagerHint:
+          "This email already has a manager login. The new store will appear in their store list — no new password needed.",
+        linkedExistingManagerDescription:
+          "Store added. The manager can sign in with their existing password and switch stores from the overview dropdown.",
         createSuccessTitle: "Store created",
         createSuccessDescription:
           "Share these login details with the store manager. They sign in at the store portal.",

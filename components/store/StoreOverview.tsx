@@ -110,18 +110,16 @@ export function StoreOverview({
           <h1 className="font-display text-2xl font-bold text-text-primary">
             {store.nav.overview}
           </h1>
-          <StoreOverviewStoreSelect
-            stores={stores}
-            value={selectedStoreId}
-            onChange={handleStoreChange}
-            label={store.storeSelector.label}
-            placeholder={
-              stores.length === 0
-                ? store.storeSelector.loading
-                : store.storeSelector.placeholder
-            }
-            loading={!myStores}
-          />
+          {stores.length > 1 ? (
+            <StoreOverviewStoreSelect
+              stores={stores}
+              value={selectedStoreId}
+              onChange={handleStoreChange}
+              label={store.storeSelector.label}
+              placeholder={store.storeSelector.placeholder}
+              loading={!myStores}
+            />
+          ) : null}
         </div>
         <PeriodSwitcher options={periodOptions} value={period} onChange={setPeriod} />
       </div>
