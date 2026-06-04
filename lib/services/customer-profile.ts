@@ -91,10 +91,6 @@ function uniqueEnum<T extends string>(values: Array<T | null | undefined>): T[] 
   return Array.from(new Set(values.filter((v): v is T => v != null)));
 }
 
-function countPurchases(status: PurchaseStatus): boolean {
-  return status === "PURCHASED";
-}
-
 export async function resolveCustomerId(params: {
   customerId?: string;
   visitId?: string;

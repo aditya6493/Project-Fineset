@@ -323,7 +323,7 @@ export function CustomerProfileDialog({
                       <p className="text-sm text-text-muted">{copy.timelineEmpty}</p>
                     ) : (
                       <ol className="relative space-y-0 border-l border-border pl-6">
-                        {profile.timeline.map((event, index) => {
+                        {profile.timeline.map((event) => {
                           const style = timelineStyles[event.type];
                           const Icon = style.icon;
                           return (
