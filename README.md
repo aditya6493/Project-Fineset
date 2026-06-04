@@ -62,7 +62,12 @@ Recommended:
 - `DATABASE_URL` must use the Supabase pooler host (`*.pooler.supabase.com:6543`) and include `pgbouncer=true&connection_limit=5` (or higher).
 - `DIRECT_URL` on Vercel must be Supabase **Session pooler** (`*.pooler.supabase.com:5432`, same password as `DATABASE_URL`). The app auto-applies Store DDL on first stores request using `DIRECT_URL`.
 - `DATABASE_URL` = transaction pooler `:6543?pgbouncer=true` (runtime queries only).
-- Vercel build does **not** run migrations (P1001 on `db.*.supabase.co`). Use GitHub Action `db-migrate.yml` (add repo secrets `DATABASE_URL` + `DIRECT_URL`) or `npm run db:migrate` locally.
+- Vercel build does **not** run migrations (P1001 on `db.*.supabase.co`). Use GitHub Action `db-migrate.yml` or `npm run db:migrate` locally.
+
+**GitHub Actions (Settings → Secrets and variables → Actions)** — required for the `Database migrate` workflow:
+
+- `DATABASE_URL` — same Supabase pooler URL as Vercel (`:6543`, `pgbouncer=true`)
+- `DIRECT_URL` — optional; workflow derives session pooler `:5432` from `DATABASE_URL` when omitted
 - Keep both URLs on the same Supabase project and same active database password.
 - If you rotate DB password in Supabase:
   - update both `DATABASE_URL` and `DIRECT_URL` in Vercel immediately,
