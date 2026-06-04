@@ -351,6 +351,7 @@ export interface StoreFieldSaleAnalytics {
 
 export interface VisitListItem {
   id: string;
+  customerId: string | null;
   visitDate: string;
   inTime: string | null;
   outTime: string | null;
@@ -603,7 +604,20 @@ export interface GetVisitsParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   followUpOnly?: string;
+  staffId?: string;
+  purchaseStatus?: string;
+  visitType?: string;
+  customerType?: string;
+  sourceChannel?: string;
 }
+
+export type VisitsColumnFilters = {
+  staffId?: string;
+  purchaseStatus?: string;
+  visitType?: string;
+  customerType?: string;
+  sourceChannel?: string;
+};
 
 export interface GetAnalyticsParams {
   period?: AnalyticsPeriodLabel;

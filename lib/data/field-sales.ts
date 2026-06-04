@@ -1,3 +1,4 @@
+import { cache } from "react";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import { getServerSession, requireRole } from "@/lib/auth/session";
 import { listFieldSales } from "@/lib/services/field-sales";
@@ -9,7 +10,7 @@ export interface InitialFieldSalesPayload {
   data: FieldSaleListResponse;
 }
 
-export async function fetchInitialFieldSales(
+export const fetchInitialFieldSales = cache(async function fetchInitialFieldSales(
   storeId?: string,
   overrides?: GetFieldSalesListParams,
 ): Promise<InitialFieldSalesPayload | null> {
@@ -43,4 +44,4 @@ export async function fetchInitialFieldSales(
   });
 
   return { params, data };
-}
+});

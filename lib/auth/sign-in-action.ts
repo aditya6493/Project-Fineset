@@ -102,8 +102,9 @@ export async function signInAction(
   const user = data.user;
   const needsMetadataSync = !isMetadataComplete(user);
 
+  // Always await metadata sync on login so API routes use JWT fast path (no Prisma per request).
   const result = await completeLoginForSupabaseUser(user, {
-    awaitMetadataSync: needsMetadataSync,
+    awaitMetadataSync: true,
   });
   mark("completeLogin");
 

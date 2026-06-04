@@ -1,3 +1,4 @@
+import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 
 export async function listStoreCategoryOptions() {
@@ -7,7 +8,10 @@ export async function listStoreCategoryOptions() {
       select: { name: true },
     }),
     prisma.store.findMany({
-      where: { category: "OTHER", customCategory: { not: null } },
+      where: mergeStoreWhere({
+        category: "OTHER",
+        customCategory: { not: null },
+      }),
       select: { customCategory: true },
     }),
   ]);

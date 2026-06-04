@@ -3,12 +3,17 @@ import {
   encryptPii,
   hashPhone,
 } from "@/lib/crypto/pii";
+import { buildCustomerSearchFields } from "@/lib/services/customer-search";
 
 export function prepareCustomerPii(name: string, phone: string) {
+  const searchFields = buildCustomerSearchFields(name, phone);
   return {
     name: encryptPii(name),
     phone: encryptPii(phone),
     phoneHash: hashPhone(phone),
+    nameSearch: searchFields.customerNameSearch,
+    phoneLast4: searchFields.phoneLast4,
+    customerNameSearch: searchFields.customerNameSearch,
   };
 }
 

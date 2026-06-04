@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, Sparkles } from "lucide-react";
@@ -96,8 +98,16 @@ export function StoresManagement({
     password: string;
   } | null>(null);
 
-  const storesParams = { page: 1, pageSize: 50 };
-  const { data, isLoading } = useStores(storesParams, {
+  const [searchInput, setSearchInput] = useState("");
+  const [showDeleted, setShowDeleted] = useState(false);
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
+  const storesParams = {
+    page: 1,
+    pageSize: 50,
+    search: debouncedSearch.trim() || undefined,
+    includeDeleted: showDeleted || undefined,
+  };
+  const { data, isLoading, isFetching } = useStores(storesParams, {
     initialData: initialStores,
     initialParams: initialStoresParams ?? storesParams,
   });
@@ -190,7 +200,35 @@ export function StoresManagement({
         </Button>
       </div>
 
-      {isLoading ? (
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="relative max-w-sm">
+          <Input
+            value={searchInput}
+            onChange={(event) => setSearchInput(event.target.value)}
+            placeholder={admin.stores.searchPlaceholder}
+            aria-label={admin.stores.searchPlaceholder}
+            aria-busy={isFetching && Boolean(debouncedSearch.trim())}
+            className={isFetching && debouncedSearch.trim() ? "pr-9" : undefined}
+          />
+          {isFetching && debouncedSearch.trim() ? (
+            <Loader2
+              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-muted"
+              aria-hidden
+            />
+          ) : null}
+        </div>
+        <label className="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
+          <input
+            type="checkbox"
+            checked={showDeleted}
+            onChange={(event) => setShowDeleted(event.target.checked)}
+            className="size-4 rounded border-border"
+          />
+          {admin.stores.showDeleted}
+        </label>
+      </div>
+
+      {isLoading && !data ? (
         <div
           aria-live="polite"
           aria-busy="true"

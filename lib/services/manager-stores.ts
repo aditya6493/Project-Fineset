@@ -1,3 +1,4 @@
+import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 import type { ManagerStoreOption } from "@/types";
 
@@ -14,13 +15,13 @@ export async function listStoresLinkedToManagerEmail(
   if (!normalized) return [];
 
   return prisma.store.findMany({
-    where: {
+    where: mergeStoreWhere({
       isActive: true,
       OR: [
         { email: { equals: normalized, mode: "insensitive" } },
         { id: primaryStoreId },
       ],
-    },
+    }),
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });

@@ -11,7 +11,9 @@ export type AuthAuditEvent =
   | "USER_ACTIVATED"
   | "USER_DEACTIVATED"
   | "PASSWORD_RESET_REQUESTED"
-  | "UNAUTHORIZED_ACCESS";
+  | "UNAUTHORIZED_ACCESS"
+  | "STORE_SOFT_DELETED"
+  | "STORE_RESTORED";
 
 interface LogAuthEventParams {
   event: AuthAuditEvent;

@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
 import { listVisits } from "@/lib/services/visits";
 import { DEFAULT_VISITS_PARAMS } from "@/lib/query/initial-data";
@@ -8,7 +9,7 @@ export interface InitialVisitsPayload {
   data: PaginatedResponse<VisitListItem>;
 }
 
-export async function fetchInitialVisits(
+export const fetchInitialVisits = cache(async function fetchInitialVisits(
   overrides: GetVisitsParams = {},
 ): Promise<InitialVisitsPayload | null> {
   const session = await getServerSession();
@@ -41,4 +42,4 @@ export async function fetchInitialVisits(
     params,
     data: { data, total, page, pageSize },
   };
-}
+});

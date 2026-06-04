@@ -57,3 +57,31 @@ test.describe("Auth performance", () => {
     expect(elapsed).toBeLessThan(3000);
   });
 });
+
+test.describe("API performance", () => {
+  test.skip(!hasE2eCredentials, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run API perf tests");
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto("/");
+    await page.fill('[name="email"]', e2eEmail!);
+    await page.fill('[name="password"]', e2ePassword!);
+    await page.click('button[type="submit"]');
+    await page.waitForURL(/\/dashboard/);
+  });
+
+  test("store overview bundle responds under 5s", async ({ page }) => {
+    const started = Date.now();
+    const res = await page.request.get(
+      "/api/analytics/store/overview?period=week",
+    );
+    expect(res.ok()).toBeTruthy();
+    expect(Date.now() - started).toBeLessThan(5000);
+  });
+
+  test("visits list responds under 3s", async ({ page }) => {
+    const started = Date.now();
+    const res = await page.request.get("/api/visits?page=1&pageSize=20");
+    expect(res.ok()).toBeTruthy();
+    expect(Date.now() - started).toBeLessThan(3000);
+  });
+});

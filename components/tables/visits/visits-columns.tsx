@@ -16,6 +16,8 @@ export function buildVisitColumns({
   productLabels,
   yesLabel,
   noLabel,
+  onCustomerClick,
+  viewProfileLabel = "View customer profile",
 }: VisitColumnLabels): ColumnDef<VisitListItem>[] {
   return [
     {
@@ -24,7 +26,26 @@ export function buildVisitColumns({
       cell: ({ row }) => formatDate(row.original.visitDate),
     },
     { accessorKey: "staffName", header: copy.columns.staff },
-    { accessorKey: "customerName", header: copy.columns.customer },
+    {
+      accessorKey: "customerName",
+      header: copy.columns.customer,
+      cell: ({ row }) =>
+        onCustomerClick ? (
+          <button
+            type="button"
+            className="text-left font-medium text-brand-gold underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-gold/50"
+            aria-label={`${viewProfileLabel}: ${row.original.customerName}`}
+            onClick={(event) => {
+              event.stopPropagation();
+              onCustomerClick(row.original);
+            }}
+          >
+            {row.original.customerName}
+          </button>
+        ) : (
+          row.original.customerName
+        ),
+    },
     {
       accessorKey: "customerPhone",
       header: copy.columns.phone,

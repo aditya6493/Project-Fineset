@@ -122,6 +122,8 @@ interface StoreCallsOverviewSectionProps {
   periodLabel: string;
   deltaPeriod: string;
   storeId: string;
+  initialData?: import("@/types").StoreCallAnalytics;
+  initialParams?: import("@/types").GetAnalyticsParams;
 }
 
 export function StoreCallsOverviewSection({
@@ -130,11 +132,16 @@ export function StoreCallsOverviewSection({
   periodLabel,
   deltaPeriod,
   storeId,
+  initialData,
+  initialParams,
 }: StoreCallsOverviewSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreCallAnalytics({
-    period,
-    storeId: storeId || undefined,
-  });
+  const { data, isLoading, isError, refetch } = useStoreCallAnalytics(
+    {
+      period,
+      storeId: storeId || undefined,
+    },
+    { initialData, initialParams },
+  );
   const title = copy.title.replace("{period}", periodLabel);
 
   return (

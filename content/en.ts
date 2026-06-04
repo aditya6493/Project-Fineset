@@ -798,11 +798,14 @@ export const content = {
     },
     visits: {
       title: "Visits Log",
+      searchPlaceholder: "Customer name, phone, or staff name",
       filters: {
         all: "All Visits",
         followUpOnly: "Follow-up Only",
         startDate: "From Date",
         endDate: "To Date",
+        columnAll: "All",
+        clearColumnFilters: "Clear column filters",
       },
       columns: {
         visitId: "Visit ID",
@@ -851,6 +854,44 @@ export const content = {
         noPurchase: "No-Purchase Context",
         preferences: "Preferences & Schemes",
         followUp: "Follow-up",
+      },
+      customerProfile: {
+        title: "Customer Profile",
+        subtitle: "Timeline, interests, and behaviour across every touchpoint",
+        phone: "Phone",
+        area: "Area",
+        demographics: "Demographics",
+        memberSince: "Customer since",
+        lastSeen: "Last seen",
+        ghsEnrolled: "GHS enrolled",
+        taggedAtVisit: "Tagged at latest visit",
+        visitsOnRecord: "{count} visits on record",
+        loadError: "Could not load customer profile. Try again.",
+        interestsTitle: "Interests & preferences",
+        insightsTitle: "Behaviour insights",
+        timelineTitle: "Customer journey",
+        timelineEmpty: "No activity recorded yet for this customer.",
+        viewVisit: "View visit",
+        stats: {
+          visits: "Store visits",
+          revenue: "Lifetime revenue",
+          conversion: "Conversion",
+          fieldSales: "Field activities",
+        },
+        interests: {
+          explored: "Products explored",
+          purchased: "Products purchased",
+          metal: "Metal / KT preference",
+          occasions: "Purchase occasions",
+          intent: "Intent signals",
+          sources: "How they found you",
+        },
+        insights: {
+          staff: "Staff relationships",
+          interactions: "touchpoints",
+          competitors: "Competitor mentions",
+          noPurchase: "Reasons for no purchase",
+        },
       },
     },
     staff: {
@@ -1051,6 +1092,7 @@ export const content = {
     },
     stores: {
       title: "Stores Management",
+      searchPlaceholder: "Store name or city",
       addStore: "Add Store",
       columns: {
         name: "Store Name",
@@ -1069,8 +1111,10 @@ export const content = {
         makeInactive: "Make inactive",
         makeActive: "Make active",
         updatePassword: "Update password",
+        restore: "Restore store",
         delete: "Delete store",
       },
+      showDeleted: "Show deleted stores (restore window)",
       inactiveConfirm: {
         title: "Make store inactive?",
         description:
@@ -1087,12 +1131,20 @@ export const content = {
       deleteConfirm: {
         title: "Delete store?",
         description:
-          "This permanently removes {name} and all related data. This cannot be undone.",
-        confirm: "Delete",
+          "{name} will be removed from the admin list immediately. Store managers, staff, visits, and customers stay in the database for 90 days so you can restore the store if needed.",
+        confirm: "Delete store",
         cancel: "Cancel",
+        adminPasswordLabel: "Your admin password",
+        adminPasswordPlaceholder: "Enter your password",
+        storeNameLabel: "Type store name to confirm",
+        storeNamePlaceholder: "Exact store name",
+        storeNameMismatch: "Store name does not match.",
+        wrongPassword: "Incorrect admin password.",
+        graceNote:
+          "Recovery window: 90 days. Contact support or use restore API before permanent purge.",
       },
       deleteBlocked:
-        "Cannot delete a store that still has staff, visits, or customers. Remove or reassign data first.",
+        "Could not delete this store. Try again or deactivate the store instead.",
       passwordModal: {
         title: "Update store password",
         description:
@@ -1102,7 +1154,8 @@ export const content = {
       },
       passwordUpdated: "Store manager password updated",
       statusUpdated: "Store status updated",
-      deleted: "Store deleted",
+      deleted: "Store removed (recoverable for 90 days)",
+      restored: "Store restored",
       updated: "Store updated",
       modal: {
         title: "Add Store",

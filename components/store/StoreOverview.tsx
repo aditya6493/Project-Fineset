@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useStoreAnalytics } from "@/hooks/useAnalytics";
-import { useMyStores } from "@/hooks/useMyStores";
+import { useStoreOverviewBundle } from "@/hooks/useStoreOverviewBundle";
 import { StoreBusinessOverviewSection } from "@/components/store/StoreBusinessOverview";
 import { StoreCallsOverviewSection } from "@/components/store/StoreCallsOverview";
 import { StoreFieldSalesOverviewSection } from "@/components/store/StoreFieldSalesOverview";
@@ -10,8 +9,9 @@ import { StoreRsoPerformanceSection } from "@/components/store/StoreRsoPerforman
 import { StoreOverviewStoreSelect } from "@/components/store/StoreOverviewStoreSelect";
 import { PeriodSwitcher, type PeriodValue } from "@/components/shared/PeriodSwitcher";
 import { isStoreKPIs } from "@/lib/utils/type-guards";
+import type { StoreOverviewBundle } from "@/lib/services/store-overview-bundle";
 import { content, type Content } from "@/content/en";
-import type { StoreKPIDeltas } from "@/types";
+import type { GetAnalyticsParams, StoreKPIDeltas } from "@/types";
 
 const SELECTED_STORE_STORAGE_KEY = "fineset-manager-selected-store-id";
 
@@ -20,45 +20,66 @@ type StoreContent = Content["store"];
 interface StoreOverviewProps {
   store: StoreContent;
   initialStoreId?: string;
-  initialAnalytics?: import("@/types").AnalyticsData;
-  initialAnalyticsParams?: import("@/types").GetAnalyticsParams;
+  initialOverviewBundle?: StoreOverviewBundle;
+  initialOverviewParams?: GetAnalyticsParams;
 }
 
 export function StoreOverview({
   store: storeFromPage,
   initialStoreId,
-  initialAnalytics,
-  initialAnalyticsParams,
+  initialOverviewBundle,
+  initialOverviewParams,
 }: StoreOverviewProps) {
   const store = { ...content.store, ...storeFromPage };
 
-  const { data: myStoresPayload, isLoading: storesLoading } = useMyStores();
-  const stores = myStoresPayload?.data ?? [];
-
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
+  const [period, setPeriod] = useState<PeriodValue>(
+    (initialOverviewParams?.period as PeriodValue) ?? "week",
+  );
 
-  let resolvedStoreId = initialStoreId ?? "";
-  if (stores.length > 0) {
+  const resolvedStoreId = useMemo(() => {
+    const stores = initialOverviewBundle?.myStores.data ?? [];
+    if (stores.length === 0) return initialStoreId ?? "";
+
     const allowedIds = new Set(stores.map((s) => s.id));
     const fromStorage =
       typeof window !== "undefined"
         ? window.localStorage.getItem(SELECTED_STORE_STORAGE_KEY)
         : null;
 
-    resolvedStoreId =
+    return (
+      (manualStoreId && allowedIds.has(manualStoreId) ? manualStoreId : null) ??
       (fromStorage && allowedIds.has(fromStorage) ? fromStorage : null) ??
       (initialStoreId && allowedIds.has(initialStoreId) ? initialStoreId : null) ??
-      (myStoresPayload?.selectedStoreId &&
-      allowedIds.has(myStoresPayload.selectedStoreId)
-        ? myStoresPayload.selectedStoreId
+      (initialOverviewBundle?.myStores.selectedStoreId &&
+      allowedIds.has(initialOverviewBundle.myStores.selectedStoreId)
+        ? initialOverviewBundle.myStores.selectedStoreId
         : null) ??
-      stores[0]!.id;
-  }
+      stores[0]!.id
+    );
+  }, [initialOverviewBundle, initialStoreId, manualStoreId]);
 
-  const selectedStoreId =
-    manualStoreId && stores.some((store) => store.id === manualStoreId)
-      ? manualStoreId
-      : resolvedStoreId;
+  const analyticsParams = useMemo(
+    () => ({
+      period,
+      storeId: resolvedStoreId || undefined,
+    }),
+    [period, resolvedStoreId],
+  );
+
+  const { data: overview, isLoading, isFetching } = useStoreOverviewBundle(
+    analyticsParams,
+    {
+      initialBundle: initialOverviewBundle,
+      initialParams: initialOverviewParams,
+    },
+  );
+
+  const myStores = overview?.myStores ?? initialOverviewBundle?.myStores;
+  const stores = myStores?.data ?? [];
+  const selectedStoreId = resolvedStoreId;
+  const analyticsEnabled = Boolean(selectedStoreId);
+  const loading = !analyticsEnabled || isLoading || (isFetching && !overview);
 
   const handleStoreChange = (storeId: string) => {
     setManualStoreId(storeId);
@@ -67,25 +88,9 @@ export function StoreOverview({
     }
   };
 
-  const [period, setPeriod] = useState<PeriodValue>("week");
-
-  const analyticsParams = useMemo(
-    () => ({
-      period,
-      storeId: selectedStoreId || undefined,
-    }),
-    [period, selectedStoreId],
-  );
-
-  const analyticsEnabled = Boolean(selectedStoreId);
-
-  const { data, isLoading } = useStoreAnalytics(analyticsParams, {
-    initialData: initialAnalytics,
-    initialParams: initialAnalyticsParams,
-  });
-
-  const kpis = data && isStoreKPIs(data.kpis) ? data.kpis : null;
-  const deltas = data?.kpiDeltas as StoreKPIDeltas | undefined;
+  const kpiPayload = overview?.kpis;
+  const kpis = kpiPayload && isStoreKPIs(kpiPayload.kpis) ? kpiPayload.kpis : null;
+  const deltas = kpiPayload?.kpiDeltas as StoreKPIDeltas | undefined;
 
   const periodOptions = [
     { value: "today" as const, label: store.period.today },
@@ -95,6 +100,8 @@ export function StoreOverview({
     { value: "last6months" as const, label: store.period.last6months },
   ];
   const periodLabel = periodOptions.find((o) => o.value === period)?.label ?? "";
+
+  const bundleHydrated = Boolean(overview);
 
   return (
     <div className="min-w-0 space-y-6">
@@ -109,11 +116,11 @@ export function StoreOverview({
             onChange={handleStoreChange}
             label={store.storeSelector.label}
             placeholder={
-              storesLoading
+              stores.length === 0
                 ? store.storeSelector.loading
                 : store.storeSelector.placeholder
             }
-            loading={storesLoading}
+            loading={!myStores}
           />
         </div>
         <PeriodSwitcher options={periodOptions} value={period} onChange={setPeriod} />
@@ -126,7 +133,7 @@ export function StoreOverview({
         deltaPeriod={store.deltaPeriod}
         kpis={kpis}
         deltas={deltas}
-        isLoading={!analyticsEnabled || isLoading}
+        isLoading={loading}
       />
 
       <StoreCallsOverviewSection
@@ -135,6 +142,8 @@ export function StoreOverview({
         periodLabel={periodLabel}
         deltaPeriod={store.deltaPeriod}
         storeId={selectedStoreId}
+        initialData={bundleHydrated ? overview?.calls : undefined}
+        initialParams={bundleHydrated ? analyticsParams : undefined}
       />
 
       <StoreFieldSalesOverviewSection
@@ -143,6 +152,8 @@ export function StoreOverview({
         periodLabel={periodLabel}
         deltaPeriod={store.deltaPeriod}
         storeId={selectedStoreId}
+        initialData={bundleHydrated ? overview?.fieldSales : undefined}
+        initialParams={bundleHydrated ? analyticsParams : undefined}
       />
 
       <StoreRsoPerformanceSection
@@ -151,6 +162,8 @@ export function StoreOverview({
         period={period}
         emptyMessage={store.rsoPerformance.empty}
         storeId={selectedStoreId}
+        initialData={bundleHydrated ? overview?.rsoPerformance : undefined}
+        initialParams={bundleHydrated ? analyticsParams : undefined}
       />
     </div>
   );

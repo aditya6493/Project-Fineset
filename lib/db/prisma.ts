@@ -1,10 +1,20 @@
+import { config as loadDotenv } from "dotenv";
+import { resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+/** Turbopack workers may start before Next injects .env.local — load it in dev. */
+function ensureDatabaseEnvLoaded(): void {
+  if (process.env.DATABASE_URL?.trim()) return;
+  if (process.env.NODE_ENV === "production") return;
+  loadDotenv({ path: resolve(process.cwd(), ".env.local") });
+}
+
 function createPrismaClient(): PrismaClient {
+  ensureDatabaseEnvLoaded();
   const url = process.env.DATABASE_URL ?? "";
   const directUrl = process.env.DIRECT_URL ?? "";
   if (

@@ -28,10 +28,6 @@ export async function getVisits(
   return apiFetch<PaginatedResponse<VisitListItem>>(`/api/visits${qs}`);
 }
 
-export async function getVisitById(id: string): Promise<Visit> {
-  return apiFetch<Visit>(`/api/visits/${id}`);
-}
-
 export async function importVisitsCsv(file: File): Promise<VisitsImportResult> {
   const formData = new FormData();
   formData.append("file", file);

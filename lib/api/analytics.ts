@@ -1,4 +1,5 @@
 import { apiFetch, buildQueryString } from "@/lib/api/client";
+import type { StoreOverviewBundle } from "@/lib/services/store-overview-bundle";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
@@ -8,6 +9,18 @@ import type {
   StoreFieldSaleAnalytics,
   StoreRsoPerformance,
 } from "@/types";
+
+export type StoreOverviewApiResponse = StoreOverviewBundle & {
+  period: string;
+  storeId: string;
+};
+
+export async function getStoreOverviewBundle(
+  params: GetAnalyticsParams = {},
+): Promise<StoreOverviewApiResponse> {
+  const qs = buildQueryString(params);
+  return apiFetch<StoreOverviewApiResponse>(`/api/analytics/store/overview${qs}`);
+}
 
 export async function getStoreAnalytics(
   params: GetAnalyticsParams = {},
@@ -64,9 +77,3 @@ export async function getAdminStoreRsoPerformance(
   );
 }
 
-/** @deprecated Use getAdminDashboardOverview */
-export async function getAdminAnalytics(
-  params: GetAnalyticsParams = {},
-): Promise<AdminDashboardOverview> {
-  return getAdminDashboardOverview(params);
-}

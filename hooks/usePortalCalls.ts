@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getPortalCalls } from "@/lib/api/calls";
 import { portalCallsParamsMatch } from "@/lib/query/initial-data";
 import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
@@ -22,6 +22,7 @@ export function usePortalCalls(
     queryKey: ["portal-calls", params],
     queryFn: () => getPortalCalls(params),
     initialData: useInitialData ? options.initialData : undefined,
+    placeholderData: keepPreviousData,
     ...LIVE_QUERY_OPTIONS,
     ...queryOptionsForHydration(Boolean(useInitialData)),
   });

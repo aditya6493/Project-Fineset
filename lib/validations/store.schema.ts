@@ -132,6 +132,10 @@ export const getStoresQuerySchema = paginationQuerySchema.extend({
     .enum(["true", "false"])
     .optional()
     .transform((v) => v !== "false"),
+  includeDeleted: z
+    .enum(["true", "false"])
+    .optional()
+    .transform((v) => v === "true"),
 });
 
 export type CreateStoreInput = z.infer<typeof createStoreSchema>;

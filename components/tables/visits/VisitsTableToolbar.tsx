@@ -1,6 +1,6 @@
 import { useRef } from "react";
 import { Input } from "@/components/ui/input";
-import { Upload } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { VisitsCopy } from "./types";
 
@@ -9,6 +9,7 @@ interface VisitsTableToolbarProps {
   total: number;
   searchPlaceholder: string;
   search: string;
+  isSearching?: boolean;
   onSearchChange: (value: string) => void;
   onImport: (file: File) => void;
   importDisabled: boolean;
@@ -22,6 +23,7 @@ export function VisitsTableToolbar({
   total,
   searchPlaceholder,
   search,
+  isSearching = false,
   onSearchChange,
   onImport,
   importDisabled,
@@ -41,13 +43,22 @@ export function VisitsTableToolbar({
         </span>
       </h2>
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <Input
-          placeholder={searchPlaceholder}
-          value={search}
-          onChange={(event) => onSearchChange(event.target.value)}
-          className="sm:w-64"
-          aria-label={searchPlaceholder}
-        />
+        <div className="relative sm:w-64">
+          <Input
+            placeholder={searchPlaceholder}
+            value={search}
+            onChange={(event) => onSearchChange(event.target.value)}
+            className={isSearching ? "pr-9" : undefined}
+            aria-label={searchPlaceholder}
+            aria-busy={isSearching}
+          />
+          {isSearching ? (
+            <Loader2
+              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-muted"
+              aria-hidden
+            />
+          ) : null}
+        </div>
           <input
             ref={fileInputRef}
             type="file"

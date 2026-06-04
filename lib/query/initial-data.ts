@@ -18,7 +18,12 @@ export function visitsParamsMatch(
     (current.endDate ?? "") === (initial.endDate ?? "") &&
     (current.followUpOnly ?? "") === (initial.followUpOnly ?? "") &&
     (current.sortBy ?? "") === (initial.sortBy ?? "") &&
-    (current.sortOrder ?? "desc") === (initial.sortOrder ?? "desc")
+    (current.sortOrder ?? "desc") === (initial.sortOrder ?? "desc") &&
+    (current.staffId ?? "") === (initial.staffId ?? "") &&
+    (current.purchaseStatus ?? "") === (initial.purchaseStatus ?? "") &&
+    (current.visitType ?? "") === (initial.visitType ?? "") &&
+    (current.customerType ?? "") === (initial.customerType ?? "") &&
+    (current.sourceChannel ?? "") === (initial.sourceChannel ?? "")
   );
 }
 

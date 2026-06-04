@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
@@ -74,7 +76,10 @@ export function PortalCallsLog({
     initialPortalCallsParams?.queue ?? "ALL",
   );
   const [page, setPage] = useState(initialPortalCallsParams?.page ?? 1);
-  const [search, setSearch] = useState(initialPortalCallsParams?.search ?? "");
+  const [searchInput, setSearchInput] = useState(
+    initialPortalCallsParams?.search ?? "",
+  );
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [storeFilter, setStoreFilter] = useState(initialStoreId ?? "all");
   const [staffFilter, setStaffFilter] = useState(initialPortalCallsParams?.staffId ?? "all");
   const intentTierFilter = initialPortalCallsParams?.intentTier;
@@ -88,7 +93,7 @@ export function PortalCallsLog({
       queue,
       page,
       pageSize: 15,
-      search: search || undefined,
+      search: debouncedSearch.trim() || undefined,
       storeId: showStoreFilter && storeFilter !== "all" ? storeFilter : undefined,
       staffId: staffFilter !== "all" ? staffFilter : undefined,
       intentTier: intentTierFilter,
@@ -100,7 +105,7 @@ export function PortalCallsLog({
       valueTier,
       queue,
       page,
-      search,
+      debouncedSearch,
       showStoreFilter,
       storeFilter,
       staffFilter,
@@ -108,10 +113,13 @@ export function PortalCallsLog({
     ],
   );
 
-  const { data, isLoading, isError, refetch } = usePortalCalls(queryParams, {
+  const { data, isLoading, isFetching, isError, refetch } = usePortalCalls(
+    queryParams,
+    {
     initialData: initialPortalCalls,
-    initialParams: initialPortalCallsParams,
-  });
+      initialParams: initialPortalCallsParams,
+    },
+  );
 
   const { data: stores } = useQuery({
     queryKey: ["stores", "filter"],
@@ -215,16 +223,26 @@ export function PortalCallsLog({
 
       <div className="space-y-1">
         <Label htmlFor="calls-search">{copy.searchLabel}</Label>
-        <Input
-          id="calls-search"
-          value={search}
-          aria-label={copy.searchLabel}
-          placeholder={copy.searchPlaceholder}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-        />
+        <div className="relative max-w-md">
+          <Input
+            id="calls-search"
+            value={searchInput}
+            aria-label={copy.searchLabel}
+            aria-busy={isFetching && Boolean(debouncedSearch.trim())}
+            placeholder={copy.searchPlaceholder}
+            className={isFetching && debouncedSearch.trim() ? "pr-9" : undefined}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+              setPage(1);
+            }}
+          />
+          {isFetching && debouncedSearch.trim() ? (
+            <Loader2
+              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-muted"
+              aria-hidden
+            />
+          ) : null}
+        </div>
       </div>
 
       <YearMonthFilters
@@ -264,7 +282,7 @@ export function PortalCallsLog({
       )}
 
       <QueryLoadState
-        isLoading={isLoading}
+        isLoading={isLoading && !data}
         isError={isError}
         loadingLabel={common.loading}
         errorLabel={copy.loadError}

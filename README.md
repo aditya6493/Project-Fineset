@@ -109,6 +109,20 @@ Open [http://localhost:3000/login](http://localhost:3000/login).
 - Target: **Sign In → dashboard shell visible in under 2s p95** (measure with `npm run auth:latency` or Playwright when `E2E_USER_EMAIL` / `E2E_USER_PASSWORD` are set).
 - Align Vercel region (`vercel.json`), Supabase project, Upstash, and DB pooler in the same region.
 
+### Performance and region
+
+- Production deploys target **Vercel `iad1`** ([`vercel.json`](vercel.json)). Use a Supabase project in **US East** (or the same region as your users) so `DATABASE_URL` pooler round-trips stay under ~100ms.
+- **Local dev** against a distant Supabase host often shows **3–5s per API call** — that is network latency, not broken app logic. Use `npm run perf:diagnostic` or `GET /api/perf/region-check` to measure DB ping and auth timing.
+- After login, JWT `app_metadata` is synced so dashboards avoid a Prisma lookup on every API request. Sign out and sign in again if sessions feel slow after a deploy.
+- Optional: set `PERF_LOG=true` to emit structured `[perf]` lines from instrumented API routes.
+
+| Metric | Target (same region) |
+|--------|----------------------|
+| DB `SELECT 1` | &lt; 100ms |
+| Supabase `getUser` | &lt; 200ms |
+| `GET /api/visits` (20 rows) | &lt; 600ms |
+| Store overview bundle | &lt; 1.5s |
+
 ## Project Structure
 
 - `app/` — Routes and API handlers

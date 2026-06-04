@@ -392,21 +392,23 @@ export async function getStoreCallAnalytics(
   const { start, end } = getPeriodRange(period, referenceDate);
   const previous = getPreviousPeriodRange(period, referenceDate);
 
-  // Sequential queries reduce pool pressure on serverless + Supabase pooler.
-  const callLogs = await fetchCallLogsForStore(storeId, start, end);
-  const previousLogs = await fetchCallLogsForStore(
-    storeId,
-    previous.start,
-    previous.end,
-  );
-  const purchasedVisits = await fetchPurchasedVisitsByPhone(storeId);
-  const eligiblePool = await countEligiblePool(storeId, start, end);
-  const userCallSourceVisits = await fetchVisitsFromUserCalls(storeId, start, end);
-  const previousUserCallSourceVisits = await fetchVisitsFromUserCalls(
-    storeId,
-    previous.start,
-    previous.end,
-  );
+  const [
+    callLogs,
+    previousLogs,
+    purchasedVisits,
+    eligiblePool,
+    previousEligiblePool,
+    userCallSourceVisits,
+    previousUserCallSourceVisits,
+  ] = await Promise.all([
+    fetchCallLogsForStore(storeId, start, end),
+    fetchCallLogsForStore(storeId, previous.start, previous.end),
+    fetchPurchasedVisitsByPhone(storeId),
+    countEligiblePool(storeId, start, end),
+    countEligiblePool(storeId, previous.start, previous.end),
+    fetchVisitsFromUserCalls(storeId, start, end),
+    fetchVisitsFromUserCalls(storeId, previous.start, previous.end),
+  ]);
 
   const purchasedByPhone = buildPurchasedVisitsByPhone(purchasedVisits);
   const feedbackSnippets = callLogs
@@ -430,7 +432,7 @@ export async function getStoreCallAnalytics(
   const prevMetrics = aggregatePeriodMetrics(
     previousLogs,
     purchasedByPhone,
-    await countEligiblePool(storeId, previous.start, previous.end),
+    previousEligiblePool,
     {
       themes: [],
       recentSnippets: [],

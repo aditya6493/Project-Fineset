@@ -6,7 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft } from "lucide-react";
 import { getStores } from "@/lib/api/stores";
 import { useStaffPerformance } from "@/hooks/useStaffPerformance";
-import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
+import { storesParamsMatch, DEFAULT_STORES_FILTER_PARAMS } from "@/lib/query/initial-data";
 import { formatCurrency, formatPercent } from "@/lib/utils/formatters";
 import {
   Select,
@@ -65,11 +66,19 @@ export function StaffAnalytics({
 }: StaffAnalyticsProps) {
   const [storeFilter, setStoreFilter] = useState<string>(initialStoreId ?? "all");
 
+  const storesHydrated = initialStores !== undefined;
   const { data: stores } = useQuery({
     queryKey: ["stores", "filter"],
     queryFn: () => getStores({ page: 1, pageSize: 100 }),
     initialData: initialStores,
     ...LIVE_QUERY_OPTIONS,
+    ...queryOptionsForHydration(
+      storesHydrated &&
+        storesParamsMatch(
+          { page: 1, pageSize: 100 },
+          DEFAULT_STORES_FILTER_PARAMS,
+        ),
+    ),
   });
 
   const { data, isLoading } = useStaffPerformance(storeFilter, {

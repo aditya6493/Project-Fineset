@@ -50,17 +50,26 @@ let loginLimiter: Ratelimit | null | undefined;
 let writeLimiter: Ratelimit | null | undefined;
 let sseLimiter: Ratelimit | null | undefined;
 
+/** Rate limits run in production only unless ENABLE_RATE_LIMIT=true (avoids dev Upstash timeouts). */
+function isRateLimitEnabled(): boolean {
+  if (process.env.ENABLE_RATE_LIMIT === "true") return true;
+  return isProduction();
+}
+
 function getLoginLimiter(): Ratelimit | null {
+  if (!isRateLimitEnabled()) return null;
   loginLimiter ??= createLimiter("fineset:login", 10, "15 m");
   return loginLimiter;
 }
 
 function getWriteLimiter(): Ratelimit | null {
+  if (!isRateLimitEnabled()) return null;
   writeLimiter ??= createLimiter("fineset:write", 60, "15 m");
   return writeLimiter;
 }
 
 function getSseLimiter(): Ratelimit | null {
+  if (!isRateLimitEnabled()) return null;
   sseLimiter ??= createLimiter("fineset:sse", 30, "15 m");
   return sseLimiter;
 }

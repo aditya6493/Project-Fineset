@@ -1,4 +1,9 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useQuery,
+  useMutation,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { createVisit, getVisits, importVisitsCsv } from "@/lib/api/visits";
 import { visitsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
@@ -26,6 +31,7 @@ export function useVisits(params: GetVisitsParams = {}, options?: UseVisitsOptio
     queryKey: ["visits", params],
     queryFn: () => getVisits(params),
     initialData: useInitialData ? options.initialData : undefined,
+    placeholderData: keepPreviousData,
     ...LIVE_QUERY_OPTIONS,
     ...queryOptionsForHydration(Boolean(useInitialData)),
   });

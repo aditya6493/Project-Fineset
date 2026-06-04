@@ -1,40 +1,25 @@
 import { NextResponse } from "next/server";
-import {
-  badRequest,
-  getServerSession,
-  requireRole,
-  unauthorized,
-} from "@/lib/auth/session";
-import { handleRouteError } from "@/lib/api/route-handler";
+import { withAuthQuery } from "@/lib/api/route-handler";
 import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
+import { createPerfTimer, logPerf } from "@/lib/perf/timing";
 import { getStoreAnalytics } from "@/lib/services/analytics";
 import { getAnalyticsQuerySchema } from "@/lib/validations/analytics.schema";
 
-export async function GET(req: Request) {
-  const startedAt = Date.now();
-  try {
-    const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
-
-    const { searchParams } = new URL(req.url);
-    const query = getAnalyticsQuerySchema.safeParse(
-      Object.fromEntries(searchParams.entries()),
-    );
-    if (!query.success) return badRequest(query.error.flatten());
+export const GET = withAuthQuery(
+  ["STORE_MANAGER"] as const,
+  getAnalyticsQuerySchema,
+  async (session, query) => {
+    const timer = createPerfTimer();
 
     const storeId = await resolveStoreManagerAnalyticsStoreId(
       session,
-      query.data.storeId,
+      query.storeId,
     );
     if (storeId instanceof NextResponse) return storeId;
 
-    const data = await getStoreAnalytics(storeId, query.data.period);
+    const data = await getStoreAnalytics(storeId, query.period);
+    logPerf("/api/analytics/store", timer.finish());
+
     return NextResponse.json(data);
-  } catch (error) {
-    console.error("[api.analytics.store] failed", {
-      elapsedMs: Date.now() - startedAt,
-      error,
-    });
-    return handleRouteError(error);
-  }
-}
+  },
+);
