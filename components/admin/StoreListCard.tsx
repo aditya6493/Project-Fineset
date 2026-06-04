@@ -106,7 +106,6 @@ export function StoreListCard({
         <DetailItem label={storesCopy.columns.city} value={displayValue(store.city)} />
         <DetailItem label={storesCopy.modal.stateLabel} value={displayValue(store.state)} />
         <DetailItem label={storesCopy.columns.pincode} value={displayValue(store.pincode)} />
-        <DetailItem label={storesCopy.columns.email} value={displayValue(store.email)} />
         <DetailItem
           label={storesCopy.modal.pocNameLabel}
           value={displayValue(store.pocName)}

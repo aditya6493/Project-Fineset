@@ -9,7 +9,7 @@ type AppUserWithRelations = AppUser & {
   staff: { employeeId: string } | null;
 };
 
-function buildAppMetadata(profile: AppUserWithRelations) {
+export function buildAppMetadata(profile: AppUserWithRelations) {
   return {
     role: profile.role,
     storeId: profile.storeId,

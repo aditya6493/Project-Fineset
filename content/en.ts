@@ -913,11 +913,13 @@ export const content = {
       },
       actions: {
         menu: "Staff actions",
+        edit: "Edit staff details",
         markActive: "Mark as active",
         markInactive: "Mark as inactive",
         delete: "Delete staff",
         deleteBlocked: "Cannot delete staff with logged visits or follow-ups",
       },
+      updated: "Staff details updated",
       deleteConfirm: {
         title: "Delete staff member?",
         description:
@@ -937,6 +939,10 @@ export const content = {
         suggestPassword: "Suggest password",
         passwordHint:
           "Stored securely in auth. Staff sign in at the home page with their work email and this password.",
+      },
+      editModal: {
+        title: "Edit staff details",
+        save: "Save changes",
       },
       active: "Active",
       inactive: "Inactive",
