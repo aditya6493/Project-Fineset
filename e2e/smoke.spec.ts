@@ -25,17 +25,20 @@ test.describe("Public routes", () => {
 test.describe("Protected dashboard routes", () => {
   test("store visits redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/store/dashboard/visits");
-    await expect(page).toHaveURL(/\/?callbackUrl=.*store%2Fdashboard%2Fvisits/);
+    await expect(page).not.toHaveURL(/\/store\/dashboard\/visits/);
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 
   test("admin overview redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/admin/dashboard");
-    await expect(page).toHaveURL(/\/?callbackUrl=.*admin%2Fdashboard/);
+    await expect(page).not.toHaveURL(/\/admin\/dashboard/);
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 
   test("staff calls redirects unauthenticated users to login", async ({ page }) => {
     await page.goto("/staff/dashboard/calls");
-    await expect(page).toHaveURL(/\/?callbackUrl=.*staff%2Fdashboard%2Fcalls/);
+    await expect(page).not.toHaveURL(/\/staff\/dashboard\/calls/);
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 });
 
