@@ -3,6 +3,10 @@ import { test, expect } from "@playwright/test";
 const e2eEmail = process.env.E2E_USER_EMAIL;
 const e2ePassword = process.env.E2E_USER_PASSWORD;
 const hasE2eCredentials = Boolean(e2eEmail && e2ePassword);
+const hasLiveSupabase =
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) &&
+  !process.env.NEXT_PUBLIC_SUPABASE_URL!.includes("placeholder.supabase.co");
+const canRunLiveAuthTests = hasE2eCredentials && hasLiveSupabase;
 
 test.describe("Public routes", () => {
   test("home page loads login", async ({ page }) => {
@@ -43,7 +47,10 @@ test.describe("Protected dashboard routes", () => {
 });
 
 test.describe("Auth performance", () => {
-  test.skip(!hasE2eCredentials, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run login perf test");
+  test.skip(
+    !canRunLiveAuthTests,
+    "Set E2E_USER_EMAIL, E2E_USER_PASSWORD, and a real Supabase URL to run login perf test",
+  );
 
   test("login reaches dashboard shell under 2s", async ({ page }) => {
     const start = Date.now();
@@ -62,7 +69,10 @@ test.describe("Auth performance", () => {
 });
 
 test.describe("API performance", () => {
-  test.skip(!hasE2eCredentials, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD to run API perf tests");
+  test.skip(
+    !canRunLiveAuthTests,
+    "Set E2E_USER_EMAIL, E2E_USER_PASSWORD, and a real Supabase URL to run API perf tests",
+  );
 
   test.beforeEach(async ({ page }) => {
     await page.goto("/");

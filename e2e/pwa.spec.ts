@@ -9,6 +9,10 @@ import {
 const e2eEmail = process.env.E2E_USER_EMAIL;
 const e2ePassword = process.env.E2E_USER_PASSWORD;
 const hasE2eCredentials = Boolean(e2eEmail && e2ePassword);
+const hasLiveSupabase =
+  Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim()) &&
+  !process.env.NEXT_PUBLIC_SUPABASE_URL!.includes("placeholder.supabase.co");
+const canRunLiveAuthTests = hasE2eCredentials && hasLiveSupabase;
 
 test.describe("PWA manifest and service worker", () => {
   test("B1 manifest is valid standalone PWA", async ({ request }) => {
@@ -79,7 +83,10 @@ test.describe("PWA standalone launch", () => {
     await expect(page.locator("[data-pwa-shell]")).toBeVisible();
   });
 
-  test.skip(!hasE2eCredentials, "Set E2E_USER_EMAIL and E2E_USER_PASSWORD");
+  test.skip(
+    !canRunLiveAuthTests,
+    "Set E2E_USER_EMAIL, E2E_USER_PASSWORD, and a real Supabase URL",
+  );
 
   test("B6 authenticated standalone launch reaches dashboard", async ({ page }) => {
     await emulateStandalone(page);
