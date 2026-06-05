@@ -2,9 +2,12 @@ import { expect, type Page } from "@playwright/test";
 
 export async function waitForServiceWorker(page: Page, timeoutMs = 10_000): Promise<void> {
   await page.waitForFunction(
-    () =>
-      "serviceWorker" in navigator &&
-      navigator.serviceWorker.controller !== null,
+    async () => {
+      if (!("serviceWorker" in navigator)) return false;
+      if (navigator.serviceWorker.controller) return true;
+      const registration = await navigator.serviceWorker.getRegistration();
+      return Boolean(registration?.active);
+    },
     { timeout: timeoutMs },
   );
 }

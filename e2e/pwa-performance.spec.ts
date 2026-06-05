@@ -43,7 +43,10 @@ test.describe("PWA performance", () => {
   test("C3 service worker ready within 8s", async ({ page }) => {
     const started = Date.now();
     await page.goto("/");
-    await waitForServiceWorker(page, limitMs("swReady", 8000));
+    await waitForServiceWorker(
+      page,
+      Math.max(limitMs("swReady", 8000), process.env.CI ? 25_000 : 8_000),
+    );
     expect(Date.now() - started).toBeLessThan(limitMs("swReady", 8000));
   });
 

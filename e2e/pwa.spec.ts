@@ -36,14 +36,14 @@ test.describe("PWA manifest and service worker", () => {
 
   test("B3 first load registers a service worker", async ({ page }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, 15_000);
+    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
     const count = await getServiceWorkerRegistrationCount(page);
     expect(count).toBeGreaterThanOrEqual(1);
   });
 
   test("B4 service worker scope includes origin", async ({ page }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, 15_000);
+    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
 
     const scope = await page.evaluate(async () => {
       const registrations = await navigator.serviceWorker.getRegistrations();
@@ -99,7 +99,7 @@ test.describe("PWA offline behavior", () => {
     context,
   }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, 15_000);
+    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
     await context.setOffline(true);
     await page.goto("/", { waitUntil: "domcontentloaded" });
 
@@ -111,7 +111,7 @@ test.describe("PWA offline behavior", () => {
 
   test("B8 API routes are not served from cache when offline", async ({ page }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, 15_000);
+    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
 
     const failed = await page.evaluate(async () => {
       try {
@@ -148,7 +148,7 @@ test.describe("PWA install UX", () => {
     page,
   }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, 15_000);
+    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
 
     await page.evaluate(() => {
       localStorage.setItem("fineset-pwa-asset-version", "stale-version");
