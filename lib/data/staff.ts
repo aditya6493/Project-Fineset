@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
+import { resolveManagerStoreId } from "@/lib/services/manager-stores";
 import { getStaffPerformance, listStaff } from "@/lib/services/staff";
 import { listStores } from "@/lib/services/stores";
 import type { PaginatedResponse, StaffPerformanceRow, StoreCategory } from "@/types";
@@ -34,11 +35,16 @@ export interface InitialStaffFilterStoresPayload {
 }
 
 export const fetchInitialStoreStaff = cache(
-  async (): Promise<InitialStoreStaffPayload | null> => {
+  async (storeIdOverride?: string): Promise<InitialStoreStaffPayload | null> => {
     const session = await getServerSession();
     if (!requireRole(session, ["STORE_MANAGER"])) return null;
 
-    const data = await listStaff(session.storeId);
+    const storeId = await resolveManagerStoreId(
+      session.email,
+      session.storeId,
+      storeIdOverride,
+    );
+    const data = await listStaff(storeId);
     return { data };
   },
 );

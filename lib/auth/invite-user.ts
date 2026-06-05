@@ -1,3 +1,4 @@
+import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { validatePassword } from "@/lib/auth/password-policy";
@@ -56,7 +57,7 @@ export async function inviteUser(
 
   if (input.storeId) {
     const store = await prisma.store.findFirst({
-      where: { id: input.storeId, isActive: true },
+      where: mergeStoreWhere({ id: input.storeId, isActive: true }),
     });
     if (!store) {
       throw new InviteError("Store not found or inactive", 404);

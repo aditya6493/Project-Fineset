@@ -20,9 +20,11 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { VisitListItem } from "@/types";
 import { buildVisitColumns } from "./visits-columns";
+import { CustomerProfileDialog } from "@/components/customers/CustomerProfileDialog";
 import { VisitDetailDialog } from "./VisitDetailDialog";
 import { VisitsTableToolbar } from "./VisitsTableToolbar";
 import { VisitsTablePagination } from "./VisitsTablePagination";
+import { VisitColumnFilterHeader } from "./VisitsTableHeaderFilters";
 import type { VisitsTableProps } from "./types";
 
 export function VisitsTable({
@@ -38,6 +40,7 @@ export function VisitsTable({
   page,
   pageSize,
   search,
+  isSearching,
   onSearchChange,
   onPageChange,
   onImportCsv,
@@ -46,9 +49,14 @@ export function VisitsTable({
   importStatusTone,
   fieldLabels,
   isLoading,
+  columnFilters = {},
+  onColumnFiltersChange,
+  staffOptions = [],
+  filterAllLabel = "All",
 }: VisitsTableProps) {
   const [sorting, setSorting] = useState<SortingState>([]);
   const [selectedVisit, setSelectedVisit] = useState<VisitListItem | null>(null);
+  const [profileVisit, setProfileVisit] = useState<VisitListItem | null>(null);
 
   const productLabels = fieldLabels.productsExplored.options;
 
@@ -60,6 +68,8 @@ export function VisitsTable({
         productLabels,
         yesLabel,
         noLabel,
+        onCustomerClick: setProfileVisit,
+        viewProfileLabel: copy.customerProfile?.title ?? "Customer profile",
       }),
     [copy, fieldLabels, productLabels, yesLabel, noLabel],
   );
@@ -91,6 +101,7 @@ export function VisitsTable({
         total={total}
         searchPlaceholder={searchPlaceholder}
         search={search}
+        isSearching={isSearching}
         onSearchChange={onSearchChange}
         onImport={onImportCsv}
         importDisabled={false}
@@ -106,21 +117,38 @@ export function VisitsTable({
       ) : data.length === 0 ? (
         <EmptyState message={emptyMessage} />
       ) : (
-        <div className="overflow-x-auto rounded-card border border-border bg-surface-card shadow-card">
+        <div className="overflow-x-auto border border-border bg-surface-card shadow-card">
           <Table className="min-w-[2400px]">
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
                 <TableRow key={headerGroup.id} className="hover:bg-transparent">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id}>
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
+                  {headerGroup.headers.map((header) => {
+                    const headerLabel = header.column.columnDef.header;
+                    const labelText =
+                      typeof headerLabel === "string" ? headerLabel : "";
+
+                    return (
+                      <TableHead key={header.id} className="whitespace-nowrap">
+                        {header.isPlaceholder ? null : onColumnFiltersChange &&
+                          labelText ? (
+                          <VisitColumnFilterHeader
+                            label={labelText}
+                            columnId={header.column.id}
+                            filters={columnFilters}
+                            onFiltersChange={onColumnFiltersChange}
+                            staffOptions={staffOptions}
+                            fieldLabels={fieldLabels}
+                            filterAllLabel={filterAllLabel}
+                          />
+                        ) : (
+                          flexRender(
                             header.column.columnDef.header,
                             header.getContext(),
-                          )}
-                    </TableHead>
-                  ))}
+                          )
+                        )}
+                      </TableHead>
+                    );
+                  })}
                 </TableRow>
               ))}
             </TableHeader>
@@ -130,7 +158,7 @@ export function VisitsTable({
                   key={row.id}
                   className="cursor-pointer"
                   tabIndex={0}
-                  aria-label={`View visit details for ${row.original.customerName}`}
+                  aria-label={`View visit details for ${row.original.customerName}. Click the customer name for their profile.`}
                   onClick={() => setSelectedVisit(row.original)}
                   onKeyDown={(event) => {
                     if (event.key === "Enter" || event.key === " ") {
@@ -159,6 +187,19 @@ export function VisitsTable({
         page={page}
         totalPages={totalPages}
         onPageChange={onPageChange}
+      />
+
+      <CustomerProfileDialog
+        visit={profileVisit}
+        copy={copy.customerProfile}
+        fieldLabels={fieldLabels}
+        productLabels={productLabels}
+        onClose={() => setProfileVisit(null)}
+        onViewVisit={(visitId) => {
+          const match = data.find((row) => row.id === visitId);
+          setProfileVisit(null);
+          if (match) setSelectedVisit(match);
+        }}
       />
 
       <VisitDetailDialog

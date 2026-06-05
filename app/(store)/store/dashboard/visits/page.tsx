@@ -1,23 +1,30 @@
-import { content } from "@/content/en";
-import { StoreVisitsLog } from "@/components/store/StoreVisitsLog";
+import { StoreVisitsPageClient } from "@/components/store/StoreVisitsPageClient";
+import { fetchInitialStoreStaff } from "@/lib/data/staff";
 import { fetchInitialVisits } from "@/lib/data/visits";
 
-export default async function StoreVisitsPage() {
-  let initial: Awaited<ReturnType<typeof fetchInitialVisits>> = null;
+interface StoreVisitsPageProps {
+  searchParams: Promise<{ storeId?: string }>;
+}
+
+export default async function StoreVisitsPage({ searchParams }: StoreVisitsPageProps) {
+  const { storeId } = await searchParams;
+  let initialVisits: Awaited<ReturnType<typeof fetchInitialVisits>> = null;
+  let initialStaff: Awaited<ReturnType<typeof fetchInitialStoreStaff>> = null;
   try {
-    initial = await fetchInitialVisits();
+    [initialVisits, initialStaff] = await Promise.all([
+      fetchInitialVisits(storeId),
+      fetchInitialStoreStaff(storeId),
+    ]);
   } catch (error) {
-    console.error("[store-visits] initial visits failed", error);
+    console.error("[store-visits] initial data failed", { storeId, error });
   }
 
   return (
-    <StoreVisitsLog
-      store={content.store}
-      visitFields={content.visitForm.fields}
-      common={content.common}
-      emptyMessage={content.empty.visits}
-      initialVisits={initial?.data}
-      initialVisitsParams={initial?.params}
+    <StoreVisitsPageClient
+      urlStoreId={storeId}
+      initialVisits={initialVisits?.data}
+      initialVisitsParams={initialVisits?.params}
+      initialStaff={initialStaff?.data}
     />
   );
 }

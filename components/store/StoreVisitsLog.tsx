@@ -1,6 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { getStaff } from "@/lib/api/staff";
+import { STAFF_FILTER_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useImportVisitsCsv, useVisits } from "@/hooks/useVisits";
 import { VisitsTable } from "@/components/tables/VisitsTable";
 import { QueryLoadState } from "@/components/shared/QueryLoadState";
@@ -8,7 +14,12 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import type { Content } from "@/content/en";
-import type { GetVisitsParams, PaginatedResponse, VisitListItem } from "@/types";
+import type {
+  GetVisitsParams,
+  PaginatedResponse,
+  VisitListItem,
+  VisitsColumnFilters,
+} from "@/types";
 
 type StoreContent = Content["store"];
 type VisitFormFields = Content["visitForm"]["fields"];
@@ -16,43 +27,69 @@ type CommonContent = Content["common"];
 
 interface StoreVisitsLogProps {
   store: StoreContent;
+  storeId: string;
   visitFields: VisitFormFields;
   common: CommonContent;
   emptyMessage: string;
   initialVisits?: PaginatedResponse<VisitListItem>;
   initialVisitsParams?: GetVisitsParams;
+  initialStaff?: Awaited<ReturnType<typeof getStaff>>;
+  backHref?: string;
+  backLabel?: string;
 }
 
 type VisitFilter = "all" | "followUpOnly";
 
 export function StoreVisitsLog({
   store,
+  storeId,
   visitFields,
   common,
   emptyMessage,
   initialVisits,
   initialVisitsParams,
+  initialStaff,
+  backHref,
+  backLabel,
 }: StoreVisitsLogProps) {
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [visitFilter, setVisitFilter] = useState<VisitFilter>("all");
+  const [columnFilters, setColumnFilters] = useState<VisitsColumnFilters>({});
   const [importStatus, setImportStatus] = useState<{
     tone: "default" | "success" | "error";
     message: string;
   } | null>(null);
 
-  const queryParams = {
+  const queryParams: GetVisitsParams = {
     page: String(page),
     pageSize: "20",
-    search: search || undefined,
+    storeId,
+    search: debouncedSearch.trim() || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
     followUpOnly: visitFilter === "followUpOnly" ? "true" : undefined,
+    staffId: columnFilters.staffId,
+    purchaseStatus: columnFilters.purchaseStatus,
+    visitType: columnFilters.visitType,
+    customerType: columnFilters.customerType,
+    sourceChannel: columnFilters.sourceChannel,
   };
 
-  const { data, isLoading, isError, refetch } = useVisits(queryParams, {
+  const staffHydrated = initialStaff !== undefined;
+  const { data: staffList } = useQuery({
+    queryKey: ["staff", "visits-filters", storeId],
+    queryFn: () => getStaff(storeId),
+    enabled: Boolean(storeId),
+    initialData: initialStaff,
+    ...STAFF_FILTER_QUERY_OPTIONS,
+    ...queryOptionsForHydration(staffHydrated),
+  });
+
+  const { data, isLoading, isFetching, isError, refetch } = useVisits(queryParams, {
     initialData: initialVisits,
     initialParams: initialVisitsParams,
   });
@@ -65,6 +102,22 @@ export function StoreVisitsLog({
 
   return (
     <div className="space-y-4">
+      <div>
+        {backHref ? (
+          <Link
+            href={backHref}
+            prefetch={false}
+            className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            {backLabel ?? store.storeDetail.backToPortfolio}
+          </Link>
+        ) : null}
+        <h1 className="font-display text-2xl font-bold text-text-primary">
+          {store.visits.title}
+        </h1>
+      </div>
+
       <Tabs
         value={visitFilter}
         onValueChange={(value) => {
@@ -109,7 +162,7 @@ export function StoreVisitsLog({
       </div>
 
       <QueryLoadState
-        isLoading={isLoading}
+        isLoading={isLoading && !data}
         isError={isError}
         errorLabel={common.noResults}
         retryLabel={common.confirm}
@@ -122,7 +175,7 @@ export function StoreVisitsLog({
             page: store.table.page,
           }}
           emptyMessage={emptyMessage}
-          searchPlaceholder={common.search}
+          searchPlaceholder={store.visits.searchPlaceholder}
           previousLabel={common.previous}
           nextLabel={common.next}
           yesLabel={store.table.yes}
@@ -131,9 +184,10 @@ export function StoreVisitsLog({
           total={data?.total ?? 0}
           page={page}
           pageSize={20}
-          search={search}
+          search={searchInput}
+          isSearching={isFetching && Boolean(debouncedSearch.trim())}
           onSearchChange={(value) => {
-            setSearch(value);
+            setSearchInput(value);
             setPage(1);
           }}
           onPageChange={setPage}
@@ -179,7 +233,14 @@ export function StoreVisitsLog({
           importStatusMessage={importStatus?.message}
           importStatusTone={importStatus?.tone}
           fieldLabels={visitFields}
-          isLoading={false}
+          isLoading={isFetching && Boolean(data?.data.length)}
+          columnFilters={columnFilters}
+          onColumnFiltersChange={(next) => {
+            setColumnFilters(next);
+            setPage(1);
+          }}
+          staffOptions={(staffList ?? []).map((s) => ({ id: s.id, name: s.name }))}
+          filterAllLabel={store.visits.filters.columnAll}
         />
       </QueryLoadState>
     </div>

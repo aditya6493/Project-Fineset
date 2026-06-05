@@ -117,6 +117,8 @@ export interface StorePerformanceDeltas {
   visits: number;
   revenue: number;
   conversionRate: number;
+  fieldSales: number;
+  userCalls: number;
 }
 
 export interface StorePerformanceRow {
@@ -126,10 +128,14 @@ export interface StorePerformanceRow {
   city: string;
   state: string;
   isActive: boolean;
+  pocName: string | null;
+  pointOfContactPhone: string | null;
   visits: number;
   revenue: number;
   conversionRate: number;
   staffCount: number;
+  fieldSales: number;
+  userCalls: number;
   deltas?: StorePerformanceDeltas;
 }
 
@@ -351,6 +357,7 @@ export interface StoreFieldSaleAnalytics {
 
 export interface VisitListItem {
   id: string;
+  customerId: string | null;
   visitDate: string;
   inTime: string | null;
   outTime: string | null;
@@ -603,7 +610,26 @@ export interface GetVisitsParams {
   sortBy?: string;
   sortOrder?: "asc" | "desc";
   followUpOnly?: string;
+  storeId?: string;
+  staffId?: string;
+  purchaseStatus?: string;
+  visitType?: string;
+  customerType?: string;
+  sourceChannel?: string;
 }
+
+export interface StoreManagerPortfolio {
+  period: AnalyticsPeriodLabel;
+  stores: StorePerformanceRow[];
+}
+
+export type VisitsColumnFilters = {
+  staffId?: string;
+  purchaseStatus?: string;
+  visitType?: string;
+  customerType?: string;
+  sourceChannel?: string;
+};
 
 export interface GetAnalyticsParams {
   period?: AnalyticsPeriodLabel;
@@ -613,6 +639,8 @@ export interface GetAnalyticsParams {
 export interface ManagerStoreOption {
   id: string;
   name: string;
+  city: string;
+  state: string;
 }
 
 export interface MyStoresResponse {

@@ -27,6 +27,9 @@ model Store {
   pointOfContactPhone String?
   email          String?
   isActive       Boolean       @default(true)
+  deletedAt      DateTime?
+  purgeAt        DateTime?
+  deletedByEmail String?
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
@@ -118,6 +121,8 @@ model Customer {
   phone        String
   phoneHash    String
   name         String
+  nameSearch   String   @default("")
+  phoneLast4   String?
   area         String?
   profession   String?
   gender       String?
@@ -134,6 +139,8 @@ model Customer {
 
   @@unique([phoneHash, storeId])
   @@index([storeId, updatedAt(sort: Desc)])
+  @@index([storeId, nameSearch])
+  @@index([storeId, phoneLast4])
 }
 
 model Visit {
@@ -145,10 +152,12 @@ model Visit {
   storeId           String
   staffId           String
   customerId        String?
-  customerName      String
-  customerPhone     String
-  customerPhoneHash String
-  customerType      CustomerType
+  customerName        String
+  customerPhone       String
+  customerPhoneHash   String
+  customerNameSearch  String   @default("")
+  phoneLast4          String?
+  customerType        CustomerType
   visitType         VisitType
   area              String?
   gender            String?
@@ -187,6 +196,8 @@ model Visit {
   @@index([storeId, visitDate(sort: Desc)])
   @@index([staffId, storeId, visitDate(sort: Desc)])
   @@index([storeId, customerPhoneHash])
+  @@index([storeId, customerNameSearch])
+  @@index([storeId, phoneLast4])
 }
 
 enum CustomerType {
@@ -339,6 +350,8 @@ model FieldSale {
   customerName        String
   customerPhone       String
   customerPhoneHash   String?
+  customerNameSearch  String   @default("")
+  phoneLast4          String?
   customerType        CustomerType
   area                String?
   gender              String?

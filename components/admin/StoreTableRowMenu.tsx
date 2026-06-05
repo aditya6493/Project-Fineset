@@ -13,6 +13,7 @@ import {
 import { updateStoreManagerPasswordSchema } from "@/lib/validations/store-password.schema";
 import {
   useDeleteStore,
+  useRestoreStore,
   useUpdateStore,
   useUpdateStoreManagerPassword,
 } from "@/hooks/useStores";
@@ -69,6 +70,7 @@ export interface StoreTableRow {
   pointOfContactPhone?: string | null;
   email?: string | null;
   isActive: boolean;
+  deletedAt?: string | null;
   staffCount: number;
 }
 
@@ -117,6 +119,9 @@ export function StoreTableRowMenu({
 }: StoreTableRowMenuProps) {
   const [statusConfirmOpen, setStatusConfirmOpen] = useState(false);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState("");
+  const [deleteNameConfirm, setDeleteNameConfirm] = useState("");
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [editOpen, setEditOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -124,11 +129,13 @@ export function StoreTableRowMenu({
 
   const updateStoreMutation = useUpdateStore();
   const deleteStoreMutation = useDeleteStore();
+  const restoreStoreMutation = useRestoreStore();
   const updatePasswordMutation = useUpdateStoreManagerPassword();
 
   const isMutating =
     updateStoreMutation.isPending ||
     deleteStoreMutation.isPending ||
+    restoreStoreMutation.isPending ||
     updatePasswordMutation.isPending;
 
   const editForm = useForm<EditStoreInput>({
@@ -170,18 +177,49 @@ export function StoreTableRowMenu({
     }
   }
 
+  function resetDeleteForm() {
+    setDeletePassword("");
+    setDeleteNameConfirm("");
+    setDeleteError(null);
+  }
+
   async function handleConfirmDelete() {
+    setDeleteError(null);
+    const nameConfirm = deleteNameConfirm.trim();
+    if (nameConfirm !== store.name.trim()) {
+      setDeleteError(storesCopy.deleteConfirm.storeNameMismatch);
+      return;
+    }
+    if (!deletePassword) {
+      setDeleteError(storesCopy.deleteConfirm.adminPasswordLabel);
+      return;
+    }
+
     try {
-      await deleteStoreMutation.mutateAsync(store.id);
+      await deleteStoreMutation.mutateAsync({
+        storeId: store.id,
+        payload: {
+          password: deletePassword,
+          storeNameConfirm: nameConfirm,
+        },
+      });
       toast({ title: storesCopy.deleted });
       setDeleteConfirmOpen(false);
+      resetDeleteForm();
     } catch (error) {
-      const message = apiErrorMessage(error, errors.generic);
-      const blocked = error instanceof ApiError && error.status === 409;
-      toast({ title: blocked ? storesCopy.deleteBlocked : message });
-      if (!blocked) {
-        setDeleteConfirmOpen(false);
+      if (error instanceof ApiError) {
+        if (error.status === 401) {
+          setDeleteError(storesCopy.deleteConfirm.wrongPassword);
+          return;
+        }
+        if (error.status === 400) {
+          const msg = error.body.message?.trim();
+          setDeleteError(msg || storesCopy.deleteConfirm.storeNameMismatch);
+          return;
+        }
       }
+      const message = apiErrorMessage(error, errors.generic);
+      toast({ title: message || storesCopy.deleteBlocked });
     }
   }
 
@@ -262,9 +300,26 @@ export function StoreTableRowMenu({
             >
               {storesCopy.actions.updatePassword}
             </DropdownMenuItem>
+            {store.deletedAt ? (
+              <DropdownMenuItem
+                disabled={isMutating}
+                onSelect={() => {
+                  void restoreStoreMutation
+                    .mutateAsync(store.id)
+                    .then(() => toast({ title: storesCopy.restored }))
+                    .catch((err: unknown) => {
+                      const message =
+                        err instanceof ApiError ? err.message : storesCopy.deleteBlocked;
+                      toast({ title: message });
+                    });
+                }}
+              >
+                {storesCopy.actions.restore}
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
-              disabled={isMutating}
+              disabled={isMutating || Boolean(store.deletedAt)}
               className="text-status-error focus:text-status-error"
               onSelect={() => setDeleteConfirmOpen(true)}
             >
@@ -302,14 +357,51 @@ export function StoreTableRowMenu({
         </DialogContent>
       </Dialog>
 
-      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
-        <DialogContent>
+      <Dialog
+        open={deleteConfirmOpen}
+        onOpenChange={(open) => {
+          setDeleteConfirmOpen(open);
+          if (!open) resetDeleteForm();
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>{storesCopy.deleteConfirm.title}</DialogTitle>
             <DialogDescription>
               {storesCopy.deleteConfirm.description.replace("{name}", store.name)}
             </DialogDescription>
           </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-xs text-text-muted">{storesCopy.deleteConfirm.graceNote}</p>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor={`delete-name-${store.id}`}>
+                {storesCopy.deleteConfirm.storeNameLabel}
+              </label>
+              <Input
+                id={`delete-name-${store.id}`}
+                value={deleteNameConfirm}
+                onChange={(e) => setDeleteNameConfirm(e.target.value)}
+                placeholder={store.name}
+                autoComplete="off"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-text-primary" htmlFor={`delete-pw-${store.id}`}>
+                {storesCopy.deleteConfirm.adminPasswordLabel}
+              </label>
+              <Input
+                id={`delete-pw-${store.id}`}
+                type="password"
+                value={deletePassword}
+                onChange={(e) => setDeletePassword(e.target.value)}
+                placeholder={storesCopy.deleteConfirm.adminPasswordPlaceholder}
+                autoComplete="current-password"
+              />
+            </div>
+            {deleteError ? (
+              <p className="text-sm text-status-error">{deleteError}</p>
+            ) : null}
+          </div>
           <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
             <Button
               type="button"

@@ -1,9 +1,10 @@
 import { prisma } from "@/lib/db/prisma";
+import { buildAppMetadata } from "@/lib/auth/activate-profile";
 import { inviteUser } from "@/lib/auth/invite-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
+import type { Prisma, PurchaseStatus } from "@prisma/client";
 import type { StaffPerformanceRow } from "@/types";
-import type { Prisma } from "@prisma/client";
 import {
   calculateAvgTransaction,
   calculateConversionRate,
@@ -20,30 +21,58 @@ export class StaffDeleteError extends Error {
   }
 }
 
+export class StaffUpdateError extends Error {
+  constructor(
+    message: string,
+    public status: number,
+  ) {
+    super(message);
+    this.name = "StaffUpdateError";
+  }
+}
+
 export async function listStaff(storeId: string) {
-  const staff = await prisma.staff.findMany({
-    where: { storeId },
-    orderBy: { name: "asc" },
-    include: {
-      appUser: {
-        select: {
-          email: true,
+  const [staff, visitMetrics] = await Promise.all([
+    prisma.staff.findMany({
+      where: { storeId },
+      orderBy: { name: "asc" },
+      include: {
+        appUser: {
+          select: {
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            visits: true,
+            fieldSales: true,
+            assignedFollowUps: true,
+          },
         },
       },
-      visits: {
-        select: {
-          purchaseStatus: true,
-          transactionAmount: true,
-        },
+    }),
+    prisma.visit.findMany({
+      where: { storeId },
+      select: {
+        staffId: true,
+        purchaseStatus: true,
+        transactionAmount: true,
       },
-      _count: {
-        select: {
-          fieldSales: true,
-          assignedFollowUps: true,
-        },
-      },
-    },
-  });
+    }),
+  ]);
+
+  const visitsByStaff = new Map<
+    string,
+    Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
+  >();
+  for (const visit of visitMetrics) {
+    const list = visitsByStaff.get(visit.staffId) ?? [];
+    list.push({
+      purchaseStatus: visit.purchaseStatus,
+      transactionAmount: visit.transactionAmount,
+    });
+    visitsByStaff.set(visit.staffId, list);
+  }
 
   const staffIds = staff.map((member) => member.id);
   const openFollowUps =
@@ -63,9 +92,10 @@ export async function listStaff(storeId: string) {
   );
 
   return staff.map((member) => {
-    const visits = member.visits;
+    const visits = visitsByStaff.get(member.id) ?? [];
+    const visitCount = member._count.visits;
     const hasActivity =
-      visits.length > 0 ||
+      visitCount > 0 ||
       member._count.fieldSales > 0 ||
       member._count.assignedFollowUps > 0;
 
@@ -76,9 +106,9 @@ export async function listStaff(storeId: string) {
       email: member.appUser?.email ?? null,
       createdAt: member.createdAt,
       isActive: member.isActive,
-      visitCount: visits.length,
+      visitCount,
       canDelete: !hasActivity,
-      monthlyVisits: visits.length,
+      monthlyVisits: visitCount,
       monthlyRevenue: calculateTotalRevenue(visits),
       conversionRate: calculateConversionRate(visits),
       openFollowUps: followUpCountByStaff.get(member.id) ?? 0,
@@ -102,10 +132,104 @@ export async function updateStaff(
   storeId: string,
   input: UpdateStaffInput,
 ) {
-  return prisma.staff.updateMany({
+  const staff = await prisma.staff.findFirst({
     where: { id: staffId, storeId },
-    data: input,
+    include: {
+      appUser: true,
+      store: { select: { name: true } },
+    },
   });
+
+  if (!staff) {
+    return { count: 0 };
+  }
+
+  if (input.employeeId && input.employeeId !== staff.employeeId) {
+    const duplicateEmployee = await prisma.staff.findUnique({
+      where: { employeeId: input.employeeId },
+    });
+    if (duplicateEmployee && duplicateEmployee.id !== staffId) {
+      throw new StaffUpdateError("Employee ID already exists", 409);
+    }
+  }
+
+  const normalizedEmail = input.email?.trim().toLowerCase();
+  if (normalizedEmail && staff.appUser && normalizedEmail !== staff.appUser.email) {
+    const duplicateEmail = await prisma.appUser.findUnique({
+      where: { email: normalizedEmail },
+    });
+    if (duplicateEmail && duplicateEmail.id !== staff.appUser.id) {
+      throw new StaffUpdateError("This email is already in use", 409);
+    }
+  }
+
+  const staffData: Prisma.StaffUpdateInput = {};
+  if (input.name !== undefined) {
+    staffData.name = input.name.trim();
+  }
+  if (input.employeeId !== undefined) {
+    staffData.employeeId = input.employeeId;
+  }
+  if (input.isActive !== undefined) {
+    staffData.isActive = input.isActive;
+  }
+
+  if (Object.keys(staffData).length > 0) {
+    await prisma.staff.update({
+      where: { id: staffId },
+      data: staffData,
+    });
+  }
+
+  if (staff.appUser && (input.name !== undefined || normalizedEmail)) {
+    const appUserData: Prisma.AppUserUpdateInput = {};
+    if (input.name !== undefined) {
+      appUserData.name = input.name.trim();
+    }
+    if (normalizedEmail) {
+      appUserData.email = normalizedEmail;
+    }
+    await prisma.appUser.update({
+      where: { id: staff.appUser.id },
+      data: appUserData,
+    });
+  }
+
+  if (staff.appUser?.authId) {
+    const profile = await prisma.appUser.findUnique({
+      where: { id: staff.appUser.id },
+      include: {
+        store: { select: { name: true } },
+        staff: { select: { employeeId: true } },
+      },
+    });
+
+    if (profile) {
+      const supabase = createAdminClient();
+      const authUpdates: {
+        email?: string;
+        app_metadata?: ReturnType<typeof buildAppMetadata>;
+      } = {
+        app_metadata: buildAppMetadata(profile),
+      };
+      if (normalizedEmail && normalizedEmail !== staff.appUser.email) {
+        authUpdates.email = normalizedEmail;
+      }
+
+      const { error } = await supabase.auth.admin.updateUserById(
+        staff.appUser.authId,
+        authUpdates,
+      );
+      if (error) {
+        throw new StaffUpdateError(
+          error.message ?? "Failed to update staff login",
+          502,
+        );
+      }
+    }
+  }
+
+  return { count: 1 };
 }
 
 export async function deleteStaff(staffId: string, storeId: string) {

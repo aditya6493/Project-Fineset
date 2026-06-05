@@ -3,10 +3,12 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  SSE_INVALIDATION_DEBOUNCE_MS,
   SSE_MAX_CONSECUTIVE_ERRORS,
   SSE_RECONNECT_BASE_MS,
   SSE_RECONNECT_MAX_MS,
 } from "@/lib/sync/constants";
+import { createDebouncedBatch } from "@/lib/sync/debounced-batch";
 import { invalidateEntities } from "@/lib/sync/invalidate-portal-data";
 import type { SyncEntity, SyncVersionPayload } from "@/lib/sync/version";
 
@@ -19,8 +21,14 @@ export function useRealtimeSync(): void {
   const lastVersionRef = useRef<string | null>(null);
   const retryDelayRef = useRef(SSE_RECONNECT_BASE_MS);
   const consecutiveErrorsRef = useRef(0);
-  const invalidateTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const pendingEntitiesRef = useRef<Set<SyncEntity>>(new Set());
+  const debouncedInvalidateRef = useRef(
+    createDebouncedBatch<SyncEntity>({
+      debounceMs: SSE_INVALIDATION_DEBOUNCE_MS,
+      onFlush: (entities) => {
+        void invalidateEntities(queryClient, entities);
+      },
+    }),
+  );
 
   useEffect(() => {
     let source: EventSource | null = null;
@@ -73,19 +81,8 @@ export function useRealtimeSync(): void {
                 ? data.entities
                 : (["visits", "fieldSales", "staff", "callLogs", "stores"] as SyncEntity[]);
             for (const entity of entities) {
-              pendingEntitiesRef.current.add(entity);
+              debouncedInvalidateRef.current.add(entity);
             }
-            if (invalidateTimerRef.current) {
-              clearTimeout(invalidateTimerRef.current);
-            }
-            invalidateTimerRef.current = setTimeout(() => {
-              const batch = [...pendingEntitiesRef.current];
-              pendingEntitiesRef.current.clear();
-              invalidateTimerRef.current = null;
-              if (batch.length > 0) {
-                void invalidateEntities(queryClient, batch);
-              }
-            }, 750);
           }
 
           lastVersionRef.current = data.version;
@@ -121,7 +118,7 @@ export function useRealtimeSync(): void {
     return () => {
       disposed = true;
       if (retryTimer) clearTimeout(retryTimer);
-      if (invalidateTimerRef.current) clearTimeout(invalidateTimerRef.current);
+      debouncedInvalidateRef.current.cancel();
       source?.close();
     };
   }, [queryClient]);

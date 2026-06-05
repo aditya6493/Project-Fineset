@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
+import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFieldSalesList } from "@/hooks/useFieldSalesList";
 import { getStaff, getStaffPerformance } from "@/lib/api/staff";
 import { getStores } from "@/lib/api/stores";
@@ -58,7 +59,10 @@ export function PortalFieldSalesLog({
   const [year, setYear] = useState(initialFieldSalesParams?.year ?? currentYear);
   const [month, setMonth] = useState(initialFieldSalesParams?.month ?? currentMonth);
   const [page, setPage] = useState(initialFieldSalesParams?.page ?? 1);
-  const [search, setSearch] = useState(initialFieldSalesParams?.search ?? "");
+  const [searchInput, setSearchInput] = useState(
+    initialFieldSalesParams?.search ?? "",
+  );
+  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const [storeFilter, setStoreFilter] = useState(initialStoreId ?? "all");
   const [staffFilter, setStaffFilter] = useState(initialFieldSalesParams?.staffId ?? "all");
   const enrollmentOutcomeFilter = initialFieldSalesParams?.enrollmentOutcome;
@@ -70,8 +74,12 @@ export function PortalFieldSalesLog({
       month,
       page,
       pageSize: 15,
-      search: search || undefined,
-      storeId: showStoreFilter && storeFilter !== "all" ? storeFilter : undefined,
+      search: debouncedSearch.trim() || undefined,
+      storeId: showStoreFilter
+        ? storeFilter !== "all"
+          ? storeFilter
+          : undefined
+        : initialStoreId,
       staffId: staffFilter !== "all" ? staffFilter : undefined,
       enrollmentOutcome: enrollmentOutcomeFilter,
       activityType: activityTypeFilter,
@@ -80,7 +88,7 @@ export function PortalFieldSalesLog({
       year,
       month,
       page,
-      search,
+      debouncedSearch,
       showStoreFilter,
       storeFilter,
       staffFilter,
@@ -89,10 +97,13 @@ export function PortalFieldSalesLog({
     ],
   );
 
-  const { data, isLoading, isError, refetch } = useFieldSalesList(queryParams, {
+  const { data, isLoading, isFetching, isError, refetch } = useFieldSalesList(
+    queryParams,
+    {
     initialData: initialFieldSales,
-    initialParams: initialFieldSalesParams,
-  });
+      initialParams: initialFieldSalesParams,
+    },
+  );
 
   const { data: stores } = useQuery({
     queryKey: ["stores", "filter"],
@@ -102,9 +113,9 @@ export function PortalFieldSalesLog({
   });
 
   const { data: storeStaff } = useQuery({
-    queryKey: ["staff", "store"],
-    queryFn: () => getStaff(),
-    enabled: !showStoreFilter,
+    queryKey: ["staff", "store", initialStoreId],
+    queryFn: () => getStaff(initialStoreId),
+    enabled: !showStoreFilter && Boolean(initialStoreId),
     ...STAFF_FILTER_QUERY_OPTIONS,
   });
 
@@ -184,16 +195,26 @@ export function PortalFieldSalesLog({
 
       <div className="space-y-1">
         <Label htmlFor="field-sales-search">{copy.searchLabel}</Label>
-        <Input
-          id="field-sales-search"
-          value={search}
-          aria-label={copy.searchLabel}
-          placeholder={copy.searchPlaceholder}
-          onChange={(event) => {
-            setSearch(event.target.value);
-            setPage(1);
-          }}
-        />
+        <div className="relative max-w-md">
+          <Input
+            id="field-sales-search"
+            value={searchInput}
+            aria-label={copy.searchLabel}
+            aria-busy={isFetching && Boolean(debouncedSearch.trim())}
+            placeholder={copy.searchPlaceholder}
+            className={isFetching && debouncedSearch.trim() ? "pr-9" : undefined}
+            onChange={(event) => {
+              setSearchInput(event.target.value);
+              setPage(1);
+            }}
+          />
+          {isFetching && debouncedSearch.trim() ? (
+            <Loader2
+              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-muted"
+              aria-hidden
+            />
+          ) : null}
+        </div>
       </div>
 
       <YearMonthFilters
@@ -217,7 +238,7 @@ export function PortalFieldSalesLog({
       )}
 
       <QueryLoadState
-        isLoading={isLoading}
+        isLoading={isLoading && !data}
         isError={isError}
         loadingLabel={common.loading}
         errorLabel={copy.loadError}

@@ -3,12 +3,12 @@ import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import type { FieldSale, Prisma } from "@prisma/client";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
 import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
+import { buildFieldSaleSearchWhere } from "@/lib/services/customer-search";
 import {
   decryptVisitPii,
   prepareCustomerPii,
 } from "@/lib/services/pii";
 import { calculateDurationMins, formatDate } from "@/lib/utils/formatters";
-import { hashPhone } from "@/lib/services/pii";
 
 interface CreateFieldSaleParams extends CreateFieldSaleInput {
   storeId: string;
@@ -56,7 +56,11 @@ export async function createFieldSale(
         },
       },
       create: {
-        ...customerPii,
+        name: customerPii.name,
+        phone: customerPii.phone,
+        phoneHash: customerPii.phoneHash,
+        nameSearch: customerPii.nameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -68,6 +72,8 @@ export async function createFieldSale(
       update: {
         name: customerPii.name,
         phone: customerPii.phone,
+        nameSearch: customerPii.nameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -93,6 +99,8 @@ export async function createFieldSale(
         customerName: customerPii.name,
         customerPhone: customerPii.phone,
         customerPhoneHash: customerPii.phoneHash,
+        customerNameSearch: customerPii.customerNameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -160,20 +168,14 @@ function applyFieldSaleFilters(
   if (params.enrollmentOutcome) where.enrollmentOutcome = params.enrollmentOutcome;
   if (params.activityType) where.activityType = params.activityType;
 
-  if (params.search?.trim()) {
-    const normalizedPhone = params.search.replace(/\D/g, "");
-    const searchConditions: Prisma.FieldSaleWhereInput[] = [
-      { staff: { name: { contains: params.search, mode: "insensitive" } } },
-      { customerName: { contains: params.search, mode: "insensitive" } },
+  const searchWhere = params.search?.trim()
+    ? buildFieldSaleSearchWhere(params.search)
+    : null;
+  if (searchWhere) {
+    where.AND = [
+      ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+      searchWhere,
     ];
-
-    if (normalizedPhone.length === 10) {
-      searchConditions.push({
-        customerPhoneHash: hashPhone(normalizedPhone),
-      });
-    }
-
-    where.AND = [{ OR: searchConditions }];
   }
 
   return where;
@@ -217,33 +219,34 @@ export async function listFieldSales(params: ListFieldSalesParams) {
   const where = buildFieldSaleWhere(params);
   const yearWhere = buildFieldSaleYearWhere(params);
 
-  // Sequential queries: Supabase pooler uses connection_limit=1 in DATABASE_URL.
-  const records = await prisma.fieldSale.findMany({
-    where,
-    orderBy: { activityDate: "desc" },
-    skip: (params.page - 1) * params.pageSize,
-    take: params.pageSize,
-    include: {
-      staff: { select: { id: true, name: true } },
-      store: { select: { id: true, name: true } },
-    },
-  });
+  const yearRecordsWhere = {
+    ...(params.storeId ? { storeId: params.storeId } : {}),
+    ...(params.staffId ? { staffId: params.staffId } : {}),
+  };
 
-  const total = await prisma.fieldSale.count({ where });
+  const [records, total, yearActivityDates, yearRecords] = await Promise.all([
+    prisma.fieldSale.findMany({
+      where,
+      orderBy: { activityDate: "desc" },
+      skip: (params.page - 1) * params.pageSize,
+      take: params.pageSize,
+      include: {
+        staff: { select: { id: true, name: true } },
+        store: { select: { id: true, name: true } },
+      },
+    }),
+    prisma.fieldSale.count({ where }),
+    prisma.fieldSale.findMany({
+      where: yearWhere,
+      select: { activityDate: true },
+    }),
+    prisma.fieldSale.findMany({
+      where: yearRecordsWhere,
+      select: { activityDate: true },
+    }),
+  ]);
 
-  const yearActivityDates = await prisma.fieldSale.findMany({
-    where: yearWhere,
-    select: { activityDate: true },
-  });
   const months = countFieldSaleMonthsFromDates(yearActivityDates);
-
-  const yearRecords = await prisma.fieldSale.findMany({
-    where: {
-      ...(params.storeId ? { storeId: params.storeId } : {}),
-      ...(params.staffId ? { staffId: params.staffId } : {}),
-    },
-    select: { activityDate: true },
-  });
 
   const availableYears = Array.from(
     new Set([

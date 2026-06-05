@@ -1,3 +1,4 @@
+import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 import {
   computeVisitValueTier,
@@ -693,7 +694,7 @@ const LABELS = {
 export async function getAdminBusinessAnalyticsFilterOptions(): Promise<AdminBusinessAnalyticsFilterOptions> {
   const [stores, staff, areaRows] = await Promise.all([
     prisma.store.findMany({
-      where: { isActive: true },
+      where: mergeStoreWhere({ isActive: true }),
       orderBy: { name: "asc" },
       select: { id: true, name: true },
     }),

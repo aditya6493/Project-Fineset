@@ -11,6 +11,7 @@ export interface CallLogLinkFilters {
   valueTier?: StaffCallValueTier;
   staffId?: string;
   intentTier?: IntentTier;
+  storeId?: string;
 }
 
 const CUSTOMER_TYPE_SEGMENT: Record<string, StaffCallSegment> = {
@@ -75,6 +76,7 @@ export function buildStoreCallsLogHref(filters: CallLogLinkFilters): string {
   }
   if (filters.staffId) params.set("staffId", filters.staffId);
   if (filters.intentTier) params.set("intentTier", filters.intentTier);
+  if (filters.storeId) params.set("storeId", filters.storeId);
 
   const qs = params.toString();
   return `/store/dashboard/calls${qs ? `?${qs}` : ""}`;

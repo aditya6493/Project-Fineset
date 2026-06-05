@@ -5,13 +5,20 @@ import {
   getAdminDashboardOverview,
   getAdminStoreDetailAnalytics,
   getStoreAnalytics,
+  getStoreManagerPortfolio,
 } from "@/lib/services/analytics";
+import {
+  getStoreOverviewBundle,
+  type StoreOverviewBundle,
+} from "@/lib/services/store-overview-bundle";
 import { DEFAULT_ANALYTICS_PARAMS } from "@/lib/query/initial-data";
+import { normalizeStoreManagerPortfolio } from "@/lib/utils/normalize-store-performance";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
   GetAnalyticsParams,
   StoreDetailAnalytics,
+  StoreManagerPortfolio,
 } from "@/types";
 
 export interface InitialStoreAnalyticsPayload {
@@ -29,6 +36,47 @@ export interface InitialAdminStoreDetailPayload {
   params: GetAnalyticsParams;
   data: StoreDetailAnalytics;
 }
+
+export interface InitialStoreOverviewBundlePayload {
+  params: GetAnalyticsParams;
+  bundle: StoreOverviewBundle;
+}
+
+export interface InitialStoreManagerPortfolioPayload {
+  params: GetAnalyticsParams;
+  data: StoreManagerPortfolio;
+}
+
+export const fetchInitialStoreManagerPortfolio = cache(
+  async (
+    overrides: GetAnalyticsParams = {},
+  ): Promise<InitialStoreManagerPortfolioPayload | null> => {
+    const session = await getServerSession();
+    if (!requireRole(session, ["STORE_MANAGER"])) return null;
+
+    const params: GetAnalyticsParams = {
+      ...DEFAULT_ANALYTICS_PARAMS,
+      ...overrides,
+    };
+    const period = params.period ?? "week";
+    try {
+      const data = normalizeStoreManagerPortfolio(
+        await getStoreManagerPortfolio(
+          session.email,
+          session.storeId,
+          period,
+        ),
+      );
+      return { params: { period }, data };
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialStoreManagerPortfolio failed", {
+        period,
+        error,
+      });
+      return null;
+    }
+  },
+);
 
 export const fetchInitialStoreAnalytics = cache(
   async (
@@ -76,9 +124,55 @@ export const fetchInitialAdminOverview = cache(
       ...overrides,
     };
     const period = params.period ?? "week";
-    const data = await getAdminDashboardOverview(period);
+    try {
+      const data = await getAdminDashboardOverview(period);
+      return { params: { period }, data };
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialAdminOverview failed", {
+        period,
+        error,
+      });
+      return null;
+    }
+  },
+);
 
-    return { params: { period }, data };
+export const fetchInitialStoreOverviewBundle = cache(
+  async (
+    overrides: GetAnalyticsParams = {},
+  ): Promise<InitialStoreOverviewBundlePayload | null> => {
+    const startedAt = Date.now();
+    const session = await getServerSession();
+    if (!requireRole(session, ["STORE_MANAGER"])) return null;
+
+    const params: GetAnalyticsParams = {
+      ...DEFAULT_ANALYTICS_PARAMS,
+      ...overrides,
+    };
+    const period = params.period ?? "week";
+    const storeId = await resolveManagerStoreId(
+      session.email,
+      session.storeId,
+      params.storeId,
+    );
+
+    try {
+      const bundle = await getStoreOverviewBundle(
+        session.email,
+        session.storeId,
+        storeId,
+        period,
+      );
+      return { params: { period, storeId }, bundle };
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialStoreOverviewBundle failed", {
+        period,
+        storeId,
+        elapsedMs: Date.now() - startedAt,
+        error,
+      });
+      return null;
+    }
   },
 );
 

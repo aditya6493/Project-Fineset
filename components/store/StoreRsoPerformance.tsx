@@ -16,6 +16,8 @@ interface StoreRsoPerformanceSectionProps {
   storeId: string;
   errorLabel?: string;
   retryLabel?: string;
+  initialData?: import("@/types").StoreRsoPerformance;
+  initialParams?: import("@/types").GetAnalyticsParams;
 }
 
 export function StoreRsoPerformanceSection({
@@ -26,11 +28,16 @@ export function StoreRsoPerformanceSection({
   storeId,
   errorLabel,
   retryLabel,
+  initialData,
+  initialParams,
 }: StoreRsoPerformanceSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreRsoPerformance({
-    period,
-    storeId: storeId || undefined,
-  });
+  const { data, isLoading, isError, refetch } = useStoreRsoPerformance(
+    {
+      period,
+      storeId: storeId || undefined,
+    },
+    { initialData, initialParams },
+  );
   const periodLabel = periodLabels[period];
   const title = copy.title.replace("{period}", periodLabel);
 

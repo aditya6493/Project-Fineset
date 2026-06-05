@@ -1,7 +1,18 @@
+import { logAuthEvent } from "@/lib/auth/audit";
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
+import {
+  findExistingStoreManagerByEmail,
+  listStoresLinkedToManagerEmail,
+} from "@/lib/services/manager-stores";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
+import {
+  mergeDeletedStoreWhere,
+  mergeStoreWhere,
+  purgeAtFromNow,
+  storeNotDeletedWhere,
+} from "@/lib/db/store-scope";
 import { StoreServiceError } from "@/lib/services/store-service-error";
 import {
   normalizeStoreManagerEmail,
@@ -27,23 +38,31 @@ export async function listStores(params: {
   pageSize: number;
   search?: string;
   activeOnly?: boolean;
+  includeDeleted?: boolean;
   period?: AnalyticsPeriodLabel;
 }) {
-  await ensureProductionStoreSchema();
   const period = params.period ?? "month";
   const { start, end } = getPeriodRange(period);
-  const where: Prisma.StoreWhereInput = {};
+  const filters: Prisma.StoreWhereInput = {};
 
   if (params.activeOnly) {
-    where.isActive = true;
+    filters.isActive = true;
   }
 
-  if (params.search) {
-    where.OR = [
-      { name: { contains: params.search, mode: "insensitive" } },
-      { city: { contains: params.search, mode: "insensitive" } },
+  if (params.search?.trim()) {
+    const term = params.search.trim();
+    filters.OR = [
+      { name: { contains: term, mode: "insensitive" } },
+      { city: { contains: term, mode: "insensitive" } },
+      { state: { contains: term, mode: "insensitive" } },
+      { email: { contains: term, mode: "insensitive" } },
+      { pocName: { contains: term, mode: "insensitive" } },
     ];
   }
+
+  const where = params.includeDeleted
+    ? mergeDeletedStoreWhere(filters)
+    : mergeStoreWhere(filters);
 
   // Run sequentially to avoid pool saturation on low connection limits.
   const stores = await prisma.store.findMany({
@@ -73,6 +92,8 @@ export async function listStores(params: {
       pointOfContactPhone: store.pointOfContactPhone,
       email: store.email,
       isActive: store.isActive,
+      deletedAt: store.deletedAt?.toISOString() ?? null,
+      purgeAt: store.purgeAt?.toISOString() ?? null,
       staffCount: store._count.staff,
       visits: store.visits.length,
       revenue: calculateTotalRevenue(store.visits),
@@ -91,6 +112,8 @@ export type CreateStoreResult = {
   manager?: {
     email: string;
     appUserId: string;
+    /** Store linked to an existing manager login; no new password was created. */
+    linkedExistingLogin?: boolean;
   };
 };
 
@@ -126,15 +149,24 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
     }
 
     let manager: CreateStoreResult["manager"];
-    if (password && managerEmail) {
-      const invited = await inviteUser({
-        name: storeFields.pocName?.trim() || store.name,
-        email: managerEmail,
-        password,
-        role: "STORE_MANAGER",
-        storeId: store.id,
-      });
-      manager = { email: invited.email, appUserId: invited.appUserId };
+    if (managerEmail) {
+      const existingManager = await findExistingStoreManagerByEmail(managerEmail);
+      if (existingManager) {
+        manager = {
+          email: existingManager.email,
+          appUserId: existingManager.id,
+          linkedExistingLogin: true,
+        };
+      } else if (password) {
+        const invited = await inviteUser({
+          name: storeFields.pocName?.trim() || store.name,
+          email: managerEmail,
+          password,
+          role: "STORE_MANAGER",
+          storeId: store.id,
+        });
+        manager = { email: invited.email, appUserId: invited.appUserId };
+      }
     }
 
     return { store: store!, manager };
@@ -154,8 +186,8 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
     input.category === "OTHER" ? input.customCategory?.trim() : undefined;
   const shouldClearCustomCategory = input.category && input.category !== "OTHER";
 
-  const existing = await prisma.store.findUnique({
-    where: { id: storeId },
+  const existing = await prisma.store.findFirst({
+    where: mergeStoreWhere({ id: storeId }),
     select: { name: true },
   });
   if (!existing) {
@@ -199,6 +231,13 @@ export async function updateStoreManagerPassword(storeId: string, password: stri
     throw new StoreServiceError(passwordCheck.error ?? "Invalid password", 400);
   }
 
+  const store = await prisma.store.findFirst({
+    where: mergeStoreWhere({ id: storeId }),
+  });
+  if (!store) {
+    throw new StoreServiceError("Store not found", 404);
+  }
+
   const manager = await prisma.appUser.findFirst({
     where: { storeId, role: "STORE_MANAGER" },
     orderBy: { createdAt: "asc" },
@@ -224,76 +263,330 @@ export async function updateStoreManagerPassword(storeId: string, password: stri
   return { appUserId: manager.id, email: manager.email };
 }
 
-export async function deleteStore(storeId: string) {
-  return prisma.store.delete({
-    where: { id: storeId },
+export type SoftDeleteStoreResult = {
+  id: string;
+  name: string;
+  deletedAt: string;
+  purgeAt: string;
+};
+
+export async function softDeleteStore(
+  storeId: string,
+  deletedByEmail: string,
+): Promise<SoftDeleteStoreResult> {
+  const store = await prisma.store.findFirst({
+    where: mergeStoreWhere({ id: storeId }),
+    include: {
+      appUsers: {
+        select: {
+          id: true,
+          authId: true,
+          email: true,
+          role: true,
+          storeId: true,
+          staffId: true,
+          name: true,
+          isActive: true,
+        },
+      },
+    },
   });
+
+  if (!store) {
+    throw new StoreServiceError("Store not found", 404);
+  }
+
+  const now = new Date();
+  const purgeAt = purgeAtFromNow(now);
+  const supabase = createAdminClient();
+
+  await prisma.$transaction([
+    prisma.store.update({
+      where: { id: storeId },
+      data: {
+        deletedAt: now,
+        purgeAt,
+        deletedByEmail: deletedByEmail.trim().toLowerCase(),
+        isActive: false,
+      },
+    }),
+    prisma.staff.updateMany({
+      where: { storeId },
+      data: { isActive: false },
+    }),
+    prisma.appUser.updateMany({
+      where: { storeId },
+      data: { isActive: false },
+    }),
+  ]);
+
+  for (const manager of store.appUsers) {
+    await supabase.auth.admin.updateUserById(manager.authId, {
+      app_metadata: {
+        role: manager.role,
+        storeId: manager.storeId,
+        staffId: manager.staffId,
+        appUserId: manager.id,
+        name: manager.name,
+        storeName: store.name,
+        employeeId: null,
+        isActive: false,
+      },
+    });
+  }
+
+  void logAuthEvent({
+    event: "STORE_SOFT_DELETED",
+    email: deletedByEmail,
+    metadata: {
+      storeId,
+      storeName: store.name,
+      purgeAt: purgeAt.toISOString(),
+      staffDeactivated: true,
+      managersDeactivated: store.appUsers.length,
+    },
+  });
+
+  return {
+    id: store.id,
+    name: store.name,
+    deletedAt: now.toISOString(),
+    purgeAt: purgeAt.toISOString(),
+  };
+}
+
+export async function restoreStore(storeId: string): Promise<Store> {
+  const store = await prisma.store.findFirst({
+    where: {
+      id: storeId,
+      deletedAt: { not: null },
+      purgeAt: { gt: new Date() },
+    },
+    include: {
+      appUsers: {
+        select: {
+          id: true,
+          authId: true,
+          email: true,
+          role: true,
+          storeId: true,
+          staffId: true,
+          name: true,
+        },
+      },
+    },
+  });
+
+  if (!store) {
+    throw new StoreServiceError(
+      "Store not found, not deleted, or past the 90-day recovery window",
+      404,
+    );
+  }
+
+  const supabase = createAdminClient();
+
+  const restored = await prisma.$transaction(async (tx) => {
+    const updated = await tx.store.update({
+      where: { id: storeId },
+      data: {
+        deletedAt: null,
+        purgeAt: null,
+        deletedByEmail: null,
+        isActive: true,
+      },
+    });
+    await tx.staff.updateMany({
+      where: { storeId },
+      data: { isActive: true },
+    });
+    await tx.appUser.updateMany({
+      where: { storeId },
+      data: { isActive: true },
+    });
+    return updated;
+  });
+
+  for (const manager of store.appUsers) {
+    await supabase.auth.admin.updateUserById(manager.authId, {
+      app_metadata: {
+        role: manager.role,
+        storeId: manager.storeId,
+        staffId: manager.staffId,
+        appUserId: manager.id,
+        name: manager.name,
+        storeName: store.name,
+        employeeId: null,
+        isActive: true,
+      },
+    });
+  }
+
+  void logAuthEvent({
+    event: "STORE_RESTORED",
+    email: store.deletedByEmail,
+    metadata: { storeId, storeName: store.name },
+  });
+
+  return restored;
 }
 
 export async function getStoreById(storeId: string) {
-  return prisma.store.findUnique({
-    where: { id: storeId },
+  return prisma.store.findFirst({
+    where: mergeStoreWhere({ id: storeId }),
     include: {
       _count: { select: { staff: true, visits: true, customers: true } },
     },
   });
 }
 
+export async function getManagerStorePerformanceRows(
+  email: string,
+  primaryStoreId: string,
+  period: AnalyticsPeriodLabel,
+): Promise<StorePerformanceRow[]> {
+  const allowed = await listStoresLinkedToManagerEmail(email, primaryStoreId);
+  const allowedIds = new Set(allowed.map((store) => store.id));
+  if (allowedIds.size === 0) return [];
+
+  return getStorePerformanceRows(period, [...allowedIds]);
+}
+
 export async function getStorePerformanceRows(
   period: AnalyticsPeriodLabel,
+  storeIds?: string[],
 ): Promise<StorePerformanceRow[]> {
   const { start, end } = getPeriodRange(period);
   const previousRange = getPreviousPeriodRange(period);
 
-  // Run sequentially to avoid pool saturation on low connection limits.
-  const stores = await prisma.store.findMany({
-    orderBy: { name: "asc" },
-    include: {
-      _count: { select: { staff: { where: { isActive: true } } } },
-      visits: {
-        where: { visitDate: { gte: start, lte: end } },
-        select: { purchaseStatus: true, transactionAmount: true },
+  const scopedStoreWhere: Prisma.StoreWhereInput = storeIds?.length
+    ? { ...storeNotDeletedWhere, id: { in: storeIds } }
+    : storeNotDeletedWhere;
+  const scopedVisitStore = { store: scopedStoreWhere };
+
+  const [
+    stores,
+    currentVisits,
+    previousVisits,
+    currentFieldSales,
+    previousFieldSales,
+    currentCallLogs,
+    previousCallLogs,
+  ] = await Promise.all([
+    prisma.store.findMany({
+      where: scopedStoreWhere,
+      orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        city: true,
+        state: true,
+        isActive: true,
+        pocName: true,
+        pointOfContactPhone: true,
+        _count: { select: { staff: { where: { isActive: true } } } },
       },
-    },
-  });
-  const previousPeriodVisits = await prisma.visit.findMany({
-    where: {
-      visitDate: { gte: previousRange.start, lte: previousRange.end },
-    },
-    select: {
-      storeId: true,
-      purchaseStatus: true,
-      transactionAmount: true,
-    },
-  });
+    }),
+    prisma.visit.findMany({
+      where: { visitDate: { gte: start, lte: end }, ...scopedVisitStore },
+      select: { storeId: true, purchaseStatus: true, transactionAmount: true },
+    }),
+    prisma.visit.findMany({
+      where: {
+        visitDate: { gte: previousRange.start, lte: previousRange.end },
+        ...scopedVisitStore,
+      },
+      select: { storeId: true, purchaseStatus: true, transactionAmount: true },
+    }),
+    prisma.fieldSale.findMany({
+      where: {
+        activityDate: { gte: start, lte: end },
+        ...scopedVisitStore,
+      },
+      select: { storeId: true },
+    }),
+    prisma.fieldSale.findMany({
+      where: {
+        activityDate: { gte: previousRange.start, lte: previousRange.end },
+        ...scopedVisitStore,
+      },
+      select: { storeId: true },
+    }),
+    prisma.staffCallLog.findMany({
+      where: {
+        createdAt: { gte: start, lte: end },
+        visit: scopedVisitStore,
+      },
+      select: { visit: { select: { storeId: true } } },
+    }),
+    prisma.staffCallLog.findMany({
+      where: {
+        createdAt: { gte: previousRange.start, lte: previousRange.end },
+        visit: scopedVisitStore,
+      },
+      select: { visit: { select: { storeId: true } } },
+    }),
+  ]);
 
-  const previousByStore = new Map<
-    string,
-    Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
-  >();
-  for (const visit of previousPeriodVisits) {
-    const bucket = previousByStore.get(visit.storeId) ?? [];
-    bucket.push(visit);
-    previousByStore.set(visit.storeId, bucket);
-  }
+  const bucketVisits = (
+    rows: Array<{
+      storeId: string;
+      purchaseStatus: PurchaseStatus;
+      transactionAmount: number | null;
+    }>,
+  ) => {
+    const map = new Map<
+      string,
+      Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
+    >();
+    for (const row of rows) {
+      const list = map.get(row.storeId) ?? [];
+      list.push(row);
+      map.set(row.storeId, list);
+    }
+    return map;
+  };
 
-  const previousVisitsMap = new Map<string, number>();
-  const previousRevenueMap = new Map<string, number>();
-  const previousConversionMap = new Map<string, number>();
+  const countByStoreId = (rows: Array<{ storeId: string }>) => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.storeId, (map.get(row.storeId) ?? 0) + 1);
+    }
+    return map;
+  };
 
-  for (const [storeId, prevVisits] of previousByStore) {
-    previousVisitsMap.set(storeId, prevVisits.length);
-    previousRevenueMap.set(storeId, calculateTotalRevenue(prevVisits));
-    previousConversionMap.set(storeId, calculateConversionRate(prevVisits));
-  }
+  const countCallsByStore = (
+    rows: Array<{ visit: { storeId: string } }>,
+  ) => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      const storeId = row.visit.storeId;
+      map.set(storeId, (map.get(storeId) ?? 0) + 1);
+    }
+    return map;
+  };
+
+  const currentByStore = bucketVisits(currentVisits);
+  const previousByStore = bucketVisits(previousVisits);
+  const currentFieldSalesByStore = countByStoreId(currentFieldSales);
+  const previousFieldSalesByStore = countByStoreId(previousFieldSales);
+  const currentCallsByStore = countCallsByStore(currentCallLogs);
+  const previousCallsByStore = countCallsByStore(previousCallLogs);
 
   return stores.map((store) => {
-    const visits = store.visits.length;
-    const revenue = calculateTotalRevenue(store.visits);
-    const conversionRate = calculateConversionRate(store.visits);
-    const previousVisits = previousVisitsMap.get(store.id) ?? 0;
-    const previousRevenue = previousRevenueMap.get(store.id) ?? 0;
-    const previousConversion = previousConversionMap.get(store.id) ?? 0;
+    const current = currentByStore.get(store.id) ?? [];
+    const previous = previousByStore.get(store.id) ?? [];
+    const visits = current.length;
+    const revenue = calculateTotalRevenue(current);
+    const conversionRate = calculateConversionRate(current);
+    const previousVisits = previous.length;
+    const previousRevenue = calculateTotalRevenue(previous);
+    const previousConversion = calculateConversionRate(previous);
+    const fieldSales = currentFieldSalesByStore.get(store.id) ?? 0;
+    const previousFieldSales = previousFieldSalesByStore.get(store.id) ?? 0;
+    const userCalls = currentCallsByStore.get(store.id) ?? 0;
+    const previousUserCalls = previousCallsByStore.get(store.id) ?? 0;
 
     return {
       storeId: store.id,
@@ -302,20 +595,22 @@ export async function getStorePerformanceRows(
       city: store.city,
       state: store.state,
       isActive: store.isActive,
+      pocName: store.pocName,
+      pointOfContactPhone: store.pointOfContactPhone,
       visits,
       revenue,
       conversionRate,
       staffCount: store._count.staff,
+      fieldSales,
+      userCalls,
       deltas: {
         visits: calculateDelta(visits, previousVisits),
         revenue: calculateDelta(revenue, previousRevenue),
         conversionRate: calculateDelta(conversionRate, previousConversion),
+        fieldSales: calculateDelta(fieldSales, previousFieldSales),
+        userCalls: calculateDelta(userCalls, previousUserCalls),
       },
     };
   });
 }
 
-/** @deprecated Use getStorePerformanceRows instead */
-export async function getStoreRankings(period: AnalyticsPeriodLabel = "month") {
-  return getStorePerformanceRows(period);
-}

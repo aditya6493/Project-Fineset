@@ -237,9 +237,26 @@ function countFilters(
   };
 }
 
-async function fetchPortalVisits(storeId?: string) {
+function portalPeriodRange(year: number, month: number): { start: Date; end: Date } {
+  const start = new Date(year, month - 1, 1);
+  const end = new Date(year, month, 0, 23, 59, 59, 999);
+  return { start, end };
+}
+
+export function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.VisitWhereInput {
+  const { start, end } = portalPeriodRange(params.year, params.month);
+  const where: Prisma.VisitWhereInput = {
+    visitDate: { gte: start, lte: end },
+  };
+  if (params.storeId) where.storeId = params.storeId;
+  if (params.staffId) where.staffId = params.staffId;
+  if (params.intentTier) where.intentTier = params.intentTier;
+  return where;
+}
+
+async function fetchPortalVisitsForPeriod(params: ListPortalCallsParams) {
   return prisma.visit.findMany({
-    where: storeId ? { storeId } : undefined,
+    where: buildPortalVisitsWhere(params),
     orderBy: { visitDate: "desc" },
     select: portalVisitListSelect(),
   });
@@ -248,7 +265,7 @@ async function fetchPortalVisits(storeId?: string) {
 export async function listPortalCalls(
   params: ListPortalCallsParams,
 ): Promise<PortalCallListResponse> {
-  const visits = await fetchPortalVisits(params.storeId);
+  const visits = await fetchPortalVisitsForPeriod(params);
 
   const filtered = visits.filter(
     (visit) =>

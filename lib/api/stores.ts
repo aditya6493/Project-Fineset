@@ -16,6 +16,8 @@ interface StoreListItem {
   pointOfContactPhone: string | null;
   email: string | null;
   isActive: boolean;
+  deletedAt?: string | null;
+  purgeAt?: string | null;
   staffCount: number;
   visits: number;
   revenue: number;
@@ -28,6 +30,7 @@ interface GetStoresParams {
   pageSize?: number;
   search?: string;
   activeOnly?: boolean;
+  includeDeleted?: boolean;
 }
 
 export async function getStores(
@@ -35,6 +38,15 @@ export async function getStores(
 ): Promise<PaginatedResponse<StoreListItem>> {
   const qs = buildQueryString(params);
   return apiFetch<PaginatedResponse<StoreListItem>>(`/api/stores${qs}`);
+}
+
+export async function getManagerLoginStatus(
+  email: string,
+): Promise<{ hasExistingLogin: boolean }> {
+  const qs = buildQueryString({ email: email.trim().toLowerCase() });
+  return apiFetch<{ hasExistingLogin: boolean }>(
+    `/api/stores/manager-login-status${qs}`,
+  );
 }
 
 export async function createStore(payload: CreateStoreInput): Promise<CreateStoreResult> {
@@ -54,13 +66,31 @@ export async function updateStore(
   });
 }
 
-export async function getStoreById(storeId: string): Promise<Store> {
-  return apiFetch<Store>(`/api/stores/${storeId}`);
+export interface SoftDeleteStorePayload {
+  password: string;
+  storeNameConfirm: string;
 }
 
-export async function deleteStore(storeId: string): Promise<Store> {
-  return apiFetch<Store>(`/api/stores/${storeId}`, {
+export interface SoftDeleteStoreResponse {
+  id: string;
+  name: string;
+  deletedAt: string;
+  purgeAt: string;
+}
+
+export async function deleteStore(
+  storeId: string,
+  payload: SoftDeleteStorePayload,
+): Promise<SoftDeleteStoreResponse> {
+  return apiFetch<SoftDeleteStoreResponse>(`/api/stores/${storeId}`, {
     method: "DELETE",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function restoreStore(storeId: string): Promise<Store> {
+  return apiFetch<Store>(`/api/stores/${storeId}/restore`, {
+    method: "POST",
   });
 }
 

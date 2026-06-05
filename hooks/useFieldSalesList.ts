@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { getFieldSalesList } from "@/lib/api/field-sales";
 import { fieldSalesParamsMatch } from "@/lib/query/initial-data";
 import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
@@ -22,6 +22,7 @@ export function useFieldSalesList(
     queryKey: ["field-sales", "list", params],
     queryFn: () => getFieldSalesList(params),
     initialData: useInitialData ? options.initialData : undefined,
+    placeholderData: keepPreviousData,
     ...LIVE_QUERY_OPTIONS,
     ...queryOptionsForHydration(Boolean(useInitialData)),
   });

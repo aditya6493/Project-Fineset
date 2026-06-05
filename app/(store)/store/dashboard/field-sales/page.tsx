@@ -1,5 +1,4 @@
-import { content } from "@/content/en";
-import { PortalFieldSalesLog } from "@/components/portal/PortalFieldSalesLog";
+import { StoreFieldSalesPageClient } from "@/components/store/StoreFieldSalesPageClient";
 import { fetchInitialFieldSales } from "@/lib/data/field-sales";
 import { parseFieldSalesSearchParams } from "@/lib/utils/field-sales-url";
 
@@ -7,25 +6,27 @@ interface StoreFieldSalesPageProps {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }
 
-export default async function StoreFieldSalesPage({ searchParams }: StoreFieldSalesPageProps) {
-  const urlFilters = parseFieldSalesSearchParams(await searchParams);
+export default async function StoreFieldSalesPage({
+  searchParams,
+}: StoreFieldSalesPageProps) {
+  const resolved = await searchParams;
+  const urlFilters = parseFieldSalesSearchParams(resolved);
+  const storeId =
+    typeof resolved.storeId === "string" ? resolved.storeId : undefined;
+
   let initial: Awaited<ReturnType<typeof fetchInitialFieldSales>> = null;
   try {
-    initial = await fetchInitialFieldSales(undefined, urlFilters);
+    initial = await fetchInitialFieldSales(storeId, urlFilters);
   } catch (error) {
     console.error("[store-field-sales] initial field sales failed", {
-      urlFilters,
+      storeId,
       error,
     });
   }
 
   return (
-    <PortalFieldSalesLog
-      copy={content.portal.fieldSales}
-      common={content.common}
-      emptyMessage={content.empty.fieldSales}
-      allStoresLabel={content.portal.allStores}
-      allStaffLabel={content.portal.allStaff}
+    <StoreFieldSalesPageClient
+      urlStoreId={storeId}
       initialFieldSales={initial?.data}
       initialFieldSalesParams={initial?.params}
     />

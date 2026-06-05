@@ -59,7 +59,12 @@ export function PortalShell({
     if (href === "/staff/dashboard") {
       return pathname === href;
     }
-    if (href === "/store/dashboard" || href === "/admin/dashboard") {
+    if (href === "/store/dashboard") {
+      return (
+        pathname === href || pathname.startsWith("/store/dashboard/stores/")
+      );
+    }
+    if (href === "/admin/dashboard") {
       return pathname === href;
     }
     return pathname.startsWith(href);

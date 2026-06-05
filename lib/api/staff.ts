@@ -23,8 +23,9 @@ interface StaffListItem {
   openFollowUps: number;
 }
 
-export async function getStaff(): Promise<StaffListItem[]> {
-  return apiFetch<StaffListItem[]>("/api/staff");
+export async function getStaff(storeId?: string): Promise<StaffListItem[]> {
+  const qs = storeId ? `?storeId=${encodeURIComponent(storeId)}` : "";
+  return apiFetch<StaffListItem[]>(`/api/staff${qs}`);
 }
 
 export async function createStaff(

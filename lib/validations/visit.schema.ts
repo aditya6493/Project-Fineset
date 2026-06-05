@@ -158,6 +158,13 @@ export const createVisitSchema = z
     refineSchemeFields(data, ctx);
   });
 
+function optionalQueryEnum<T extends z.ZodType<string>>(schema: T) {
+  return z.preprocess(
+    (v) => (typeof v === "string" && v.length === 0 ? undefined : v),
+    schema.optional(),
+  );
+}
+
 export const getVisitsQuerySchema = paginationQuerySchema.extend({
   search: z.string().optional(),
   startDate: z.coerce.date().optional(),
@@ -171,6 +178,14 @@ export const getVisitsQuerySchema = paginationQuerySchema.extend({
     .enum(["true", "false"])
     .optional()
     .transform((v) => v === "true"),
+  staffId: z.preprocess(
+    (v) => (typeof v === "string" && v.length === 0 ? undefined : v),
+    z.string().optional(),
+  ),
+  purchaseStatus: optionalQueryEnum(purchaseStatusSchema),
+  visitType: optionalQueryEnum(visitTypeSchema),
+  customerType: optionalQueryEnum(customerTypeSchema),
+  sourceChannel: optionalQueryEnum(sourceChannelSchema),
 });
 
 export type CreateVisitInput = z.infer<typeof createVisitSchema>;

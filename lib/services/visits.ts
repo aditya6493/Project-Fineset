@@ -1,11 +1,11 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CreateVisitInput } from "@/lib/validations/visit.schema";
 import type { VisitListItem } from "@/types";
-import type { Prisma, Visit } from "@prisma/client";
+import type { Prisma, SourceChannel, Visit } from "@prisma/client";
+import { buildVisitSearchWhere } from "@/lib/services/customer-search";
 import {
   decryptCustomerFields,
   decryptVisitPii,
-  hashPhone,
   prepareCustomerPii,
 } from "@/lib/services/pii";
 import { calculateDurationMins } from "@/lib/utils/formatters";
@@ -49,7 +49,11 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         },
       },
       create: {
-        ...customerPii,
+        name: customerPii.name,
+        phone: customerPii.phone,
+        phoneHash: customerPii.phoneHash,
+        nameSearch: customerPii.nameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -60,6 +64,8 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
       update: {
         name: customerPii.name,
         phone: customerPii.phone,
+        nameSearch: customerPii.nameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -80,6 +86,8 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         customerName: customerPii.name,
         customerPhone: customerPii.phone,
         customerPhoneHash: customerPii.phoneHash,
+        customerNameSearch: customerPii.customerNameSearch,
+        phoneLast4: customerPii.phoneLast4,
         area,
         gender,
         ageGroup,
@@ -126,6 +134,11 @@ interface ListVisitsParams {
   sortBy: string;
   sortOrder: "asc" | "desc";
   followUpOnly?: boolean;
+  staffId?: string;
+  purchaseStatus?: "PURCHASED" | "NOT_PURCHASED";
+  visitType?: "WALK_IN" | "APPOINTMENT";
+  customerType?: "NEW" | "REPEAT" | "VIP";
+  sourceChannel?: SourceChannel;
 }
 
 export async function listVisits(
@@ -147,24 +160,32 @@ export async function listVisits(
     where.followUpNeeded = true;
   }
 
-  if (params.search) {
-    const normalizedPhone = params.search.replace(/\D/g, "");
-    const searchConditions: Prisma.VisitWhereInput[] = [
-      { staff: { name: { contains: params.search, mode: "insensitive" } } },
-    ];
-
-    if (normalizedPhone.length === 10) {
-      searchConditions.push({
-        customerPhoneHash: hashPhone(normalizedPhone),
-      });
-    }
-
-    searchConditions.push({
-      customerName: { contains: params.search, mode: "insensitive" },
-    });
-
-    where.OR = searchConditions;
+  if (params.staffId) {
+    where.staffId = params.staffId;
   }
+
+  if (params.purchaseStatus) {
+    where.purchaseStatus = params.purchaseStatus;
+  }
+
+  if (params.visitType) {
+    where.visitType = params.visitType;
+  }
+
+  if (params.customerType) {
+    where.customerType = params.customerType;
+  }
+
+  if (params.sourceChannel) {
+    where.sourceChannel = params.sourceChannel;
+  }
+
+  const searchWhere = params.search
+    ? buildVisitSearchWhere(params.search)
+    : null;
+  const visitWhere: Prisma.VisitWhereInput = searchWhere
+    ? { AND: [where, searchWhere] }
+    : where;
 
   const orderBy: Prisma.VisitOrderByWithRelationInput = {
     [params.sortBy]: params.sortOrder,
@@ -172,7 +193,7 @@ export async function listVisits(
 
   const [visits, total] = await Promise.all([
     prisma.visit.findMany({
-      where,
+      where: visitWhere,
       orderBy,
       skip: (params.page - 1) * params.pageSize,
       take: params.pageSize,
@@ -182,13 +203,14 @@ export async function listVisits(
         followUp: { select: { status: true } },
       },
     }),
-    prisma.visit.count({ where }),
+    prisma.visit.count({ where: visitWhere }),
   ]);
 
   const data: VisitListItem[] = visits.map((visit) => {
     const decrypted = decryptVisitPii(visit);
     return {
       id: visit.id,
+      customerId: visit.customerId,
       visitDate: visit.visitDate.toISOString(),
       inTime: visit.inTime?.toISOString() ?? null,
       outTime: visit.outTime?.toISOString() ?? null,

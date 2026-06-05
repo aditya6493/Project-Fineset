@@ -573,6 +573,35 @@ export const content = {
       placeholder: "Select store",
       loading: "Loading stores…",
     },
+    portfolio: {
+      title: "Your Stores",
+      subtitle:
+        "Each store is tracked separately. Select a store to open its dashboard, visits, calls, and staff.",
+      viewDetails: "Open store dashboard",
+      emptyStores: "No stores are linked to your account yet.",
+      selectStorePrompt:
+        "Choose a store from the portfolio overview before viewing this section.",
+      backToStores: "View all stores",
+      active: "Active",
+      inactive: "Inactive",
+      staffCount: "Staff",
+      fieldSales: "Field sales",
+      userCalls: "User calls",
+      pocName: "Store POC",
+      pocPhone: "POC phone",
+      notAvailable: "—",
+    },
+    storeDetail: {
+      backToPortfolio: "All stores",
+      titleFallback: "Store dashboard",
+      locationHint: "Store location on file",
+      viewOverview: "Overview",
+      storeSectionNavLabel: "Store sections",
+      viewVisits: "Visits log",
+      viewCalls: "Call users",
+      viewFieldSales: "Field sales",
+      viewStaff: "Staff",
+    },
     businessOverview: {
       title: "Business Overview ({period})",
       subtitle:
@@ -798,11 +827,14 @@ export const content = {
     },
     visits: {
       title: "Visits Log",
+      searchPlaceholder: "Customer name, phone, or staff name",
       filters: {
         all: "All Visits",
         followUpOnly: "Follow-up Only",
         startDate: "From Date",
         endDate: "To Date",
+        columnAll: "All",
+        clearColumnFilters: "Clear column filters",
       },
       columns: {
         visitId: "Visit ID",
@@ -852,6 +884,44 @@ export const content = {
         preferences: "Preferences & Schemes",
         followUp: "Follow-up",
       },
+      customerProfile: {
+        title: "Customer Profile",
+        subtitle: "Timeline, interests, and behaviour across every touchpoint",
+        phone: "Phone",
+        area: "Area",
+        demographics: "Demographics",
+        memberSince: "Customer since",
+        lastSeen: "Last seen",
+        ghsEnrolled: "GHS enrolled",
+        taggedAtVisit: "Tagged at latest visit",
+        visitsOnRecord: "{count} visits on record",
+        loadError: "Could not load customer profile. Try again.",
+        interestsTitle: "Interests & preferences",
+        insightsTitle: "Behaviour insights",
+        timelineTitle: "Customer journey",
+        timelineEmpty: "No activity recorded yet for this customer.",
+        viewVisit: "View visit",
+        stats: {
+          visits: "Store visits",
+          revenue: "Lifetime revenue",
+          conversion: "Conversion",
+          fieldSales: "Field activities",
+        },
+        interests: {
+          explored: "Products explored",
+          purchased: "Products purchased",
+          metal: "Metal / KT preference",
+          occasions: "Purchase occasions",
+          intent: "Intent signals",
+          sources: "How they found you",
+        },
+        insights: {
+          staff: "Staff relationships",
+          interactions: "touchpoints",
+          competitors: "Competitor mentions",
+          noPurchase: "Reasons for no purchase",
+        },
+      },
     },
     staff: {
       title: "Staff Management",
@@ -872,11 +942,13 @@ export const content = {
       },
       actions: {
         menu: "Staff actions",
+        edit: "Edit staff details",
         markActive: "Mark as active",
         markInactive: "Mark as inactive",
         delete: "Delete staff",
         deleteBlocked: "Cannot delete staff with logged visits or follow-ups",
       },
+      updated: "Staff details updated",
       deleteConfirm: {
         title: "Delete staff member?",
         description:
@@ -896,6 +968,10 @@ export const content = {
         suggestPassword: "Suggest password",
         passwordHint:
           "Stored securely in auth. Staff sign in at the home page with their work email and this password.",
+      },
+      editModal: {
+        title: "Edit staff details",
+        save: "Save changes",
       },
       active: "Active",
       inactive: "Inactive",
@@ -1048,9 +1124,15 @@ export const content = {
       conversionRate: "Conversion Rate",
       activeStores: "Active Stores",
       totalStaff: "Staff",
+      fieldSales: "Field sales",
+      userCalls: "User calls",
+      pocName: "Store POC",
+      pocPhone: "POC phone",
+      notAvailable: "—",
     },
     stores: {
       title: "Stores Management",
+      searchPlaceholder: "Store name or city",
       addStore: "Add Store",
       columns: {
         name: "Store Name",
@@ -1069,8 +1151,10 @@ export const content = {
         makeInactive: "Make inactive",
         makeActive: "Make active",
         updatePassword: "Update password",
+        restore: "Restore store",
         delete: "Delete store",
       },
+      showDeleted: "Show deleted stores (restore window)",
       inactiveConfirm: {
         title: "Make store inactive?",
         description:
@@ -1087,12 +1171,20 @@ export const content = {
       deleteConfirm: {
         title: "Delete store?",
         description:
-          "This permanently removes {name} and all related data. This cannot be undone.",
-        confirm: "Delete",
+          "{name} will be removed from the admin list immediately. Store managers, staff, visits, and customers stay in the database for 90 days so you can restore the store if needed.",
+        confirm: "Delete store",
         cancel: "Cancel",
+        adminPasswordLabel: "Your admin password",
+        adminPasswordPlaceholder: "Enter your password",
+        storeNameLabel: "Type store name to confirm",
+        storeNamePlaceholder: "Exact store name",
+        storeNameMismatch: "Store name does not match.",
+        wrongPassword: "Incorrect admin password.",
+        graceNote:
+          "Recovery window: 90 days. Contact support or use restore API before permanent purge.",
       },
       deleteBlocked:
-        "Cannot delete a store that still has staff, visits, or customers. Remove or reassign data first.",
+        "Could not delete this store. Try again or deactivate the store instead.",
       passwordModal: {
         title: "Update store password",
         description:
@@ -1102,7 +1194,8 @@ export const content = {
       },
       passwordUpdated: "Store manager password updated",
       statusUpdated: "Store status updated",
-      deleted: "Store deleted",
+      deleted: "Store removed (recoverable for 90 days)",
+      restored: "Store restored",
       updated: "Store updated",
       modal: {
         title: "Add Store",
@@ -1128,6 +1221,10 @@ export const content = {
         suggestPassword: "Suggest password",
         passwordHint:
           "Manager signs in at the home page with the store email and this password. Requires store email.",
+        existingManagerHint:
+          "This email already has a manager login. The new store will appear in their store list — no new password needed.",
+        linkedExistingManagerDescription:
+          "Store added. The manager can sign in with their existing password and switch stores from the overview dropdown.",
         createSuccessTitle: "Store created",
         createSuccessDescription:
           "Share these login details with the store manager. They sign in at the store portal.",

@@ -24,6 +24,9 @@ export function queryOptionsForHydration(isHydrated: boolean) {
   return isHydrated ? SSR_HYDRATED_QUERY_OPTIONS : {};
 }
 
+/** Coalesce rapid SSE entity invalidations before refetching React Query caches. */
+export const SSE_INVALIDATION_DEBOUNCE_MS = 750;
+
 /** SSE heartbeat interval (ms). */
 export const SSE_HEARTBEAT_MS = 30_000;
 

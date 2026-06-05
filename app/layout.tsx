@@ -3,6 +3,8 @@ import { SerwistProvider } from "@serwist/turbopack/react";
 import { Inter, Playfair_Display } from "next/font/google";
 import { InstallPrompt } from "@/components/pwa/InstallPrompt";
 import { PwaAssetRefresh } from "@/components/pwa/PwaAssetRefresh";
+import { PwaLoadingShell } from "@/components/pwa/PwaLoadingShell";
+import { PwaServiceWorkerUpdate } from "@/components/pwa/PwaServiceWorkerUpdate";
 import { Providers } from "@/components/providers";
 import { PWA_ASSET_VERSION, PWA_CONFIG } from "@/lib/pwa/config";
 import "@/styles/globals.css";
@@ -92,7 +94,10 @@ export default function RootLayout({
         <SerwistProvider swUrl="/serwist/sw.js">
           <Providers>
             <PwaAssetRefresh />
-            {children}
+            <PwaLoadingShell>
+              {children}
+            </PwaLoadingShell>
+            <PwaServiceWorkerUpdate />
             <InstallPrompt />
           </Providers>
         </SerwistProvider>

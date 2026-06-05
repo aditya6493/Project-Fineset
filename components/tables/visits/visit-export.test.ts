@@ -59,6 +59,7 @@ const fieldLabels = {
 
 const visit = {
   id: "visit-1",
+  customerId: "cust-1",
   visitDate: "2026-05-01T10:00:00.000Z",
   inTime: null,
   outTime: null,

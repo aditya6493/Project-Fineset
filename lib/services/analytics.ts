@@ -1,8 +1,10 @@
+import { mergeStoreWhere, storeNotDeletedWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
   StoreDetailAnalytics,
+  StoreManagerPortfolio,
 } from "@/types";
 import type { AnalyticsPeriod } from "@/types";
 import type { PurchaseStatus, SourceChannel } from "@prisma/client";
@@ -15,7 +17,7 @@ import {
   getPeriodRange,
   getPreviousPeriodRange,
 } from "@/lib/utils/analytics";
-import { getStorePerformanceRows } from "./stores";
+import { getManagerStorePerformanceRows, getStorePerformanceRows } from "./stores";
 
 const visitAnalyticsSelect = {
   visitDate: true,
@@ -129,13 +131,28 @@ export async function getStoreAnalytics(
   };
 }
 
+export async function getStoreManagerPortfolio(
+  email: string,
+  primaryStoreId: string,
+  period: AnalyticsPeriod["label"],
+): Promise<StoreManagerPortfolio> {
+  const stores = await getManagerStorePerformanceRows(
+    email,
+    primaryStoreId,
+    period,
+  );
+  return { period, stores };
+}
+
 export async function getAdminDashboardOverview(
   period: AnalyticsPeriod["label"],
 ): Promise<AdminDashboardOverview> {
   const startedAt = Date.now();
   try {
-    const totalStores = await prisma.store.count();
-    const activeStores = await prisma.store.count({ where: { isActive: true } });
+    const totalStores = await prisma.store.count({ where: storeNotDeletedWhere });
+    const activeStores = await prisma.store.count({
+      where: mergeStoreWhere({ isActive: true }),
+    });
     const stores = await getStorePerformanceRows(period);
 
     return {
@@ -158,8 +175,8 @@ export async function getAdminStoreDetailAnalytics(
   storeId: string,
   period: AnalyticsPeriod["label"],
 ): Promise<StoreDetailAnalytics> {
-  const store = await prisma.store.findUnique({
-    where: { id: storeId },
+  const store = await prisma.store.findFirst({
+    where: mergeStoreWhere({ id: storeId }),
     select: {
       id: true,
       name: true,
@@ -229,6 +246,8 @@ export async function getAdminStoreDetailAnalytics(
 }
 
 export async function assertStoreExists(storeId: string): Promise<boolean> {
-  const count = await prisma.store.count({ where: { id: storeId } });
+  const count = await prisma.store.count({
+    where: mergeStoreWhere({ id: storeId }),
+  });
   return count > 0;
 }

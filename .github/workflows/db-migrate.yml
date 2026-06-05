@@ -4,6 +4,7 @@ on:
   push:
     branches: [main]
     paths:
+      - ".github/workflows/db-migrate.yml"
       - "prisma/migrations/**"
       - "prisma/schema.prisma"
   workflow_dispatch:
@@ -15,10 +16,30 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
-          cache: npm
-      - run: npm ci
-      - run: npx prisma migrate deploy
+          node-version: "22"
+      - run: npm ci --ignore-scripts
+      - run: npx prisma generate
+
+      - name: Resolve database URLs for migrate deploy
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "::error::Add GitHub repo secret DATABASE_URL (Supabase pooler :6543)."
+            exit 1
+          fi
+          if [ -n "$DIRECT_URL" ]; then
+            resolved_direct="$DIRECT_URL"
+          else
+            resolved_direct=$(printf '%s' "$DATABASE_URL" | sed \
+              -e 's/:6543/:5432/' \
+              -e 's/[?&]pgbouncer=true[^&]*//g' \
+              -e 's/[?&]connection_limit=[0-9]*//g' \
+              -e 's/?$//')
+            echo "::warning::DIRECT_URL secret not set; using session pooler derived from DATABASE_URL."
+          fi
+          echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
+          echo "DIRECT_URL=$resolved_direct" >> "$GITHUB_ENV"
+
+      - run: npx prisma migrate deploy

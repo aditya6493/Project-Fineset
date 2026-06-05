@@ -78,11 +78,14 @@ const attemptChartConfig = {
 
 type SegmentChartKind = "customerType" | "purchaseStatus" | "valueTier" | "intent";
 
-function useCallLogNavigation(periodRange: StoreCallAnalytics["periodRange"]) {
+function useCallLogNavigation(
+  periodRange: StoreCallAnalytics["periodRange"],
+  storeId: string,
+) {
   const router = useRouter();
   const base = useMemo(
-    () => periodRangeToCallLogMonth(periodRange),
-    [periodRange],
+    () => ({ ...periodRangeToCallLogMonth(periodRange), storeId }),
+    [periodRange, storeId],
   );
 
   const navigate = useCallback(
@@ -122,6 +125,8 @@ interface StoreCallsOverviewSectionProps {
   periodLabel: string;
   deltaPeriod: string;
   storeId: string;
+  initialData?: import("@/types").StoreCallAnalytics;
+  initialParams?: import("@/types").GetAnalyticsParams;
 }
 
 export function StoreCallsOverviewSection({
@@ -130,11 +135,16 @@ export function StoreCallsOverviewSection({
   periodLabel,
   deltaPeriod,
   storeId,
+  initialData,
+  initialParams,
 }: StoreCallsOverviewSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreCallAnalytics({
-    period,
-    storeId: storeId || undefined,
-  });
+  const { data, isLoading, isError, refetch } = useStoreCallAnalytics(
+    {
+      period,
+      storeId: storeId || undefined,
+    },
+    { initialData, initialParams },
+  );
   const title = copy.title.replace("{period}", periodLabel);
 
   return (
@@ -153,6 +163,7 @@ export function StoreCallsOverviewSection({
           <StoreCallsOverviewContent
             copy={copy}
             data={data}
+            storeId={storeId}
             deltaPeriod={deltaPeriod}
             periodLabel={periodLabel}
           />
@@ -165,16 +176,18 @@ export function StoreCallsOverviewSection({
 function StoreCallsOverviewContent({
   copy,
   data,
+  storeId,
   deltaPeriod,
   periodLabel,
 }: {
   copy: CallsOverviewCopy;
   data: StoreCallAnalytics;
+  storeId: string;
   deltaPeriod: string;
   periodLabel: string;
 }) {
   const { summary, deltas } = data;
-  const { navigate, href } = useCallLogNavigation(data.periodRange);
+  const { navigate, href } = useCallLogNavigation(data.periodRange, storeId);
   const allCallsHref = href({});
 
   return (

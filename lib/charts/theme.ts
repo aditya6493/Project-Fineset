@@ -31,9 +31,6 @@ export const CHART_SERIES_COLORS = [
   "var(--chart-series-8)",
 ] as const;
 
-/** @deprecated Use CHART_SERIES_COLORS */
-export const COHORT_CHART_COLORS = CHART_SERIES_COLORS;
-
 export function getChartSeriesColor(index: number): string {
   return CHART_SERIES_COLORS[index % CHART_SERIES_COLORS.length]!;
 }

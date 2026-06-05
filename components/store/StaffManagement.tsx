@@ -1,10 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, MoreHorizontal, Sparkles } from "lucide-react";
-import { createStaffSchema, type CreateStaffInput } from "@/lib/validations/staff.schema";
+import { ArrowLeft, Eye, EyeOff, MoreHorizontal, Sparkles } from "lucide-react";
+import {
+  createStaffSchema,
+  editStaffSchema,
+  type CreateStaffInput,
+  type EditStaffInput,
+} from "@/lib/validations/staff.schema";
 import { generateSecurePassword } from "@/lib/auth/generate-password";
 import {
   useCreateStaff,
@@ -50,23 +56,31 @@ type StaffListItem = NonNullable<StaffManagementProps["initialStaff"]>[number];
 
 interface StaffManagementProps {
   store: StoreContent;
+  storeId: string;
   emptyMessage: string;
   errors: ErrorsContent;
   initialStaff?: Awaited<ReturnType<typeof import("@/lib/api/staff").getStaff>>;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function StaffManagement({
   store,
+  storeId,
   emptyMessage,
   errors,
   initialStaff,
+  backHref,
+  backLabel,
 }: StaffManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [staffToDelete, setStaffToDelete] = useState<StaffListItem | null>(null);
+  const [staffToEdit, setStaffToEdit] = useState<StaffListItem | null>(null);
+  const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
-  const { data, isLoading } = useStoreStaff({ initialData: initialStaff });
+  const { data, isLoading } = useStoreStaff(storeId, { initialData: initialStaff });
   const createStaffMutation = useCreateStaff();
   const updateStaffMutation = useUpdateStaff();
   const deleteStaffMutation = useDeleteStaff();
@@ -77,6 +91,11 @@ export function StaffManagement({
   const form = useForm<CreateStaffInput>({
     resolver: zodResolver(createStaffSchema),
     defaultValues: { name: "", email: "", employeeId: "", password: "" },
+  });
+
+  const editForm = useForm<EditStaffInput>({
+    resolver: zodResolver(editStaffSchema),
+    defaultValues: { name: "", email: "", employeeId: "" },
   });
 
   function handleSuggestPassword() {
@@ -98,7 +117,7 @@ export function StaffManagement({
     }
   }
 
-  function staffCreateErrorMessage(error: unknown): string {
+  function staffMutationErrorMessage(error: unknown, fallbackConflict: string): string {
     if (error instanceof ApiError) {
       const message = error.body.message?.trim();
       if (message && message !== "Request failed") return message;
@@ -116,13 +135,58 @@ export function StaffManagement({
         return "Your session expired. Sign out and sign in again.";
       }
       if (error.status === 409) {
-        return message || "This email or employee ID is already in use.";
+        return message || fallbackConflict;
+      }
+      if (error.status === 502) {
+        return message || "Could not update staff login. Try again in a few minutes.";
       }
     }
     if (error instanceof Error && /failed to fetch|network/i.test(error.message)) {
       return "Cannot reach the server. Check your internet connection and try again.";
     }
     return errors.generic;
+  }
+
+  function openEditDialog(member: StaffListItem) {
+    setEditSubmitError(null);
+    setStaffToEdit(member);
+    editForm.reset({
+      name: member.name,
+      email: member.email ?? "",
+      employeeId: member.employeeId,
+    });
+  }
+
+  function handleEditModalChange(open: boolean) {
+    if (!open) {
+      setStaffToEdit(null);
+      setEditSubmitError(null);
+      editForm.reset({ name: "", email: "", employeeId: "" });
+    }
+  }
+
+  async function onEditSubmit(values: EditStaffInput) {
+    if (!staffToEdit) return;
+
+    setEditSubmitError(null);
+    try {
+      await updateStaffMutation.mutateAsync({
+        staffId: staffToEdit.id,
+        payload: values,
+      });
+      toast({
+        title: store.staff.updated,
+        description: staffToEdit.name,
+      });
+      setStaffToEdit(null);
+    } catch (error) {
+      const message = staffMutationErrorMessage(
+        error,
+        "This email or employee ID is already in use.",
+      );
+      setEditSubmitError(message);
+      toast({ title: message });
+    }
   }
 
   function onInvalid() {
@@ -143,7 +207,10 @@ export function StaffManagement({
       setShowPassword(false);
       setModalOpen(false);
     } catch (error) {
-      const message = staffCreateErrorMessage(error);
+      const message = staffMutationErrorMessage(
+        error,
+        "This email or employee ID is already in use.",
+      );
       setSubmitError(message);
       toast({ title: message });
     }
@@ -191,9 +258,21 @@ export function StaffManagement({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">
-          {store.staff.title}
-        </h1>
+        <div className="min-w-0">
+          {backHref ? (
+            <Link
+              href={backHref}
+              prefetch={false}
+              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              {backLabel ?? store.storeDetail.backToPortfolio}
+            </Link>
+          ) : null}
+          <h1 className="font-display text-2xl font-bold text-text-primary">
+            {store.staff.title}
+          </h1>
+        </div>
         <Button type="button" onClick={() => setModalOpen(true)}>
           {store.staff.addStaff}
         </Button>
@@ -261,6 +340,13 @@ export function StaffManagement({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            disabled={isMutating}
+                            onSelect={() => openEditDialog(member)}
+                          >
+                            {store.staff.actions.edit}
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
                           <DropdownMenuItem
                             disabled={member.isActive || isMutating}
                             onSelect={() => handleSetActive(member, true)}
@@ -330,6 +416,81 @@ export function StaffManagement({
               {store.staff.deleteConfirm.confirm}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={staffToEdit !== null} onOpenChange={handleEditModalChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{store.staff.editModal.title}</DialogTitle>
+          </DialogHeader>
+          <Form {...editForm}>
+            <form
+              onSubmit={(event) => {
+                setEditSubmitError(null);
+                void editForm.handleSubmit(onEditSubmit)(event);
+              }}
+              className="space-y-4"
+            >
+              <FormField
+                control={editForm.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.nameLabel}</FormLabel>
+                    <FormControl>
+                      <Input {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.emailLabel}</FormLabel>
+                    <FormControl>
+                      <Input {...field} type="email" autoComplete="email" />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="employeeId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.employeeIdLabel}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        className="uppercase"
+                        onChange={(event) =>
+                          field.onChange(event.target.value.toUpperCase())
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              {editSubmitError && (
+                <p className="text-sm text-status-error" role="alert">
+                  {editSubmitError}
+                </p>
+              )}
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={updateStaffMutation.isPending}
+              >
+                {store.staff.editModal.save}
+              </Button>
+            </form>
+          </Form>
         </DialogContent>
       </Dialog>
 

@@ -76,7 +76,11 @@ export function useCustomerLookupPrefill({
           if (customer.ageGroup && isAgeGroup(customer.ageGroup)) {
             setValue("ageGroup", customer.ageGroup, { shouldDirty: true });
           }
-          setValue("customerType", "REPEAT", { shouldDirty: true });
+          setValue(
+            "customerType",
+            customer.visitCount >= 1 ? "REPEAT" : "NEW",
+            { shouldDirty: true },
+          );
 
           setLookupStatus("found");
         })

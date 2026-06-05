@@ -99,6 +99,36 @@ export async function withAuth<T extends Role>(
   };
 }
 
+export function withAuthQuery<T extends Role, S extends z.ZodType>(
+  allowed: readonly T[],
+  schema: S,
+  handler: (
+    session: Extract<AppSession, { role: T }>,
+    query: z.infer<S>,
+    req: Request,
+  ) => Promise<NextResponse>,
+): (req: Request) => Promise<NextResponse> {
+  return async (req: Request) => {
+    try {
+      const session = await getServerSession();
+      if (!session) return unauthorized();
+      if (!requireRole(session, allowed)) return forbidden();
+
+      const { searchParams } = new URL(req.url);
+      const parsed = schema.safeParse(Object.fromEntries(searchParams.entries()));
+      if (!parsed.success) return badRequest(parsed.error.flatten());
+
+      return await handler(
+        session as Extract<AppSession, { role: T }>,
+        parsed.data,
+        req,
+      );
+    } catch (error) {
+      return handleRouteError(error);
+    }
+  };
+}
+
 export async function withAuthValidation<T extends Role, S extends z.ZodType>(
   allowed: readonly T[],
   schema: S,

@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import type { NextRequest } from "next/server";
+import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
 import { shouldUseSecureAuthCookies } from "@/lib/supabase/cookie-options";
 import type { AppSession, UserRole } from "@/types";
@@ -99,7 +100,6 @@ export async function clearDevSessionCookie(): Promise<void> {
   cookieStore.delete(DEV_SESSION_COOKIE);
 }
 
-/** Static session that never touches the database. */
 /** Static session that never touches the database. */
 export function buildStaticDevSession(email: string, role: UserRole): AppSession {
   const normalized = email.trim().toLowerCase();
@@ -210,7 +210,7 @@ async function enrichDevSessionFromDb(
 
     if (role === "STORE_MANAGER") {
       const store = await prisma.store.findFirst({
-        where: { name: "Store Alpha", isActive: true },
+        where: mergeStoreWhere({ name: "Store Alpha", isActive: true }),
       });
       if (store) {
         return {

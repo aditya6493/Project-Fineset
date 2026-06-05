@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db/prisma";
 import type { Prisma } from "@prisma/client";
+import { buildCustomerSearchWhere } from "@/lib/services/customer-search";
 import { decryptCustomerFields, hashPhone } from "@/lib/services/pii";
 
 export interface CustomerLookupResult {
@@ -57,22 +58,16 @@ export async function listCustomers(params: ListCustomersParams) {
     where.storeId = params.storeId;
   }
 
-  if (params.search) {
-    const normalizedPhone = params.search.replace(/\D/g, "");
-    const conditions: Prisma.CustomerWhereInput[] = [
-      { name: { contains: params.search, mode: "insensitive" } },
-    ];
-
-    if (normalizedPhone.length === 10) {
-      conditions.push({ phoneHash: hashPhone(normalizedPhone) });
-    }
-
-    where.OR = conditions;
-  }
+  const searchWhere = params.search
+    ? buildCustomerSearchWhere(params.search)
+    : null;
+  const customerWhere: Prisma.CustomerWhereInput = searchWhere
+    ? { AND: [where, searchWhere] }
+    : where;
 
   const [customers, total] = await Promise.all([
     prisma.customer.findMany({
-      where,
+      where: customerWhere,
       orderBy: { updatedAt: "desc" },
       skip: (params.page - 1) * params.pageSize,
       take: params.pageSize,
@@ -80,7 +75,7 @@ export async function listCustomers(params: ListCustomersParams) {
         _count: { select: { visits: true } },
       },
     }),
-    prisma.customer.count({ where }),
+    prisma.customer.count({ where: customerWhere }),
   ]);
 
   return {

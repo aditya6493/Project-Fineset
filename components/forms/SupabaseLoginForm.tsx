@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { requestPasswordResetAction } from "@/lib/auth/request-password-reset-action";
 import { signInAction } from "@/lib/auth/sign-in-action";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +51,7 @@ export function SupabaseLoginForm({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [resetMessage, setResetMessage] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
   const submitGuardRef = useRef(false);
 
@@ -63,27 +64,23 @@ export function SupabaseLoginForm({
       ? resetSuccessMessage
       : null;
 
-  const [urlBootstrapError, setUrlBootstrapError] = useState<string | null>(null);
+  const urlBootstrapError = useMemo(() => {
+    if (!urlError) return null;
+    if (urlError === "account_inactive") return errorInactive;
+    if (urlError === "wrong_portal") return errorWrongPortal;
+    if (urlError === "session_expired") return errorSessionExpired;
+    return errorInvalid;
+  }, [urlError, errorInactive, errorWrongPortal, errorSessionExpired, errorInvalid]);
 
   useEffect(() => {
     if (!urlError) return;
-
-    const message =
-      urlError === "account_inactive"
-        ? errorInactive
-        : urlError === "wrong_portal"
-          ? errorWrongPortal
-          : urlError === "session_expired"
-            ? errorSessionExpired
-            : errorInvalid;
-    setUrlBootstrapError(message);
 
     const url = new URL(window.location.href);
     if (!url.searchParams.has("error")) return;
     url.searchParams.delete("error");
     const next = `${url.pathname}${url.search}`;
     window.history.replaceState(null, "", next);
-  }, [urlError, errorInactive, errorWrongPortal, errorSessionExpired, errorInvalid]);
+  }, [urlError]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -93,7 +90,7 @@ export function SupabaseLoginForm({
 
     submitGuardRef.current = true;
     setError(null);
-    setUrlBootstrapError(null);
+    setResetMessage(null);
 
     const formData = new FormData(event.currentTarget);
     const email = String(formData.get("email") ?? "")
@@ -139,32 +136,37 @@ export function SupabaseLoginForm({
     });
   }
 
-  async function handleForgotPassword() {
+  function handleForgotPassword() {
     const emailInput = document.getElementById("email") as HTMLInputElement | null;
     const email = emailInput?.value?.trim().toLowerCase();
     if (!email) {
       setError(forgotPasswordEmailRequired);
+      setResetMessage(null);
       return;
     }
 
     setError(null);
+    setResetMessage(null);
 
-    const supabase = createClient();
-    const redirectTo = `${window.location.origin}/auth/callback?next=/login`;
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo,
-    });
+    startTransition(async () => {
+      const result = await requestPasswordResetAction(email);
 
-    if (resetError) {
-      if (resetError.status === 429) {
-        setError(resetEmailRateLimited);
-      } else {
-        setError(resetEmailError);
+      if (!result.ok) {
+        switch (result.code) {
+          case "invalid_email":
+            setError(forgotPasswordEmailRequired);
+            break;
+          case "rate_limited":
+            setError(resetEmailRateLimited);
+            break;
+          default:
+            setError(resetEmailError);
+        }
+        return;
       }
-      return;
-    }
 
-    alert(resetEmailSent);
+      setResetMessage(resetEmailSent);
+    });
   }
 
   const isLoading = isPending;
@@ -214,9 +216,9 @@ export function SupabaseLoginForm({
             </div>
           </div>
 
-          {initialMessage && (
+          {(initialMessage || resetMessage) && (
             <p className="text-sm text-status-success" role="status">
-              {initialMessage}
+              {initialMessage ?? resetMessage}
             </p>
           )}
 

@@ -91,11 +91,14 @@ const visitChartConfig = {
 
 type SegmentKind = "activity" | "outcome" | "area" | "customer" | "intent" | "decline";
 
-function useFieldLogNavigation(periodRange: StoreFieldSaleAnalytics["periodRange"]) {
+function useFieldLogNavigation(
+  periodRange: StoreFieldSaleAnalytics["periodRange"],
+  storeId: string,
+) {
   const router = useRouter();
   const base = useMemo(
-    () => periodRangeToFieldLogMonth(periodRange),
-    [periodRange],
+    () => ({ ...periodRangeToFieldLogMonth(periodRange), storeId }),
+    [periodRange, storeId],
   );
 
   const navigate = useCallback(
@@ -135,6 +138,8 @@ interface StoreFieldSalesOverviewSectionProps {
   periodLabel: string;
   deltaPeriod: string;
   storeId: string;
+  initialData?: import("@/types").StoreFieldSaleAnalytics;
+  initialParams?: import("@/types").GetAnalyticsParams;
 }
 
 export function StoreFieldSalesOverviewSection({
@@ -143,11 +148,16 @@ export function StoreFieldSalesOverviewSection({
   periodLabel,
   deltaPeriod,
   storeId,
+  initialData,
+  initialParams,
 }: StoreFieldSalesOverviewSectionProps) {
-  const { data, isLoading, isError, refetch } = useStoreFieldSaleAnalytics({
-    period,
-    storeId: storeId || undefined,
-  });
+  const { data, isLoading, isError, refetch } = useStoreFieldSaleAnalytics(
+    {
+      period,
+      storeId: storeId || undefined,
+    },
+    { initialData, initialParams },
+  );
   const title = copy.title.replace("{period}", periodLabel);
 
   return (
@@ -166,6 +176,7 @@ export function StoreFieldSalesOverviewSection({
           <StoreFieldSalesOverviewContent
             copy={copy}
             data={data}
+            storeId={storeId}
             deltaPeriod={deltaPeriod}
             periodLabel={periodLabel}
           />
@@ -178,16 +189,18 @@ export function StoreFieldSalesOverviewSection({
 function StoreFieldSalesOverviewContent({
   copy,
   data,
+  storeId,
   deltaPeriod,
   periodLabel,
 }: {
   copy: FieldSalesOverviewCopy;
   data: StoreFieldSaleAnalytics;
+  storeId: string;
   deltaPeriod: string;
   periodLabel: string;
 }) {
   const { summary, deltas } = data;
-  const { navigate, href } = useFieldLogNavigation(data.periodRange);
+  const { navigate, href } = useFieldLogNavigation(data.periodRange, storeId);
 
   return (
     <Tabs defaultValue="overview" className="min-w-0 space-y-5">
