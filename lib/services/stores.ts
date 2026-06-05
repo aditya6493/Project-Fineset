@@ -2,7 +2,14 @@ import { InviteError, inviteUser } from "@/lib/auth/invite-user";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
+import { StoreServiceError } from "@/lib/services/store-service-error";
+import {
+  normalizeStoreManagerEmail,
+  syncStoreManagerEmail,
+} from "@/lib/services/sync-store-manager-email";
 import { createAdminClient } from "@/lib/supabase/admin";
+
+export { StoreServiceError } from "@/lib/services/store-service-error";
 import type { CreateStoreInput, UpdateStoreInput } from "@/lib/validations/store.schema";
 import type { Store } from "@prisma/client";
 import type { AnalyticsPeriodLabel, StorePerformanceRow } from "@/types";
@@ -147,10 +154,30 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
     input.category === "OTHER" ? input.customCategory?.trim() : undefined;
   const shouldClearCustomCategory = input.category && input.category !== "OTHER";
 
+  const existing = await prisma.store.findUnique({
+    where: { id: storeId },
+    select: { name: true },
+  });
+  if (!existing) {
+    throw new StoreServiceError("Store not found", 404);
+  }
+
+  if (input.email !== undefined) {
+    await syncStoreManagerEmail(storeId, input.email, {
+      storeName: existing.name,
+    });
+  }
+
+  const emailForStore =
+    input.email !== undefined
+      ? normalizeStoreManagerEmail(input.email)
+      : input.email;
+
   const store = await prisma.store.update({
     where: { id: storeId },
     data: {
       ...input,
+      email: emailForStore,
       customCategory: shouldClearCustomCategory ? null : normalizedCustomCategory,
     },
   });
@@ -164,16 +191,6 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
   }
 
   return store;
-}
-
-export class StoreServiceError extends Error {
-  constructor(
-    message: string,
-    public status: number,
-  ) {
-    super(message);
-    this.name = "StoreServiceError";
-  }
 }
 
 export async function updateStoreManagerPassword(storeId: string, password: string) {
