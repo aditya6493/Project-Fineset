@@ -1,6 +1,18 @@
 import { expect, type Page } from "@playwright/test";
 
 export async function waitForServiceWorker(page: Page, timeoutMs = 10_000): Promise<void> {
+  await page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return;
+    const existing = await navigator.serviceWorker.getRegistration();
+    if (!existing) {
+      try {
+        await navigator.serviceWorker.register("/serwist/sw.js", { scope: "/" });
+      } catch {
+        // SerwistProvider may register concurrently in the page.
+      }
+    }
+  });
+
   await page.waitForFunction(
     async () => {
       if (!("serviceWorker" in navigator)) return false;

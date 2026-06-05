@@ -101,7 +101,8 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
-      - run: npm run test:e2e && npm run test:pwa
+      - run: npm run test:e2e
+      - run: npm run test:pwa
         env:
           CI: true
           SKIP_ENV_VALIDATION: true
