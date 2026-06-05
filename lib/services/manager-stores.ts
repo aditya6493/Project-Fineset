@@ -49,7 +49,7 @@ export async function listStoresLinkedToManagerEmail(
         { id: primaryStoreId },
       ],
     }),
-    select: { id: true, name: true },
+    select: { id: true, name: true, city: true, state: true },
     orderBy: { name: "asc" },
   });
 }

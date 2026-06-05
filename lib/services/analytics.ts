@@ -4,6 +4,7 @@ import type {
   AdminDashboardOverview,
   AnalyticsData,
   StoreDetailAnalytics,
+  StoreManagerPortfolio,
 } from "@/types";
 import type { AnalyticsPeriod } from "@/types";
 import type { PurchaseStatus, SourceChannel } from "@prisma/client";
@@ -16,7 +17,7 @@ import {
   getPeriodRange,
   getPreviousPeriodRange,
 } from "@/lib/utils/analytics";
-import { getStorePerformanceRows } from "./stores";
+import { getManagerStorePerformanceRows, getStorePerformanceRows } from "./stores";
 
 const visitAnalyticsSelect = {
   visitDate: true,
@@ -128,6 +129,19 @@ export async function getStoreAnalytics(
     kpis,
     kpiDeltas,
   };
+}
+
+export async function getStoreManagerPortfolio(
+  email: string,
+  primaryStoreId: string,
+  period: AnalyticsPeriod["label"],
+): Promise<StoreManagerPortfolio> {
+  const stores = await getManagerStorePerformanceRows(
+    email,
+    primaryStoreId,
+    period,
+  );
+  return { period, stores };
 }
 
 export async function getAdminDashboardOverview(

@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Eye, EyeOff, MoreHorizontal, Sparkles } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, MoreHorizontal, Sparkles } from "lucide-react";
 import {
   createStaffSchema,
   editStaffSchema,
@@ -55,16 +56,22 @@ type StaffListItem = NonNullable<StaffManagementProps["initialStaff"]>[number];
 
 interface StaffManagementProps {
   store: StoreContent;
+  storeId: string;
   emptyMessage: string;
   errors: ErrorsContent;
   initialStaff?: Awaited<ReturnType<typeof import("@/lib/api/staff").getStaff>>;
+  backHref?: string;
+  backLabel?: string;
 }
 
 export function StaffManagement({
   store,
+  storeId,
   emptyMessage,
   errors,
   initialStaff,
+  backHref,
+  backLabel,
 }: StaffManagementProps) {
   const [modalOpen, setModalOpen] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -73,7 +80,7 @@ export function StaffManagement({
   const [staffToEdit, setStaffToEdit] = useState<StaffListItem | null>(null);
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
-  const { data, isLoading } = useStoreStaff({ initialData: initialStaff });
+  const { data, isLoading } = useStoreStaff(storeId, { initialData: initialStaff });
   const createStaffMutation = useCreateStaff();
   const updateStaffMutation = useUpdateStaff();
   const deleteStaffMutation = useDeleteStaff();
@@ -251,9 +258,21 @@ export function StaffManagement({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h1 className="font-display text-2xl font-bold text-text-primary">
-          {store.staff.title}
-        </h1>
+        <div className="min-w-0">
+          {backHref ? (
+            <Link
+              href={backHref}
+              prefetch={false}
+              className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+            >
+              <ArrowLeft className="h-4 w-4" aria-hidden />
+              {backLabel ?? store.storeDetail.backToPortfolio}
+            </Link>
+          ) : null}
+          <h1 className="font-display text-2xl font-bold text-text-primary">
+            {store.staff.title}
+          </h1>
+        </div>
         <Button type="button" onClick={() => setModalOpen(true)}>
           {store.staff.addStaff}
         </Button>

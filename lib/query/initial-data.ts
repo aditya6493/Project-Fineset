@@ -23,7 +23,8 @@ export function visitsParamsMatch(
     (current.purchaseStatus ?? "") === (initial.purchaseStatus ?? "") &&
     (current.visitType ?? "") === (initial.visitType ?? "") &&
     (current.customerType ?? "") === (initial.customerType ?? "") &&
-    (current.sourceChannel ?? "") === (initial.sourceChannel ?? "")
+    (current.sourceChannel ?? "") === (initial.sourceChannel ?? "") &&
+    (current.storeId ?? "") === (initial.storeId ?? "")
   );
 }
 

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
+import { resolveManagerStoreId } from "@/lib/services/manager-stores";
 import { listPortalCalls } from "@/lib/services/portal-calls";
 import { defaultPortalCallsParams } from "@/lib/query/initial-data";
 import type { GetPortalCallsParams, PortalCallListResponse } from "@/types";
@@ -20,7 +21,11 @@ export const fetchInitialPortalCalls = cache(async function fetchInitialPortalCa
 
   let resolvedStoreId = storeId;
   if (session.role === "STORE_MANAGER") {
-    resolvedStoreId = session.storeId;
+    resolvedStoreId = await resolveManagerStoreId(
+      session.email,
+      session.storeId,
+      storeId ?? overrides?.storeId,
+    );
   }
 
   const params: GetPortalCallsParams = {

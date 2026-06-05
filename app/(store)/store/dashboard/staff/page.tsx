@@ -1,20 +1,22 @@
-import { content } from "@/content/en";
-import { StaffManagement } from "@/components/store/StaffManagement";
+import { StoreStaffPageClient } from "@/components/store/StoreStaffPageClient";
 import { fetchInitialStoreStaff } from "@/lib/data/staff";
 
-export default async function StoreStaffPage() {
+interface StoreStaffPageProps {
+  searchParams: Promise<{ storeId?: string }>;
+}
+
+export default async function StoreStaffPage({ searchParams }: StoreStaffPageProps) {
+  const { storeId } = await searchParams;
   let initial: Awaited<ReturnType<typeof fetchInitialStoreStaff>> = null;
   try {
-    initial = await fetchInitialStoreStaff();
+    initial = await fetchInitialStoreStaff(storeId);
   } catch (error) {
-    console.error("[store-staff] initial staff failed", error);
+    console.error("[store-staff] initial staff failed", { storeId, error });
   }
 
   return (
-    <StaffManagement
-      store={content.store}
-      emptyMessage={content.empty.staff}
-      errors={content.errors}
+    <StoreStaffPageClient
+      urlStoreId={storeId}
       initialStaff={initial?.data}
     />
   );

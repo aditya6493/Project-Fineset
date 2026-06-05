@@ -54,6 +54,34 @@ describe("analyticsParamsMatch", () => {
     expect(analyticsParamsMatch({}, {})).toBe(true);
     expect(analyticsParamsMatch({ period: "month" }, { period: "week" })).toBe(false);
   });
+
+  it("matches portfolio periods", () => {
+    expect(analyticsParamsMatch({ period: "week" }, { period: "week" })).toBe(true);
+    expect(analyticsParamsMatch({ period: "month" }, { period: "month" })).toBe(true);
+    expect(
+      analyticsParamsMatch({ period: "last6months" }, { period: "last6months" }),
+    ).toBe(true);
+    expect(analyticsParamsMatch({ period: "month" }, { period: "last6months" })).toBe(
+      false,
+    );
+  });
+
+  it("returns false when storeId changes", () => {
+    expect(
+      analyticsParamsMatch(
+        { period: "week", storeId: "store-a" },
+        { period: "week", storeId: "store-b" },
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("portalCallsParamsMatch store scope", () => {
+  it("returns false when only storeId changes", () => {
+    const base = defaultPortalCallsParams("store-a");
+    const other = defaultPortalCallsParams("store-b");
+    expect(portalCallsParamsMatch(base, other)).toBe(false);
+  });
 });
 
 describe("storesParamsMatch", () => {

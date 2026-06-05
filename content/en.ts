@@ -573,6 +573,35 @@ export const content = {
       placeholder: "Select store",
       loading: "Loading stores…",
     },
+    portfolio: {
+      title: "Your Stores",
+      subtitle:
+        "Each store is tracked separately. Select a store to open its dashboard, visits, calls, and staff.",
+      viewDetails: "Open store dashboard",
+      emptyStores: "No stores are linked to your account yet.",
+      selectStorePrompt:
+        "Choose a store from the portfolio overview before viewing this section.",
+      backToStores: "View all stores",
+      active: "Active",
+      inactive: "Inactive",
+      staffCount: "Staff",
+      fieldSales: "Field sales",
+      userCalls: "User calls",
+      pocName: "Store POC",
+      pocPhone: "POC phone",
+      notAvailable: "—",
+    },
+    storeDetail: {
+      backToPortfolio: "All stores",
+      titleFallback: "Store dashboard",
+      locationHint: "Store location on file",
+      viewOverview: "Overview",
+      storeSectionNavLabel: "Store sections",
+      viewVisits: "Visits log",
+      viewCalls: "Call users",
+      viewFieldSales: "Field sales",
+      viewStaff: "Staff",
+    },
     businessOverview: {
       title: "Business Overview ({period})",
       subtitle:
@@ -1095,6 +1124,11 @@ export const content = {
       conversionRate: "Conversion Rate",
       activeStores: "Active Stores",
       totalStaff: "Staff",
+      fieldSales: "Field sales",
+      userCalls: "User calls",
+      pocName: "Store POC",
+      pocPhone: "POC phone",
+      notAvailable: "—",
     },
     stores: {
       title: "Stores Management",

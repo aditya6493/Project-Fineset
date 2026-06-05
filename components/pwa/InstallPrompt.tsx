@@ -5,22 +5,13 @@ import { X } from "lucide-react";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { PWA_CONFIG } from "@/lib/pwa/config";
+import { isStandaloneDisplay } from "@/lib/pwa/standalone";
 
 const DISMISS_KEY = "fineset-pwa-install-dismissed";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-function isStandaloneDisplay(): boolean {
-  if (typeof window === "undefined") return false;
-  return (
-    window.matchMedia("(display-mode: standalone)").matches ||
-    ("standalone" in window.navigator &&
-      (window.navigator as Navigator & { standalone?: boolean }).standalone ===
-        true)
-  );
 }
 
 export function InstallPrompt() {

@@ -1,0 +1,33 @@
+{
+  "api": {
+    "visits": 3000,
+    "calls": 5000,
+    "fieldSales": 3000,
+    "staff": 4000,
+    "storeOverview": 5000,
+    "storePortfolio": 5000,
+    "storeAnalytics": 4000,
+    "myStores": 2000,
+    "adminAnalytics": 5000,
+    "staffPerformance": 4000,
+    "staffCalls": 3000,
+    "regionCheck": 1000
+  },
+  "e2e": {
+    "loginShell": 3000,
+    "storeDashboard": 4000,
+    "storeDetail": 5000,
+    "adminDashboard": 5000,
+    "staffCallsPage": 4000
+  },
+  "pwa": {
+    "coldLoadLogin": 3000,
+    "standaloneNonBlank": 3000,
+    "standaloneShell": 5000,
+    "swReady": 8000,
+    "warmLaunch": 2000,
+    "offlinePage": 2000,
+    "manifestFetch": 500,
+    "swFetch": 1000
+  }
+}

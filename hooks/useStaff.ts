@@ -10,12 +10,16 @@ interface UseStoreStaffOptions {
   initialData?: StoreStaffList;
 }
 
-export function useStoreStaff(options?: UseStoreStaffOptions) {
+export function useStoreStaff(
+  storeId?: string,
+  options?: UseStoreStaffOptions,
+) {
   const isHydrated = options?.initialData !== undefined;
 
   return useQuery({
-    queryKey: ["staff", "store"],
-    queryFn: () => getStaff(),
+    queryKey: ["staff", "store", storeId],
+    queryFn: () => getStaff(storeId),
+    enabled: Boolean(storeId),
     initialData: options?.initialData,
     ...LIVE_QUERY_OPTIONS,
     ...queryOptionsForHydration(isHydrated),

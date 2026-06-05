@@ -1,6 +1,9 @@
 import { logAuthEvent } from "@/lib/auth/audit";
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
-import { findExistingStoreManagerByEmail } from "@/lib/services/manager-stores";
+import {
+  findExistingStoreManagerByEmail,
+  listStoresLinkedToManagerEmail,
+} from "@/lib/services/manager-stores";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
 import { prisma } from "@/lib/db/prisma";
@@ -427,15 +430,41 @@ export async function getStoreById(storeId: string) {
   });
 }
 
+export async function getManagerStorePerformanceRows(
+  email: string,
+  primaryStoreId: string,
+  period: AnalyticsPeriodLabel,
+): Promise<StorePerformanceRow[]> {
+  const allowed = await listStoresLinkedToManagerEmail(email, primaryStoreId);
+  const allowedIds = new Set(allowed.map((store) => store.id));
+  if (allowedIds.size === 0) return [];
+
+  return getStorePerformanceRows(period, [...allowedIds]);
+}
+
 export async function getStorePerformanceRows(
   period: AnalyticsPeriodLabel,
+  storeIds?: string[],
 ): Promise<StorePerformanceRow[]> {
   const { start, end } = getPeriodRange(period);
   const previousRange = getPreviousPeriodRange(period);
 
-  const [stores, currentVisits, previousVisits] = await Promise.all([
+  const scopedStoreWhere: Prisma.StoreWhereInput = storeIds?.length
+    ? { ...storeNotDeletedWhere, id: { in: storeIds } }
+    : storeNotDeletedWhere;
+  const scopedVisitStore = { store: scopedStoreWhere };
+
+  const [
+    stores,
+    currentVisits,
+    previousVisits,
+    currentFieldSales,
+    previousFieldSales,
+    currentCallLogs,
+    previousCallLogs,
+  ] = await Promise.all([
     prisma.store.findMany({
-      where: storeNotDeletedWhere,
+      where: scopedStoreWhere,
       orderBy: { name: "asc" },
       select: {
         id: true,
@@ -444,19 +473,49 @@ export async function getStorePerformanceRows(
         city: true,
         state: true,
         isActive: true,
+        pocName: true,
+        pointOfContactPhone: true,
         _count: { select: { staff: { where: { isActive: true } } } },
       },
     }),
     prisma.visit.findMany({
-      where: { visitDate: { gte: start, lte: end }, store: storeNotDeletedWhere },
+      where: { visitDate: { gte: start, lte: end }, ...scopedVisitStore },
       select: { storeId: true, purchaseStatus: true, transactionAmount: true },
     }),
     prisma.visit.findMany({
       where: {
         visitDate: { gte: previousRange.start, lte: previousRange.end },
-        store: storeNotDeletedWhere,
+        ...scopedVisitStore,
       },
       select: { storeId: true, purchaseStatus: true, transactionAmount: true },
+    }),
+    prisma.fieldSale.findMany({
+      where: {
+        activityDate: { gte: start, lte: end },
+        ...scopedVisitStore,
+      },
+      select: { storeId: true },
+    }),
+    prisma.fieldSale.findMany({
+      where: {
+        activityDate: { gte: previousRange.start, lte: previousRange.end },
+        ...scopedVisitStore,
+      },
+      select: { storeId: true },
+    }),
+    prisma.staffCallLog.findMany({
+      where: {
+        createdAt: { gte: start, lte: end },
+        visit: scopedVisitStore,
+      },
+      select: { visit: { select: { storeId: true } } },
+    }),
+    prisma.staffCallLog.findMany({
+      where: {
+        createdAt: { gte: previousRange.start, lte: previousRange.end },
+        visit: scopedVisitStore,
+      },
+      select: { visit: { select: { storeId: true } } },
     }),
   ]);
 
@@ -479,8 +538,31 @@ export async function getStorePerformanceRows(
     return map;
   };
 
+  const countByStoreId = (rows: Array<{ storeId: string }>) => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      map.set(row.storeId, (map.get(row.storeId) ?? 0) + 1);
+    }
+    return map;
+  };
+
+  const countCallsByStore = (
+    rows: Array<{ visit: { storeId: string } }>,
+  ) => {
+    const map = new Map<string, number>();
+    for (const row of rows) {
+      const storeId = row.visit.storeId;
+      map.set(storeId, (map.get(storeId) ?? 0) + 1);
+    }
+    return map;
+  };
+
   const currentByStore = bucketVisits(currentVisits);
   const previousByStore = bucketVisits(previousVisits);
+  const currentFieldSalesByStore = countByStoreId(currentFieldSales);
+  const previousFieldSalesByStore = countByStoreId(previousFieldSales);
+  const currentCallsByStore = countCallsByStore(currentCallLogs);
+  const previousCallsByStore = countCallsByStore(previousCallLogs);
 
   return stores.map((store) => {
     const current = currentByStore.get(store.id) ?? [];
@@ -491,6 +573,10 @@ export async function getStorePerformanceRows(
     const previousVisits = previous.length;
     const previousRevenue = calculateTotalRevenue(previous);
     const previousConversion = calculateConversionRate(previous);
+    const fieldSales = currentFieldSalesByStore.get(store.id) ?? 0;
+    const previousFieldSales = previousFieldSalesByStore.get(store.id) ?? 0;
+    const userCalls = currentCallsByStore.get(store.id) ?? 0;
+    const previousUserCalls = previousCallsByStore.get(store.id) ?? 0;
 
     return {
       storeId: store.id,
@@ -499,14 +585,20 @@ export async function getStorePerformanceRows(
       city: store.city,
       state: store.state,
       isActive: store.isActive,
+      pocName: store.pocName,
+      pointOfContactPhone: store.pointOfContactPhone,
       visits,
       revenue,
       conversionRate,
       staffCount: store._count.staff,
+      fieldSales,
+      userCalls,
       deltas: {
         visits: calculateDelta(visits, previousVisits),
         revenue: calculateDelta(revenue, previousRevenue),
         conversionRate: calculateDelta(conversionRate, previousConversion),
+        fieldSales: calculateDelta(fieldSales, previousFieldSales),
+        userCalls: calculateDelta(userCalls, previousUserCalls),
       },
     };
   });

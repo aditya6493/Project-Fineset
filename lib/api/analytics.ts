@@ -7,6 +7,7 @@ import type {
   StoreCallAnalytics,
   StoreDetailAnalytics,
   StoreFieldSaleAnalytics,
+  StoreManagerPortfolio,
   StoreRsoPerformance,
 } from "@/types";
 
@@ -14,6 +15,13 @@ export type StoreOverviewApiResponse = StoreOverviewBundle & {
   period: string;
   storeId: string;
 };
+
+export async function getStoreManagerPortfolio(
+  params: GetAnalyticsParams = {},
+): Promise<StoreManagerPortfolio> {
+  const qs = buildQueryString(params);
+  return apiFetch<StoreManagerPortfolio>(`/api/analytics/store/portfolio${qs}`);
+}
 
 export async function getStoreOverviewBundle(
   params: GetAnalyticsParams = {},

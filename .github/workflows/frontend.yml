@@ -70,6 +70,7 @@ jobs:
           DIRECT_URL: postgresql://fineset:fineset@localhost:5432/fineset_test?schema=public
 
       - run: npm run test:integration
+        # performance-services + performance-api self-seed via tests/fixtures/perf-seed.ts
         env:
           SKIP_ENV_VALIDATION: true
           ENCRYPTION_KEY: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
@@ -100,7 +101,7 @@ jobs:
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
 
-      - run: npm run test:e2e
+      - run: npm run test:e2e && npm run test:pwa
         env:
           CI: true
           SKIP_ENV_VALIDATION: true
@@ -108,3 +109,5 @@ jobs:
           NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.e30.placeholder
           NEXT_PUBLIC_APP_URL: http://localhost:3000
+          E2E_USER_EMAIL: ${{ secrets.E2E_USER_EMAIL }}
+          E2E_USER_PASSWORD: ${{ secrets.E2E_USER_PASSWORD }}

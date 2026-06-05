@@ -6,6 +6,7 @@ import {
   unauthorized,
 } from "@/lib/auth/session";
 import { handleRouteError } from "@/lib/api/route-handler";
+import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { listPortalCalls } from "@/lib/services/portal-calls";
 import { portalCallsQuerySchema } from "@/lib/validations/portal-calls.schema";
 
@@ -25,7 +26,12 @@ export async function GET(req: Request) {
 
     let storeId: string | undefined;
     if (session.role === "STORE_MANAGER") {
-      storeId = session.storeId;
+      const resolved = await resolveStoreManagerAnalyticsStoreId(
+        session,
+        query.data.storeId,
+      );
+      if (resolved instanceof NextResponse) return resolved;
+      storeId = resolved;
     } else if (query.data.storeId) {
       storeId = query.data.storeId;
     }

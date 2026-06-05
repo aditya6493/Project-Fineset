@@ -94,7 +94,11 @@ export function PortalCallsLog({
       page,
       pageSize: 15,
       search: debouncedSearch.trim() || undefined,
-      storeId: showStoreFilter && storeFilter !== "all" ? storeFilter : undefined,
+      storeId: showStoreFilter
+        ? storeFilter !== "all"
+          ? storeFilter
+          : undefined
+        : initialStoreId,
       staffId: staffFilter !== "all" ? staffFilter : undefined,
       intentTier: intentTierFilter,
     }),
@@ -129,9 +133,9 @@ export function PortalCallsLog({
   });
 
   const { data: storeStaff } = useQuery({
-    queryKey: ["staff", "store"],
-    queryFn: () => getStaff(),
-    enabled: !showStoreFilter,
+    queryKey: ["staff", "store", initialStoreId],
+    queryFn: () => getStaff(initialStoreId),
+    enabled: !showStoreFilter && Boolean(initialStoreId),
     ...STAFF_FILTER_QUERY_OPTIONS,
   });
 

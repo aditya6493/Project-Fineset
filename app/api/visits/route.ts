@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { unauthorized } from "@/lib/auth/session";
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { checkWriteRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
+import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { createVisit, listVisits } from "@/lib/services/visits";
 import { withAuthQuery, withAuthValidation } from "@/lib/api/route-handler";
 import { createPerfTimer, logPerf } from "@/lib/perf/timing";
@@ -45,7 +46,12 @@ export const GET = withAuthQuery(
 
     let storeId: string | undefined;
     if (session.role === "STORE_MANAGER") {
-      storeId = session.storeId;
+      const resolved = await resolveStoreManagerAnalyticsStoreId(
+        session,
+        query.storeId,
+      );
+      if (resolved instanceof NextResponse) return resolved;
+      storeId = resolved;
     } else if (query.storeId) {
       storeId = query.storeId;
     }

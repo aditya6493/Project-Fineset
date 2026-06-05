@@ -109,9 +109,16 @@ async function fetchCallLogsForStore(
   });
 }
 
-async function fetchPurchasedVisitsByPhone(storeId: string) {
+async function fetchPurchasedVisitsByPhone(
+  storeId: string,
+  earliestDate: Date,
+) {
   return prisma.visit.findMany({
-    where: { storeId, purchaseStatus: "PURCHASED" },
+    where: {
+      storeId,
+      purchaseStatus: "PURCHASED",
+      visitDate: { gte: earliestDate },
+    },
     select: { customerPhoneHash: true, visitDate: true },
   });
 }
@@ -403,7 +410,7 @@ export async function getStoreCallAnalytics(
   ] = await Promise.all([
     fetchCallLogsForStore(storeId, start, end),
     fetchCallLogsForStore(storeId, previous.start, previous.end),
-    fetchPurchasedVisitsByPhone(storeId),
+    fetchPurchasedVisitsByPhone(storeId, previous.start),
     countEligiblePool(storeId, start, end),
     countEligiblePool(storeId, previous.start, previous.end),
     fetchVisitsFromUserCalls(storeId, start, end),

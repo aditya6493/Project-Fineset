@@ -3,7 +3,7 @@ import { buildAppMetadata } from "@/lib/auth/activate-profile";
 import { inviteUser } from "@/lib/auth/invite-user";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { CreateStaffInput, UpdateStaffInput } from "@/lib/validations/staff.schema";
-import type { Prisma } from "@prisma/client";
+import type { Prisma, PurchaseStatus } from "@prisma/client";
 import type { StaffPerformanceRow } from "@/types";
 import {
   calculateAvgTransaction,
@@ -32,29 +32,47 @@ export class StaffUpdateError extends Error {
 }
 
 export async function listStaff(storeId: string) {
-  const staff = await prisma.staff.findMany({
-    where: { storeId },
-    orderBy: { name: "asc" },
-    include: {
-      appUser: {
-        select: {
-          email: true,
+  const [staff, visitMetrics] = await Promise.all([
+    prisma.staff.findMany({
+      where: { storeId },
+      orderBy: { name: "asc" },
+      include: {
+        appUser: {
+          select: {
+            email: true,
+          },
+        },
+        _count: {
+          select: {
+            visits: true,
+            fieldSales: true,
+            assignedFollowUps: true,
+          },
         },
       },
-      visits: {
-        select: {
-          purchaseStatus: true,
-          transactionAmount: true,
-        },
+    }),
+    prisma.visit.findMany({
+      where: { storeId },
+      select: {
+        staffId: true,
+        purchaseStatus: true,
+        transactionAmount: true,
       },
-      _count: {
-        select: {
-          fieldSales: true,
-          assignedFollowUps: true,
-        },
-      },
-    },
-  });
+    }),
+  ]);
+
+  const visitsByStaff = new Map<
+    string,
+    Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
+  >();
+  for (const visit of visitMetrics) {
+    const list = visitsByStaff.get(visit.staffId) ?? [];
+    list.push({
+      purchaseStatus: visit.purchaseStatus,
+      transactionAmount: visit.transactionAmount,
+    });
+    visitsByStaff.set(visit.staffId, list);
+  }
 
   const staffIds = staff.map((member) => member.id);
   const openFollowUps =
@@ -74,9 +92,10 @@ export async function listStaff(storeId: string) {
   );
 
   return staff.map((member) => {
-    const visits = member.visits;
+    const visits = visitsByStaff.get(member.id) ?? [];
+    const visitCount = member._count.visits;
     const hasActivity =
-      visits.length > 0 ||
+      visitCount > 0 ||
       member._count.fieldSales > 0 ||
       member._count.assignedFollowUps > 0;
 
@@ -87,9 +106,9 @@ export async function listStaff(storeId: string) {
       email: member.appUser?.email ?? null,
       createdAt: member.createdAt,
       isActive: member.isActive,
-      visitCount: visits.length,
+      visitCount,
       canDelete: !hasActivity,
-      monthlyVisits: visits.length,
+      monthlyVisits: visitCount,
       monthlyRevenue: calculateTotalRevenue(visits),
       conversionRate: calculateConversionRate(visits),
       openFollowUps: followUpCountByStaff.get(member.id) ?? 0,

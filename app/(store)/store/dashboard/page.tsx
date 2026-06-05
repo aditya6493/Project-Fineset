@@ -1,28 +1,30 @@
 import { content } from "@/content/en";
-import { StoreOverview } from "@/components/store/StoreOverview";
-import { fetchInitialStoreOverviewBundle } from "@/lib/data/analytics";
-import { getServerSession } from "@/lib/auth/session";
+import { StorePortfolio } from "@/components/store/StorePortfolio";
+import { fetchInitialStoreManagerPortfolio } from "@/lib/data/analytics";
+import { parsePeriodParam } from "@/lib/utils/analytics-period-url";
 
-export default async function StoreDashboardPage() {
-  const session = await getServerSession();
-  const initialStoreId =
-    session?.role === "STORE_MANAGER" ? session.storeId : undefined;
+interface StoreDashboardPageProps {
+  searchParams: Promise<{ period?: string }>;
+}
 
-  let initial: Awaited<ReturnType<typeof fetchInitialStoreOverviewBundle>> = null;
+export default async function StoreDashboardPage({
+  searchParams,
+}: StoreDashboardPageProps) {
+  const { period: periodParam } = await searchParams;
+  const period = parsePeriodParam(periodParam);
+
+  let initial: Awaited<ReturnType<typeof fetchInitialStoreManagerPortfolio>> = null;
   try {
-    initial = await fetchInitialStoreOverviewBundle(
-      initialStoreId ? { storeId: initialStoreId } : {},
-    );
+    initial = await fetchInitialStoreManagerPortfolio({ period });
   } catch (error) {
-    console.error("[store-dashboard] initial overview bundle failed", error);
+    console.error("[store-dashboard] initial portfolio failed", error);
   }
 
   return (
-    <StoreOverview
+    <StorePortfolio
       store={content.store}
-      initialStoreId={initial?.params.storeId ?? initialStoreId}
-      initialOverviewBundle={initial?.bundle}
-      initialOverviewParams={initial?.params}
+      initialPortfolio={initial?.data}
+      initialParams={initial?.params}
     />
   );
 }

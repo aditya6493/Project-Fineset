@@ -7,6 +7,7 @@ import {
   unauthorized,
 } from "@/lib/auth/session";
 import { handleRouteError } from "@/lib/api/route-handler";
+import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { InviteError } from "@/lib/auth/invite-user";
 import { createStaff, getStaffPerformance, listStaff } from "@/lib/services/staff";
 import { createStaffSchema } from "@/lib/validations/staff.schema";
@@ -27,16 +28,28 @@ export async function GET(req: Request) {
     if (!query.success) return badRequest(query.error.flatten());
 
     if (query.data.performance === "true") {
-      const storeId =
-        session.role === "STORE_MANAGER"
-          ? session.storeId
-          : query.data.storeId ?? undefined;
+      let storeId: string | undefined;
+      if (session.role === "STORE_MANAGER") {
+        const resolved = await resolveStoreManagerAnalyticsStoreId(
+          session,
+          query.data.storeId,
+        );
+        if (resolved instanceof NextResponse) return resolved;
+        storeId = resolved;
+      } else {
+        storeId = query.data.storeId ?? undefined;
+      }
       const data = await getStaffPerformance(storeId);
       return NextResponse.json(data);
     }
 
     if (session.role === "STORE_MANAGER") {
-      const data = await listStaff(session.storeId);
+      const resolved = await resolveStoreManagerAnalyticsStoreId(
+        session,
+        query.data.storeId,
+      );
+      if (resolved instanceof NextResponse) return resolved;
+      const data = await listStaff(resolved);
       return NextResponse.json(data);
     }
 

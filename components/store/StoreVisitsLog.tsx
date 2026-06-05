@@ -1,6 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { ArrowLeft } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getStaff } from "@/lib/api/staff";
 import { STAFF_FILTER_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
@@ -25,24 +27,30 @@ type CommonContent = Content["common"];
 
 interface StoreVisitsLogProps {
   store: StoreContent;
+  storeId: string;
   visitFields: VisitFormFields;
   common: CommonContent;
   emptyMessage: string;
   initialVisits?: PaginatedResponse<VisitListItem>;
   initialVisitsParams?: GetVisitsParams;
   initialStaff?: Awaited<ReturnType<typeof getStaff>>;
+  backHref?: string;
+  backLabel?: string;
 }
 
 type VisitFilter = "all" | "followUpOnly";
 
 export function StoreVisitsLog({
   store,
+  storeId,
   visitFields,
   common,
   emptyMessage,
   initialVisits,
   initialVisitsParams,
   initialStaff,
+  backHref,
+  backLabel,
 }: StoreVisitsLogProps) {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState("");
@@ -59,6 +67,7 @@ export function StoreVisitsLog({
   const queryParams: GetVisitsParams = {
     page: String(page),
     pageSize: "20",
+    storeId,
     search: debouncedSearch.trim() || undefined,
     startDate: startDate || undefined,
     endDate: endDate || undefined,
@@ -72,8 +81,9 @@ export function StoreVisitsLog({
 
   const staffHydrated = initialStaff !== undefined;
   const { data: staffList } = useQuery({
-    queryKey: ["staff", "visits-filters"],
-    queryFn: () => getStaff(),
+    queryKey: ["staff", "visits-filters", storeId],
+    queryFn: () => getStaff(storeId),
+    enabled: Boolean(storeId),
     initialData: initialStaff,
     ...STAFF_FILTER_QUERY_OPTIONS,
     ...queryOptionsForHydration(staffHydrated),
@@ -92,6 +102,22 @@ export function StoreVisitsLog({
 
   return (
     <div className="space-y-4">
+      <div>
+        {backHref ? (
+          <Link
+            href={backHref}
+            prefetch={false}
+            className="mb-2 inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden />
+            {backLabel ?? store.storeDetail.backToPortfolio}
+          </Link>
+        ) : null}
+        <h1 className="font-display text-2xl font-bold text-text-primary">
+          {store.visits.title}
+        </h1>
+      </div>
+
       <Tabs
         value={visitFilter}
         onValueChange={(value) => {

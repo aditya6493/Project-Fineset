@@ -78,11 +78,14 @@ const attemptChartConfig = {
 
 type SegmentChartKind = "customerType" | "purchaseStatus" | "valueTier" | "intent";
 
-function useCallLogNavigation(periodRange: StoreCallAnalytics["periodRange"]) {
+function useCallLogNavigation(
+  periodRange: StoreCallAnalytics["periodRange"],
+  storeId: string,
+) {
   const router = useRouter();
   const base = useMemo(
-    () => periodRangeToCallLogMonth(periodRange),
-    [periodRange],
+    () => ({ ...periodRangeToCallLogMonth(periodRange), storeId }),
+    [periodRange, storeId],
   );
 
   const navigate = useCallback(
@@ -160,6 +163,7 @@ export function StoreCallsOverviewSection({
           <StoreCallsOverviewContent
             copy={copy}
             data={data}
+            storeId={storeId}
             deltaPeriod={deltaPeriod}
             periodLabel={periodLabel}
           />
@@ -172,16 +176,18 @@ export function StoreCallsOverviewSection({
 function StoreCallsOverviewContent({
   copy,
   data,
+  storeId,
   deltaPeriod,
   periodLabel,
 }: {
   copy: CallsOverviewCopy;
   data: StoreCallAnalytics;
+  storeId: string;
   deltaPeriod: string;
   periodLabel: string;
 }) {
   const { summary, deltas } = data;
-  const { navigate, href } = useCallLogNavigation(data.periodRange);
+  const { navigate, href } = useCallLogNavigation(data.periodRange, storeId);
   const allCallsHref = href({});
 
   return (

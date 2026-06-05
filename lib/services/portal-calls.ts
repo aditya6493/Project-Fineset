@@ -243,7 +243,7 @@ function portalPeriodRange(year: number, month: number): { start: Date; end: Dat
   return { start, end };
 }
 
-function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.VisitWhereInput {
+export function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.VisitWhereInput {
   const { start, end } = portalPeriodRange(params.year, params.month);
   const where: Prisma.VisitWhereInput = {
     visitDate: { gte: start, lte: end },

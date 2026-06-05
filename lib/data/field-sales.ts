@@ -1,6 +1,7 @@
 import { cache } from "react";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import { getServerSession, requireRole } from "@/lib/auth/session";
+import { resolveManagerStoreId } from "@/lib/services/manager-stores";
 import { listFieldSales } from "@/lib/services/field-sales";
 import { defaultFieldSalesParams } from "@/lib/query/initial-data";
 import type { FieldSaleListResponse, GetFieldSalesListParams } from "@/types";
@@ -21,7 +22,11 @@ export const fetchInitialFieldSales = cache(async function fetchInitialFieldSale
 
   let resolvedStoreId = storeId;
   if (session.role === "STORE_MANAGER") {
-    resolvedStoreId = session.storeId;
+    resolvedStoreId = await resolveManagerStoreId(
+      session.email,
+      session.storeId,
+      storeId ?? overrides?.storeId,
+    );
   }
 
   const params: GetFieldSalesListParams = {

@@ -1,0 +1,45 @@
+import { expect, type Page } from "@playwright/test";
+
+export async function waitForServiceWorker(page: Page, timeoutMs = 10_000): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      "serviceWorker" in navigator &&
+      navigator.serviceWorker.controller !== null,
+    { timeout: timeoutMs },
+  );
+}
+
+export async function emulateStandalone(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const originalMatchMedia = window.matchMedia.bind(window);
+    window.matchMedia = (query: string) => {
+      if (query.includes("display-mode: standalone")) {
+        return {
+          ...originalMatchMedia(query),
+          matches: true,
+        } as MediaQueryList;
+      }
+      return originalMatchMedia(query);
+    };
+    Object.defineProperty(window.navigator, "standalone", {
+      configurable: true,
+      value: true,
+    });
+  });
+}
+
+export async function assertNonBlankBody(page: Page): Promise<void> {
+  const text = await page.locator("body").innerText();
+  expect(text.trim().length).toBeGreaterThan(0);
+
+  const html = await page.locator("body").innerHTML();
+  expect(html.trim().length).toBeGreaterThan(50);
+}
+
+export async function getServiceWorkerRegistrationCount(page: Page): Promise<number> {
+  return page.evaluate(async () => {
+    if (!("serviceWorker" in navigator)) return 0;
+    const registrations = await navigator.serviceWorker.getRegistrations();
+    return registrations.length;
+  });
+}

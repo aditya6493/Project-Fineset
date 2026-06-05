@@ -13,6 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:e2e": "playwright test",
+    "test:pwa": "playwright test e2e/pwa.spec.ts e2e/pwa-performance.spec.ts",
+    "test:perf": "vitest run --config vitest.integration.config.ts tests/integration/performance-*.test.ts && playwright test e2e/performance.spec.ts e2e/pwa-performance.spec.ts",
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true npm run build",
     "db:generate": "dotenv -e .env.local -- prisma generate",

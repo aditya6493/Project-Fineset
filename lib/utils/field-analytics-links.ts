@@ -5,6 +5,7 @@ export interface FieldLogLinkFilters {
   enrollmentOutcome?: FieldEnrollmentOutcomeFilter;
   activityType?: FieldActivityTypeFilter;
   search?: string;
+  storeId?: string;
 }
 
 export type FieldActivityTypeFilter =
@@ -73,6 +74,7 @@ export function buildStoreFieldSalesLogHref(filters: FieldLogLinkFilters): strin
   if (filters.enrollmentOutcome) params.set("enrollmentOutcome", filters.enrollmentOutcome);
   if (filters.activityType) params.set("activityType", filters.activityType);
   if (filters.search) params.set("search", filters.search);
+  if (filters.storeId) params.set("storeId", filters.storeId);
 
   const qs = params.toString();
   return `/store/dashboard/field-sales${qs ? `?${qs}` : ""}`;
