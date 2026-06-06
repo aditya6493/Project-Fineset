@@ -161,7 +161,7 @@ export function SupabaseLoginForm({
         });
 
         if (error) {
-          switch (parsePasswordResetClientError(error.message)) {
+          switch (parsePasswordResetClientError(error)) {
             case "invalid_email":
               setError(forgotPasswordEmailRequired);
               break;

@@ -36,7 +36,7 @@ export async function requestPasswordResetAction(
 
     if (error) {
       console.error("[password-reset]", error.message);
-      return { ok: false, code: parsePasswordResetClientError(error.message) };
+      return { ok: false, code: parsePasswordResetClientError(error) };
     }
 
     void logAuthEvent({
