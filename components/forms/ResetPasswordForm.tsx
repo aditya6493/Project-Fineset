@@ -3,6 +3,11 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
+import {
+  completePasswordRecovery,
+  parsePasswordRecoveryUrlParams,
+  shouldAttemptPasswordRecovery,
+} from "@/lib/auth/complete-password-recovery";
 import { clearPasswordRecoveryFlowAction } from "@/lib/auth/clear-password-recovery-flow";
 import { createClient } from "@/lib/supabase/client";
 import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
@@ -53,16 +58,40 @@ export function ResetPasswordForm({
   const [error, setError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
   const [hasSession, setHasSession] = useState(false);
+  const [recoveryFailed, setRecoveryFailed] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const submitGuardRef = useRef(false);
 
   useEffect(() => {
     const supabase = createClient();
+    let cancelled = false;
 
-    async function syncSession() {
-      const { data: { user }, error } = await supabase.auth.getUser();
-      if (error && isInvalidRefreshTokenError(error)) {
+    async function bootstrapRecoverySession() {
+      setSessionChecked(false);
+
+      const params = parsePasswordRecoveryUrlParams(searchParams);
+
+      if (shouldAttemptPasswordRecovery(params)) {
+        const result = await completePasswordRecovery(supabase, params);
+        if (cancelled) return;
+
+        if (!result.ok) {
+          setRecoveryFailed(true);
+          setHasSession(false);
+          setSessionChecked(true);
+          return;
+        }
+      }
+
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (cancelled) return;
+
+      if (userError && isInvalidRefreshTokenError(userError)) {
         await supabase.auth.signOut();
         setHasSession(false);
       } else {
@@ -71,7 +100,7 @@ export function ResetPasswordForm({
       setSessionChecked(true);
     }
 
-    void syncSession();
+    void bootstrapRecoverySession();
 
     const {
       data: { subscription },
@@ -79,13 +108,15 @@ export function ResetPasswordForm({
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN" || session) {
         setHasSession(Boolean(session));
         setSessionChecked(true);
+        setRecoveryFailed(false);
       }
     });
 
     return () => {
+      cancelled = true;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [searchParams]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -146,7 +177,9 @@ export function ResetPasswordForm({
         {sessionChecked && !hasSession ? (
           <div className="space-y-4">
             <p className="text-sm text-status-error" role="alert">
-              {callbackError === "auth_callback" ? errorAuthCallback : errorNoSession}
+              {callbackError === "auth_callback" || recoveryFailed
+                ? errorAuthCallback
+                : errorNoSession}
             </p>
             <Button asChild className="w-full">
               <Link href="/">{backToSignInLabel}</Link>

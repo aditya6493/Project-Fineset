@@ -3,9 +3,9 @@ import { buildPasswordResetRedirectUrl } from "@/lib/auth/build-password-reset-r
 import { parsePasswordResetClientError } from "@/lib/auth/parse-password-reset-error";
 
 describe("buildPasswordResetRedirectUrl", () => {
-  it("builds encoded callback url", () => {
+  it("builds direct reset-password url", () => {
     expect(buildPasswordResetRedirectUrl("https://mystore.tribly.ai")).toBe(
-      "https://mystore.tribly.ai/auth/callback?next=%2Freset-password",
+      "https://mystore.tribly.ai/reset-password",
     );
   });
 });

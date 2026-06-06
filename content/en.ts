@@ -38,11 +38,15 @@ export const content = {
         "Enter your email first, then request a password reset link.",
       resetEmailSent:
         "If an account exists for that email, a password reset link has been sent. Check your inbox.",
+      resetEmailSentHint:
+        "Open the link once from your email. You can use any browser after the link arrives.",
+      resetEmailCooldown: (seconds: number) =>
+        `Wait ${seconds}s before requesting another reset link.`,
       resetEmailError: "Could not send the reset email. Try again in a few minutes.",
       resetEmailRateLimited:
         "Too many reset requests. Please wait a few minutes and try again.",
       resetEmailRedirectError:
-        "Password reset is misconfigured. Add the encoded callback URL in Supabase Redirect URLs, then try again.",
+        "Password reset is misconfigured. Add https://mystore.tribly.ai/reset-password to Supabase Redirect URLs, then try again.",
     },
     resetPassword: {
       title: "Reset your password",
@@ -58,7 +62,7 @@ export const content = {
       errorNoSession:
         "This reset link is invalid or has expired. Request a new one from the sign-in page.",
       errorAuthCallback:
-        "This reset link could not be verified. Request a new link from the same browser, open it once, and do not use a private/incognito window.",
+        "This reset link could not be verified. Request a new link from the sign-in page and open it once.",
     },
     staff: {
       title: "Staff Login",

@@ -17,6 +17,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
+const RESET_EMAIL_COOLDOWN_SECONDS = 60;
+
 interface SupabaseLoginFormProps {
   title: string;
   subtitle: string;
@@ -29,6 +31,8 @@ interface SupabaseLoginFormProps {
   forgotPasswordLabel: string;
   forgotPasswordEmailRequired: string;
   resetEmailSent: string;
+  resetEmailSentHint: string;
+  resetEmailCooldown: (seconds: number) => string;
   resetEmailError: string;
   resetEmailRateLimited: string;
   resetEmailRedirectError: string;
@@ -47,6 +51,8 @@ export function SupabaseLoginForm({
   forgotPasswordLabel,
   forgotPasswordEmailRequired,
   resetEmailSent,
+  resetEmailSentHint,
+  resetEmailCooldown,
   resetEmailError,
   resetEmailRateLimited,
   resetEmailRedirectError,
@@ -56,6 +62,8 @@ export function SupabaseLoginForm({
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [resetMessage, setResetMessage] = useState<string | null>(null);
+  const [resetHint, setResetHint] = useState<string | null>(null);
+  const [resetCooldownSeconds, setResetCooldownSeconds] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
   const submitGuardRef = useRef(false);
 
@@ -85,6 +93,18 @@ export function SupabaseLoginForm({
     const next = `${url.pathname}${url.search}`;
     window.history.replaceState(null, "", next);
   }, [urlError]);
+
+  useEffect(() => {
+    if (resetCooldownSeconds <= 0) return;
+
+    const timer = window.setInterval(() => {
+      setResetCooldownSeconds((current) => (current > 1 ? current - 1 : 0));
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [resetCooldownSeconds]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -151,6 +171,11 @@ export function SupabaseLoginForm({
 
     setError(null);
     setResetMessage(null);
+    setResetHint(null);
+
+    if (resetCooldownSeconds > 0) {
+      return;
+    }
 
     startTransition(async () => {
       try {
@@ -178,6 +203,8 @@ export function SupabaseLoginForm({
         }
 
         setResetMessage(resetEmailSent);
+        setResetHint(resetEmailSentHint);
+        setResetCooldownSeconds(RESET_EMAIL_COOLDOWN_SECONDS);
       } catch {
         setError(resetEmailError);
       }
@@ -185,6 +212,11 @@ export function SupabaseLoginForm({
   }
 
   const isLoading = isPending;
+  const forgotPasswordDisabled = isLoading || resetCooldownSeconds > 0;
+  const forgotPasswordText =
+    resetCooldownSeconds > 0
+      ? resetEmailCooldown(resetCooldownSeconds)
+      : forgotPasswordLabel;
 
   return (
     <Card className="w-full max-w-md mx-auto">
@@ -232,9 +264,14 @@ export function SupabaseLoginForm({
           </div>
 
           {(initialMessage || resetMessage) && (
-            <p className="text-sm text-status-success" role="status">
-              {initialMessage ?? resetMessage}
-            </p>
+            <div className="space-y-1" role="status">
+              <p className="text-sm text-status-success">
+                {initialMessage ?? resetMessage}
+              </p>
+              {resetHint ? (
+                <p className="text-sm text-text-secondary">{resetHint}</p>
+              ) : null}
+            </div>
           )}
 
           {!isLoading && (error || urlBootstrapError) && (
@@ -251,10 +288,10 @@ export function SupabaseLoginForm({
             type="button"
             variant="ghost"
             className="w-full text-sm"
-            disabled={isLoading}
+            disabled={forgotPasswordDisabled}
             onClick={handleForgotPassword}
           >
-            {forgotPasswordLabel}
+            {forgotPasswordText}
           </Button>
         </form>
       </CardContent>
