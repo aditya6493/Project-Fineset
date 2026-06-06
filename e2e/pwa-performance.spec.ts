@@ -5,6 +5,7 @@ import {
   emulateStandalone,
   getServiceWorkerRegistrationCount,
   waitForServiceWorker,
+  waitForServiceWorkerControl,
 } from "./helpers/pwa";
 
 function pwaBaselineMs(key: keyof typeof baselines.pwa): number | undefined {
@@ -63,10 +64,11 @@ test.describe("PWA performance", () => {
   test("C5 offline page content within 2s", async ({ page, context }) => {
     await page.goto("/~offline");
     await page.getByText(/offline/i).waitFor({ state: "visible" });
+    await waitForServiceWorkerControl(page, process.env.CI ? 25_000 : 15_000);
 
     await context.setOffline(true);
     const started = Date.now();
-    await page.goto("/~offline", { waitUntil: "domcontentloaded" });
+    await page.reload({ waitUntil: "domcontentloaded" });
     await page.getByText(/offline/i).waitFor({ state: "visible" });
     expect(Date.now() - started).toBeLessThan(limitMs("offlinePage", 2000));
   });

@@ -1,5 +1,25 @@
 import { expect, type Page } from "@playwright/test";
 
+/** Wait until the active worker controls the page (needed for offline precache/fallback). */
+export async function waitForServiceWorkerControl(
+  page: Page,
+  timeoutMs = 15_000,
+): Promise<void> {
+  await waitForServiceWorker(page, timeoutMs);
+
+  const hasController = await page.evaluate(
+    () => Boolean(navigator.serviceWorker.controller),
+  );
+  if (!hasController) {
+    await page.reload({ waitUntil: "domcontentloaded" });
+  }
+
+  await page.waitForFunction(
+    () => Boolean(navigator.serviceWorker.controller),
+    { timeout: timeoutMs },
+  );
+}
+
 export async function waitForServiceWorker(page: Page, timeoutMs = 10_000): Promise<void> {
   await page.evaluate(async () => {
     if (!("serviceWorker" in navigator)) return;

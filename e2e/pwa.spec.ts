@@ -4,6 +4,7 @@ import {
   emulateStandalone,
   getServiceWorkerRegistrationCount,
   waitForServiceWorker,
+  waitForServiceWorkerControl,
 } from "./helpers/pwa";
 
 const e2eEmail = process.env.E2E_USER_EMAIL;
@@ -106,9 +107,9 @@ test.describe("PWA offline behavior", () => {
     context,
   }) => {
     await page.goto("/");
-    await waitForServiceWorker(page, process.env.CI ? 25_000 : 15_000);
+    await waitForServiceWorkerControl(page, process.env.CI ? 25_000 : 15_000);
     await context.setOffline(true);
-    await page.goto("/", { waitUntil: "domcontentloaded" });
+    await page.reload({ waitUntil: "domcontentloaded" });
 
     await assertNonBlankBody(page);
     await expect(
