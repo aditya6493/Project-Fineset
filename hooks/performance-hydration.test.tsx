@@ -201,7 +201,7 @@ describe("React Query hydration performance contract", () => {
     expect(analyticsApi.getStoreOverviewBundle).not.toHaveBeenCalled();
   });
 
-  it("useStoreManagerPortfolio skips fetch on mount when SSR params match", () => {
+  it("useStoreManagerPortfolio hydrates SSR data then refetches on mount", async () => {
     const params = { period: "week" as const };
     const { result } = renderHook(
       () =>
@@ -213,7 +213,9 @@ describe("React Query hydration performance contract", () => {
     );
 
     expect(result.current.data).toEqual(portfolioInitial);
-    expect(analyticsApi.getStoreManagerPortfolio).not.toHaveBeenCalled();
+    await waitFor(() => {
+      expect(analyticsApi.getStoreManagerPortfolio).toHaveBeenCalledWith(params);
+    });
   });
 
   it("hydrated hooks merge SSR_HYDRATED_QUERY_OPTIONS", () => {

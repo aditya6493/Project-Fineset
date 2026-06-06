@@ -87,7 +87,14 @@ export async function POST(req: Request) {
       return badRequest(flattened, message);
     }
 
-    const staff = await createStaff(session.storeId, parsed.data);
+    const { searchParams } = new URL(req.url);
+    const resolved = await resolveStoreManagerAnalyticsStoreId(
+      session,
+      searchParams.get("storeId") ?? undefined,
+    );
+    if (resolved instanceof NextResponse) return resolved;
+
+    const staff = await createStaff(resolved, parsed.data);
     return NextResponse.json(staff, { status: 201 });
   } catch (error) {
     if (error instanceof InviteError) {

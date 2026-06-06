@@ -66,9 +66,8 @@ export interface StoreTableRow {
   city: string;
   state: string;
   pincode?: string | null;
-  pocName?: string | null;
-  pointOfContactPhone?: string | null;
-  email?: string | null;
+  businessOwnerName?: string | null;
+  businessOwnerEmail?: string | null;
   isActive: boolean;
   deletedAt?: string | null;
   staffCount: number;
@@ -89,9 +88,8 @@ function toUpdatePayload(values: EditStoreInput): UpdateStoreInput {
     city: values.city,
     state: values.state,
     pincode: values.pincode ?? null,
-    pocName: values.pocName ?? null,
-    pointOfContactPhone: values.pointOfContactPhone ?? null,
-    email: values.email ?? null,
+    businessOwnerName: values.businessOwnerName ?? null,
+    businessOwnerEmail: values.businessOwnerEmail ?? null,
     customCategory: values.category === "OTHER" ? (values.customCategory ?? null) : null,
   };
 }
@@ -104,9 +102,8 @@ function storeToEditDefaults(store: StoreTableRow): EditStoreInput {
     city: store.city,
     state: store.state,
     pincode: store.pincode ?? "",
-    pocName: store.pocName ?? "",
-    pointOfContactPhone: store.pointOfContactPhone ?? "",
-    email: store.email ?? "",
+    businessOwnerName: store.businessOwnerName ?? "",
+    businessOwnerEmail: store.businessOwnerEmail ?? "",
   };
 }
 
@@ -641,14 +638,14 @@ export function StoreTableRowMenu({
               />
               <FormField
                 control={editForm.control}
-                name="pocName"
+                name="businessOwnerName"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{storesCopy.modal.pocNameLabel}</FormLabel>
+                    <FormLabel>{storesCopy.modal.businessOwnerNameLabel}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
-                        placeholder={storesCopy.modal.pocNamePlaceholder}
+                        placeholder={storesCopy.modal.businessOwnerNamePlaceholder}
                       />
                     </FormControl>
                     <FormMessage />
@@ -657,35 +654,16 @@ export function StoreTableRowMenu({
               />
               <FormField
                 control={editForm.control}
-                name="pointOfContactPhone"
+                name="businessOwnerEmail"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{storesCopy.modal.pointOfContactPhoneLabel}</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="tel"
-                        inputMode="numeric"
-                        maxLength={10}
-                        placeholder={storesCopy.modal.pointOfContactPhonePlaceholder}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={editForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{storesCopy.modal.emailLabel}</FormLabel>
+                    <FormLabel>{storesCopy.modal.businessOwnerEmailLabel}</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="email"
                         autoComplete="email"
-                        placeholder={storesCopy.modal.emailPlaceholder}
+                        placeholder={storesCopy.modal.businessOwnerEmailPlaceholder}
                       />
                     </FormControl>
                     <FormMessage />

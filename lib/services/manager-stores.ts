@@ -31,7 +31,7 @@ export async function findExistingStoreManagerByEmail(email: string) {
 
 /**
  * Stores linked to a manager login email:
- * - Store.email matches the login email (same contact on multiple shops), or
+ * - Store.businessOwnerEmail matches the login email (same contact on multiple shops), or
  * - Store.id is the manager's primary AppUser.storeId assignment.
  */
 export async function listStoresLinkedToManagerEmail(
@@ -45,7 +45,7 @@ export async function listStoresLinkedToManagerEmail(
     where: mergeStoreWhere({
       isActive: true,
       OR: [
-        { email: { equals: normalized, mode: "insensitive" } },
+        { businessOwnerEmail: { equals: normalized, mode: "insensitive" } },
         { id: primaryStoreId },
       ],
     }),

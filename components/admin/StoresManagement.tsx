@@ -11,6 +11,7 @@ import { generateSecurePassword } from "@/lib/auth/generate-password";
 import { getManagerLoginStatus } from "@/lib/api/stores";
 import { createStoreSchema, type CreateStoreInput } from "@/lib/validations/store.schema";
 import { useCreateStore, useStores } from "@/hooks/useStores";
+import { AdminDashboardNav } from "@/components/admin/AdminDashboardNav";
 import { StoreListCard } from "@/components/admin/StoreListCard";
 import { toast } from "@/hooks/useToast";
 import { ApiError } from "@/types";
@@ -52,9 +53,8 @@ const defaultFormValues: CreateStoreInput = {
   city: "",
   state: "",
   pincode: "",
-  pocName: "",
-  pointOfContactPhone: "",
-  email: "",
+  businessOwnerName: "",
+  businessOwnerEmail: "",
   password: "",
 };
 
@@ -71,9 +71,8 @@ interface StoresManagementProps {
     city: string;
     state: string;
     pincode?: string | null;
-    pocName?: string | null;
-    pointOfContactPhone?: string | null;
-    email?: string | null;
+    businessOwnerName?: string | null;
+    businessOwnerEmail?: string | null;
     isActive: boolean;
     staffCount: number;
     visits: number;
@@ -101,13 +100,11 @@ export function StoresManagement({
   } | null>(null);
 
   const [searchInput, setSearchInput] = useState("");
-  const [showDeleted, setShowDeleted] = useState(false);
   const debouncedSearch = useDebouncedValue(searchInput, 300);
   const storesParams = {
     page: 1,
     pageSize: 50,
     search: debouncedSearch.trim() || undefined,
-    includeDeleted: showDeleted || undefined,
   };
   const { data, isLoading, isFetching } = useStores(storesParams, {
     initialData: initialStores,
@@ -121,8 +118,11 @@ export function StoresManagement({
   });
 
   const category = form.watch("category");
-  const emailValue = form.watch("email");
-  const debouncedManagerEmail = useDebouncedValue(emailValue?.trim().toLowerCase() ?? "", 400);
+  const businessOwnerEmailValue = form.watch("businessOwnerEmail");
+  const debouncedManagerEmail = useDebouncedValue(
+    businessOwnerEmailValue?.trim().toLowerCase() ?? "",
+    400,
+  );
   const emailLooksValid =
     debouncedManagerEmail.length > 0 &&
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(debouncedManagerEmail);
@@ -232,6 +232,8 @@ export function StoresManagement({
         </Button>
       </div>
 
+      <AdminDashboardNav labels={admin.nav} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <div className="relative max-w-sm">
           <Input
@@ -249,15 +251,6 @@ export function StoresManagement({
             />
           ) : null}
         </div>
-        <label className="flex cursor-pointer items-center gap-2 text-sm text-text-secondary">
-          <input
-            type="checkbox"
-            checked={showDeleted}
-            onChange={(event) => setShowDeleted(event.target.checked)}
-            className="size-4 rounded border-border"
-          />
-          {admin.stores.showDeleted}
-        </label>
       </div>
 
       {isLoading && !data ? (
@@ -285,9 +278,8 @@ export function StoresManagement({
                   city: store.city,
                   state: store.state,
                   pincode: store.pincode,
-                  pocName: store.pocName,
-                  pointOfContactPhone: store.pointOfContactPhone,
-                  email: store.email,
+                  businessOwnerName: store.businessOwnerName,
+                  businessOwnerEmail: store.businessOwnerEmail,
                   isActive: store.isActive,
                   staffCount: store.staffCount,
                 }}
@@ -454,14 +446,14 @@ export function StoresManagement({
                 />
                 <FormField
                   control={form.control}
-                  name="pocName"
+                  name="businessOwnerName"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{admin.stores.modal.pocNameLabel}</FormLabel>
+                      <FormLabel>{admin.stores.modal.businessOwnerNameLabel}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
-                          placeholder={admin.stores.modal.pocNamePlaceholder}
+                          placeholder={admin.stores.modal.businessOwnerNamePlaceholder}
                         />
                       </FormControl>
                       <FormMessage />
@@ -470,35 +462,16 @@ export function StoresManagement({
                 />
                 <FormField
                   control={form.control}
-                  name="pointOfContactPhone"
+                  name="businessOwnerEmail"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{admin.stores.modal.pointOfContactPhoneLabel}</FormLabel>
-                      <FormControl>
-                        <Input
-                          {...field}
-                          type="tel"
-                          inputMode="numeric"
-                          maxLength={10}
-                          placeholder={admin.stores.modal.pointOfContactPhonePlaceholder}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="email"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{admin.stores.modal.emailLabel}</FormLabel>
+                      <FormLabel>{admin.stores.modal.businessOwnerEmailLabel}</FormLabel>
                       <FormControl>
                         <Input
                           {...field}
                           type="email"
                           autoComplete="email"
-                          placeholder={admin.stores.modal.emailPlaceholder}
+                          placeholder={admin.stores.modal.businessOwnerEmailPlaceholder}
                         />
                       </FormControl>
                       {managerHasExistingLogin ? (

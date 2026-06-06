@@ -19,7 +19,6 @@ export function KPICard({
   value,
   unit,
   delta,
-  deltaPeriod,
   icon,
   isLoading,
   className,
@@ -65,14 +64,10 @@ export function KPICard({
                     delta >= 0 ? "text-status-success" : "text-status-error",
                   )}
                 >
+                  {delta >= 0 ? "+" : "-"}
                   {formatPercent(Math.abs(delta))}
                 </span>
               </div>
-              {deltaPeriod && (
-                <p className="text-[11px] leading-tight text-text-muted sm:text-xs">
-                  {deltaPeriod}
-                </p>
-              )}
             </div>
           )}
         </>

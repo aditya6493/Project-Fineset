@@ -1,18 +1,8 @@
 import { z } from "zod";
 import { passwordPolicySchema } from "@/lib/auth/password-policy";
-import { paginationQuerySchema, periodQuerySchema, phoneSchema } from "./common.schema";
+import { paginationQuerySchema, periodQuerySchema } from "./common.schema";
 
 const storeCategorySchema = z.enum(["JEWELRY", "HANDBAGS", "WATCHES", "OTHER"]);
-
-const optionalTrimmedString = (max: number) =>
-  z
-    .string()
-    .max(max)
-    .optional()
-    .transform((v) => {
-      const trimmed = v?.trim();
-      return trimmed ? trimmed : undefined;
-    });
 
 export const createStoreSchema = z
   .object({
@@ -28,15 +18,8 @@ export const createStoreSchema = z
         message: "Pincode must be a 6-digit number",
       })
       .transform((v) => (v === "" ? undefined : v)),
-    pocName: optionalTrimmedString(100),
-    pointOfContactPhone: z
-      .string()
-      .transform((v) => v.trim())
-      .refine((v) => v === "" || /^\d{10}$/.test(v), {
-        message: "Phone must be a 10-digit number",
-      })
-      .transform((v) => (v === "" ? undefined : v)),
-    email: z
+    businessOwnerName: z.string().min(1).max(100).transform((v) => v.trim()),
+    businessOwnerEmail: z
       .string()
       .transform((v) => v.trim())
       .refine((v) => v === "" || z.string().email().safeParse(v).success, {
@@ -66,11 +49,11 @@ export const createStoreSchema = z
           path: ["password"],
         });
       }
-      if (!data.email) {
+      if (!data.businessOwnerEmail) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "Store email is required when setting a password",
-          path: ["email"],
+          message: "Business owner email is required when setting a password",
+          path: ["businessOwnerEmail"],
         });
       }
     }
@@ -89,15 +72,8 @@ export const editStoreSchema = z.object({
       message: "Pincode must be a 6-digit number",
     })
     .transform((v) => (v === "" ? undefined : v)),
-  pocName: optionalTrimmedString(100),
-  pointOfContactPhone: z
-    .string()
-    .transform((v) => v.trim())
-    .refine((v) => v === "" || /^\d{10}$/.test(v), {
-      message: "Phone must be a 10-digit number",
-    })
-    .transform((v) => (v === "" ? undefined : v)),
-  email: z
+  businessOwnerName: z.string().min(1).max(100).transform((v) => v.trim()),
+  businessOwnerEmail: z
     .string()
     .transform((v) => v.trim())
     .refine((v) => v === "" || z.string().email().safeParse(v).success, {
@@ -120,9 +96,8 @@ export const updateStoreSchema = z.object({
     .regex(/^\d{6}$/, "Pincode must be a 6-digit number")
     .nullable()
     .optional(),
-  pocName: z.string().min(1).max(100).nullable().optional(),
-  pointOfContactPhone: phoneSchema.nullable().optional(),
-  email: z.string().email().max(255).nullable().optional(),
+  businessOwnerName: z.string().min(1).max(100).nullable().optional(),
+  businessOwnerEmail: z.string().email().max(255).nullable().optional(),
 });
 
 export const getStoresQuerySchema = paginationQuerySchema.extend({

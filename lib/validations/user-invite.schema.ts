@@ -1,4 +1,5 @@
 import { passwordPolicySchema } from "@/lib/auth/password-policy";
+import { phoneSchema } from "@/lib/validations/common.schema";
 import { z } from "zod";
 
 const appRoleSchema = z.enum(["MASTER_ADMIN", "STORE_MANAGER", "STAFF"]);
@@ -16,6 +17,7 @@ export const inviteUserSchema = z
       .regex(/^[A-Z0-9]+$/)
       .optional(),
     password: passwordPolicySchema.optional(),
+    phone: phoneSchema.optional(),
   })
   .superRefine((data, ctx) => {
     if (data.role === "STAFF" && !data.employeeId) {

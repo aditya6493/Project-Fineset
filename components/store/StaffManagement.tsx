@@ -47,6 +47,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/EmptyState";
 import type { Content } from "@/content/en";
 
@@ -81,22 +88,45 @@ export function StaffManagement({
   const [editSubmitError, setEditSubmitError] = useState<string | null>(null);
 
   const { data, isLoading } = useStoreStaff(storeId, { initialData: initialStaff });
-  const createStaffMutation = useCreateStaff();
-  const updateStaffMutation = useUpdateStaff();
-  const deleteStaffMutation = useDeleteStaff();
+  const createStaffMutation = useCreateStaff(storeId);
+  const updateStaffMutation = useUpdateStaff(storeId);
+  const deleteStaffMutation = useDeleteStaff(storeId);
 
   const isMutating =
     updateStaffMutation.isPending || deleteStaffMutation.isPending;
 
   const form = useForm<CreateStaffInput>({
     resolver: zodResolver(createStaffSchema),
-    defaultValues: { name: "", email: "", employeeId: "", password: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      employeeId: "",
+      role: "STAFF",
+      phone: "",
+      password: "",
+    },
   });
 
   const editForm = useForm<EditStaffInput>({
     resolver: zodResolver(editStaffSchema),
-    defaultValues: { name: "", email: "", employeeId: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      employeeId: "",
+      role: "STAFF",
+      phone: "",
+    },
   });
+
+  function editFormRole(role: StaffListItem["role"]): EditStaffInput["role"] {
+    return role === "STORE_MANAGER" ? "STORE_MANAGER" : "STAFF";
+  }
+
+  function staffRoleLabel(role: StaffListItem["role"]) {
+    if (role === "STORE_MANAGER") return store.staff.roles.STORE_MANAGER;
+    if (role === "STAFF") return store.staff.roles.STAFF;
+    return role;
+  }
 
   function handleSuggestPassword() {
     const password = generateSecurePassword();
@@ -154,6 +184,8 @@ export function StaffManagement({
       name: member.name,
       email: member.email ?? "",
       employeeId: member.employeeId,
+      role: editFormRole(member.role),
+      phone: member.phone ?? "",
     });
   }
 
@@ -161,7 +193,13 @@ export function StaffManagement({
     if (!open) {
       setStaffToEdit(null);
       setEditSubmitError(null);
-      editForm.reset({ name: "", email: "", employeeId: "" });
+      editForm.reset({
+        name: "",
+        email: "",
+        employeeId: "",
+        role: "STAFF",
+        phone: "",
+      });
     }
   }
 
@@ -296,6 +334,12 @@ export function StaffManagement({
                   {store.staff.columns.employeeId}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
+                  {store.staff.columns.role}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
+                  {store.staff.columns.phone}
+                </th>
+                <th className="px-4 py-3 font-medium text-text-secondary">
                   {store.staff.columns.email}
                 </th>
                 <th className="px-4 py-3 font-medium text-text-secondary">
@@ -317,6 +361,8 @@ export function StaffManagement({
                   <tr key={member.id} className="border-b border-border last:border-0">
                     <td className="px-4 py-3">{member.name}</td>
                     <td className="px-4 py-3 font-mono text-xs">{member.employeeId}</td>
+                    <td className="px-4 py-3">{staffRoleLabel(member.role)}</td>
+                    <td className="px-4 py-3">{member.phone ?? "—"}</td>
                     <td className="px-4 py-3">{member.email ?? "—"}</td>
                     <td className="px-4 py-3">{formatDate(member.createdAt)}</td>
                     <td className="px-4 py-3">{member.monthlyVisits}</td>
@@ -420,7 +466,7 @@ export function StaffManagement({
       </Dialog>
 
       <Dialog open={staffToEdit !== null} onOpenChange={handleEditModalChange}>
-        <DialogContent>
+        <DialogContent className="max-h-[min(90vh,640px)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{store.staff.editModal.title}</DialogTitle>
           </DialogHeader>
@@ -477,6 +523,53 @@ export function StaffManagement({
                   </FormItem>
                 )}
               />
+              <FormField
+                control={editForm.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.roleLabel}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={store.staff.modal.rolePlaceholder} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="STAFF">{store.staff.roles.STAFF}</SelectItem>
+                        <SelectItem value="STORE_MANAGER">
+                          {store.staff.roles.STORE_MANAGER}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={editForm.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.phoneLabel}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        placeholder={store.staff.modal.phonePlaceholder}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value.replace(/\D/g, "").slice(0, 10),
+                          )
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               {editSubmitError && (
                 <p className="text-sm text-status-error" role="alert">
                   {editSubmitError}
@@ -495,7 +588,7 @@ export function StaffManagement({
       </Dialog>
 
       <Dialog open={modalOpen} onOpenChange={handleModalChange}>
-        <DialogContent>
+        <DialogContent className="max-h-[min(90vh,640px)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{store.staff.modal.title}</DialogTitle>
           </DialogHeader>
@@ -545,6 +638,53 @@ export function StaffManagement({
                         className="uppercase"
                         onChange={(event) =>
                           field.onChange(event.target.value.toUpperCase())
+                        }
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.roleLabel}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={store.staff.modal.rolePlaceholder} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="STAFF">{store.staff.roles.STAFF}</SelectItem>
+                        <SelectItem value="STORE_MANAGER">
+                          {store.staff.roles.STORE_MANAGER}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{store.staff.modal.phoneLabel}</FormLabel>
+                    <FormControl>
+                      <Input
+                        {...field}
+                        type="tel"
+                        inputMode="numeric"
+                        autoComplete="tel"
+                        placeholder={store.staff.modal.phonePlaceholder}
+                        onChange={(event) =>
+                          field.onChange(
+                            event.target.value.replace(/\D/g, "").slice(0, 10),
+                          )
                         }
                       />
                     </FormControl>

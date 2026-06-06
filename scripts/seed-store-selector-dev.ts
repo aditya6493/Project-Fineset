@@ -20,8 +20,6 @@ const DEV_STORES = [
     city: "Hyderabad",
     state: "Telangana",
     pincode: "500032",
-    pocName: "Ravi Kumar",
-    pointOfContactPhone: "9876543210",
   },
   {
     name: "Store Beta",
@@ -29,8 +27,6 @@ const DEV_STORES = [
     city: "Bengaluru",
     state: "Karnataka",
     pincode: "560001",
-    pocName: "Priya Sharma",
-    pointOfContactPhone: "9876543211",
   },
   {
     name: "Store Gamma",
@@ -38,8 +34,6 @@ const DEV_STORES = [
     city: "Chennai",
     state: "Tamil Nadu",
     pincode: "600001",
-    pocName: "Arun Menon",
-    pointOfContactPhone: "9876543212",
   },
   {
     name: "Store Delta",
@@ -48,8 +42,6 @@ const DEV_STORES = [
     city: "Mumbai",
     state: "Maharashtra",
     pincode: "400001",
-    pocName: "Neha Patel",
-    pointOfContactPhone: "9876543213",
   },
 ];
 
@@ -65,9 +57,8 @@ async function upsertDevStore(spec: (typeof DEV_STORES)[number]) {
     city: spec.city,
     state: spec.state,
     pincode: spec.pincode,
-    pocName: spec.pocName,
-    pointOfContactPhone: spec.pointOfContactPhone,
-    email: MANAGER_EMAIL,
+    businessOwnerName: "Dev Manager",
+    businessOwnerEmail: MANAGER_EMAIL,
     isActive: true,
   };
 
@@ -107,7 +98,9 @@ async function main() {
     const store = await upsertDevStore(spec);
     await ensureStaffForStore(store.id, store.name);
     upserted.push(store);
-    console.log(`✓ ${store.name} (${store.city}) — email ${store.email}`);
+    console.log(
+      `✓ ${store.name} (${store.city}) — ${store.businessOwnerEmail ?? "no email"}`,
+    );
   }
 
   const manager = await prisma.appUser.findUnique({

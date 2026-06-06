@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/select";
 import type { Content } from "@/content/en";
 import type { GetAnalyticsParams, StoreCategory } from "@/types";
+import { AdminDashboardNav } from "@/components/admin/AdminDashboardNav";
 import { StorePerformanceCard } from "./overview/StorePerformanceCard";
 
 type AdminContent = Content["admin"];
@@ -53,34 +54,37 @@ export function AdminOverview({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <h1 className="font-display text-2xl font-bold text-text-primary">
-            {admin.overview.title}
-          </h1>
-          <p className="mt-1 text-sm text-text-secondary">{admin.overview.subtitle}</p>
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-text-primary">
+              {admin.overview.title}
+            </h1>
+            <p className="mt-1 text-sm text-text-secondary">{admin.overview.subtitle}</p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            <Select
+              value={categoryFilter}
+              onValueChange={(value) =>
+                setCategoryFilter(value as StoreCategory | "ALL")
+              }
+            >
+              <SelectTrigger className="w-full sm:w-44" id="category-filter">
+                <SelectValue placeholder={admin.overview.allCategories} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="ALL">{admin.overview.allCategories}</SelectItem>
+                {Object.entries(admin.categories).map(([key, label]) => (
+                  <SelectItem key={key} value={key}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <PeriodSwitcher options={periodOptions} value={period} onChange={setPeriod} />
+          </div>
         </div>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-          <Select
-            value={categoryFilter}
-            onValueChange={(value) =>
-              setCategoryFilter(value as StoreCategory | "ALL")
-            }
-          >
-            <SelectTrigger className="w-full sm:w-44" id="category-filter">
-              <SelectValue placeholder={admin.overview.allCategories} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="ALL">{admin.overview.allCategories}</SelectItem>
-              {Object.entries(admin.categories).map(([key, label]) => (
-                <SelectItem key={key} value={key}>
-                  {label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <PeriodSwitcher options={periodOptions} value={period} onChange={setPeriod} />
-        </div>
+        <AdminDashboardNav labels={admin.nav} />
       </div>
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 lg:gap-4 [&>*]:min-w-0">

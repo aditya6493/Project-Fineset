@@ -26,18 +26,18 @@ export function useStoreStaff(
   });
 }
 
-export function useCreateStaff() {
+export function useCreateStaff(storeId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: CreateStaffInput) => createStaff(payload),
+    mutationFn: (payload: CreateStaffInput) => createStaff(payload, storeId),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },
   });
 }
 
-export function useUpdateStaff() {
+export function useUpdateStaff(storeId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
@@ -47,18 +47,18 @@ export function useUpdateStaff() {
     }: {
       staffId: string;
       payload: UpdateStaffInput;
-    }) => updateStaff(staffId, payload),
+    }) => updateStaff(staffId, payload, storeId),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },
   });
 }
 
-export function useDeleteStaff() {
+export function useDeleteStaff(storeId?: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (staffId: string) => deleteStaff(staffId),
+    mutationFn: (staffId: string) => deleteStaff(staffId, storeId),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },

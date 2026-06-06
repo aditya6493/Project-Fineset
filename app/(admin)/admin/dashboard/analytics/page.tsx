@@ -5,6 +5,7 @@ export default function AdminAnalyticsPage() {
   return (
     <AdminBusinessAnalytics
       copy={content.admin.analytics}
+      nav={content.admin.nav}
       common={content.common}
       errors={content.errors}
     />

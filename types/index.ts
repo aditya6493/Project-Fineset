@@ -128,8 +128,8 @@ export interface StorePerformanceRow {
   city: string;
   state: string;
   isActive: boolean;
-  pocName: string | null;
-  pointOfContactPhone: string | null;
+  storeManagerName: string | null;
+  storeManagerPhone: string | null;
   visits: number;
   revenue: number;
   conversionRate: number;

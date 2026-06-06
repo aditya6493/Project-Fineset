@@ -66,7 +66,11 @@ export async function inviteUser(
 
   let staffId: string | undefined;
 
-  if (input.role === "STAFF") {
+  const createsStaffRecord =
+    input.role === "STAFF" ||
+    (input.role === "STORE_MANAGER" && Boolean(input.employeeId));
+
+  if (createsStaffRecord) {
     if (!input.employeeId || !input.storeId) {
       throw new InviteError("Staff invite requires employeeId and storeId", 400);
     }
@@ -78,12 +82,15 @@ export async function inviteUser(
       throw new InviteError("Employee ID already exists", 409);
     }
 
+    const staffRole = input.role === "STORE_MANAGER" ? "STORE_MANAGER" : "STAFF";
+
     const staff = await prisma.staff.create({
       data: {
         name,
         employeeId: input.employeeId,
+        phone: input.phone,
         storeId: input.storeId,
-        role: "STAFF",
+        role: staffRole,
         isActive: true,
       },
     });

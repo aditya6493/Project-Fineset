@@ -1,10 +1,19 @@
 import { config as loadDotenv } from "dotenv";
+import { existsSync, statSync } from "node:fs";
 import { resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
+  prismaClientMtimeMs?: number;
+  prismaSchemaMtimeMs?: number;
 };
+
+const GENERATED_CLIENT_PATH = resolve(
+  process.cwd(),
+  "node_modules/.prisma/client/index.js",
+);
+const SCHEMA_PATH = resolve(process.cwd(), "prisma/schema.prisma");
 
 /** Turbopack workers may start before Next injects .env.local — load it in dev. */
 function ensureDatabaseEnvLoaded(): void {
@@ -54,7 +63,54 @@ function createPrismaClient(): PrismaClient {
   });
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient();
+function fileMtimeMs(path: string): number | undefined {
+  if (!existsSync(path)) return undefined;
+  return statSync(path).mtimeMs;
+}
 
-// Reuse one client per serverless instance (dev + production).
-globalForPrisma.prisma = prisma;
+function prismaArtifactsMtimeMs(): {
+  clientMtime?: number;
+  schemaMtime?: number;
+} {
+  return {
+    clientMtime: fileMtimeMs(GENERATED_CLIENT_PATH),
+    schemaMtime: fileMtimeMs(SCHEMA_PATH),
+  };
+}
+
+function getPrismaClient(): PrismaClient {
+  if (process.env.NODE_ENV === "production") {
+    if (!globalForPrisma.prisma) {
+      globalForPrisma.prisma = createPrismaClient();
+    }
+    return globalForPrisma.prisma;
+  }
+
+  const { clientMtime, schemaMtime } = prismaArtifactsMtimeMs();
+  const cacheIsFresh =
+    globalForPrisma.prisma !== undefined &&
+    globalForPrisma.prismaClientMtimeMs === clientMtime &&
+    globalForPrisma.prismaSchemaMtimeMs === schemaMtime;
+
+  if (cacheIsFresh && globalForPrisma.prisma) {
+    return globalForPrisma.prisma;
+  }
+
+  if (globalForPrisma.prisma) {
+    void globalForPrisma.prisma.$disconnect();
+  }
+
+  globalForPrisma.prisma = createPrismaClient();
+  globalForPrisma.prismaClientMtimeMs = clientMtime;
+  globalForPrisma.prismaSchemaMtimeMs = schemaMtime;
+  return globalForPrisma.prisma;
+}
+
+/** Re-resolve on each access so `prisma generate` picks up without a full dev restart. */
+export const prisma = new Proxy({} as PrismaClient, {
+  get(_target, prop, receiver) {
+    const client = getPrismaClient();
+    const value = Reflect.get(client, prop, receiver) as unknown;
+    return typeof value === "function" ? value.bind(client) : value;
+  },
+});
