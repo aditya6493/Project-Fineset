@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { UseFormSetValue, UseFormWatch } from "react-hook-form";
 import { lookupCustomerByPhone } from "@/lib/api/customers";
+import { parseDateInput } from "@/components/forms/VisitForm/VisitForm.types";
 import type { VisitFormValues } from "@/components/forms/VisitForm/VisitForm.types";
 
 const LOOKUP_DEBOUNCE_MS = 400;
@@ -70,11 +71,27 @@ export function useCustomerLookupPrefill({
           if (customer.area) {
             setValue("area", customer.area, { shouldDirty: true });
           }
+          if (customer.address) {
+            setValue("address", customer.address, { shouldDirty: true });
+          }
+          if (customer.profession) {
+            setValue("profession", customer.profession, { shouldDirty: true });
+          }
           if (customer.gender && isGender(customer.gender)) {
             setValue("gender", customer.gender, { shouldDirty: true });
           }
           if (customer.ageGroup && isAgeGroup(customer.ageGroup)) {
             setValue("ageGroup", customer.ageGroup, { shouldDirty: true });
+          }
+          if (customer.dateOfBirth) {
+            setValue("dateOfBirth", parseDateInput(customer.dateOfBirth.slice(0, 10)), {
+              shouldDirty: true,
+            });
+          }
+          if (customer.anniversary) {
+            setValue("anniversary", parseDateInput(customer.anniversary.slice(0, 10)), {
+              shouldDirty: true,
+            });
           }
           setValue(
             "customerType",

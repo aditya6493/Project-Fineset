@@ -24,7 +24,9 @@ import { useCustomerLookupPrefill } from "@/hooks/useCustomerLookupPrefill";
 import { FormSection } from "../FormSection";
 import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
 import {
+  formatDateForInput,
   formatTimeForInput,
+  parseDateInput,
   parseTimeInput,
 } from "../VisitForm.types";
 
@@ -238,7 +240,7 @@ export function CustomerSection({
         />
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <FormField
           control={control}
           name="area"
@@ -296,6 +298,93 @@ export function CustomerSection({
                   ))}
                 </SelectContent>
               </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="dateOfBirth"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.dateOfBirth.label}</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  value={field.value ? formatDateForInput(field.value) : ""}
+                  onChange={(event) => {
+                    if (!event.target.value) {
+                      field.onChange(undefined);
+                      return;
+                    }
+                    field.onChange(parseDateInput(event.target.value));
+                  }}
+                  max={formatDateForInput(new Date())}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <FormField
+          control={control}
+          name="address"
+          render={({ field }) => (
+            <FormItem className="sm:col-span-2">
+              <FormLabel>{fields.address.label}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={fields.address.placeholder}
+                  autoComplete="street-address"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="profession"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.profession.label}</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder={fields.profession.placeholder}
+                  autoComplete="off"
+                  {...field}
+                  value={field.value ?? ""}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        <FormField
+          control={control}
+          name="anniversary"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{fields.anniversary.label}</FormLabel>
+              <FormControl>
+                <Input
+                  type="date"
+                  value={field.value ? formatDateForInput(field.value) : ""}
+                  onChange={(event) => {
+                    if (!event.target.value) {
+                      field.onChange(undefined);
+                      return;
+                    }
+                    field.onChange(parseDateInput(event.target.value));
+                  }}
+                  max={formatDateForInput(new Date())}
+                />
+              </FormControl>
               <FormMessage />
             </FormItem>
           )}

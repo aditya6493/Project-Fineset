@@ -1,5 +1,6 @@
 import { Logo } from "@/components/shared/Logo";
 import { OfflineActions } from "@/components/pwa/OfflineActions";
+import { BRAND_NAME } from "@/lib/pwa/config";
 
 export const metadata = {
   title: "Offline",
@@ -14,7 +15,7 @@ export default function OfflinePage() {
         You&apos;re offline
       </h1>
       <p className="mt-2 max-w-sm text-text-secondary">
-        FineSet needs an internet connection for sign-in and live store data.
+        {BRAND_NAME} needs an internet connection for sign-in and live store data.
         Cached pages may still be available.
       </p>
       <OfflineActions />

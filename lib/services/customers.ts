@@ -8,8 +8,12 @@ export interface CustomerLookupResult {
   name: string;
   phone: string;
   area: string | null;
+  address: string | null;
+  profession: string | null;
   gender: string | null;
   ageGroup: string | null;
+  dateOfBirth: string | null;
+  anniversary: string | null;
   visitCount: number;
 }
 
@@ -38,8 +42,12 @@ export async function lookupCustomerByPhone(
     name: decrypted.name,
     phone: decrypted.phone,
     area: customer.area,
+    address: customer.address,
+    profession: customer.profession,
     gender: customer.gender,
     ageGroup: customer.ageGroup,
+    dateOfBirth: customer.dateOfBirth?.toISOString() ?? null,
+    anniversary: customer.anniversary?.toISOString() ?? null,
     visitCount: customer._count.visits,
   };
 }
@@ -86,8 +94,12 @@ export async function listCustomers(params: ListCustomersParams) {
         name: decrypted.name,
         phone: decrypted.phone,
         area: customer.area,
+        address: customer.address,
+        profession: customer.profession,
         gender: customer.gender,
         ageGroup: customer.ageGroup,
+        dateOfBirth: customer.dateOfBirth?.toISOString() ?? null,
+        anniversary: customer.anniversary?.toISOString() ?? null,
         visitCount: customer._count.visits,
         storeId: customer.storeId,
         createdAt: customer.createdAt.toISOString(),

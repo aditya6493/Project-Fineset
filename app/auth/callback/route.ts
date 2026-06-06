@@ -45,7 +45,7 @@ export async function GET(request: Request) {
 
   const recoveryCandidate = isPasswordRecoveryRedirect(next, type);
   const recoveryDestination = `${origin}${PASSWORD_RECOVERY_PATH}`;
-  let response = NextResponse.redirect(
+  const response = NextResponse.redirect(
     recoveryCandidate ? recoveryDestination : `${origin}/`,
   );
 

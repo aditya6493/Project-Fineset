@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { APP_LOGO_SRC } from "@/lib/pwa/config";
+import { APP_LOGO_SRC, BRAND_NAME } from "@/lib/pwa/config";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {
@@ -19,7 +19,7 @@ export function Logo({
   const image = (
     <Image
       src={APP_LOGO_SRC}
-      alt="FineSet"
+      alt={BRAND_NAME}
       width={size}
       height={size}
       className={cn("shrink-0 rounded-full", className)}

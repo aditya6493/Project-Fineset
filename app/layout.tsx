@@ -21,13 +21,13 @@ const playfair = Playfair_Display({
   display: "swap",
 });
 
-const APP_TITLE = `${PWA_CONFIG.name} — Jewelry Store SaaS`;
+const APP_TITLE = PWA_CONFIG.shareTitle;
 
 export const metadata: Metadata = {
   applicationName: PWA_CONFIG.shortName,
   title: {
     default: APP_TITLE,
-    template: `%s — ${PWA_CONFIG.shortName}`,
+    template: `%s | ${PWA_CONFIG.shortName}`,
   },
   description: PWA_CONFIG.description,
   manifest: "/manifest.webmanifest",

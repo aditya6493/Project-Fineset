@@ -5,7 +5,7 @@ import { requirePortalSession } from "@/lib/auth/require-portal-session";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Staff Dashboard | FineSet",
+  title: "Staff Dashboard",
   robots: { index: false, follow: false },
 };
 

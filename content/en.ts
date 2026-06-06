@@ -1,6 +1,6 @@
 export const content = {
   common: {
-    appName: "FineSet",
+    appName: "MyStore",
     loading: "Loading…",
     save: "Save",
     cancel: "Cancel",
@@ -21,7 +21,7 @@ export const content = {
   },
   auth: {
     login: {
-      title: "Sign in to FineSet",
+      title: "Sign in to MyStore",
       subtitle: "Use your work email and password",
       submitLabel: "Sign In",
       errorInvalid: "Invalid email or password",
@@ -136,6 +136,14 @@ export const content = {
         },
       },
       area: { label: "Area / Locality", placeholder: "Locality or area" },
+      address: {
+        label: "Address",
+        placeholder: "Street, area, city, pincode",
+      },
+      profession: {
+        label: "Profession",
+        placeholder: "e.g. Teacher, Business owner",
+      },
       gender: {
         label: "Gender",
         options: {
@@ -154,6 +162,8 @@ export const content = {
           "50+": "50+",
         },
       },
+      dateOfBirth: { label: "Date of birth", placeholder: "Select date" },
+      anniversary: { label: "Anniversary", placeholder: "Select date" },
       productsExplored: {
         label: "Products Explored",
         options: {

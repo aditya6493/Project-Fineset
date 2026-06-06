@@ -75,8 +75,22 @@ export const createVisitSchema = z
     outTime: z.coerce.date().optional(),
     sourceChannel: sourceChannelSchema,
     area: z.string().max(100).optional(),
+    address: z.string().max(300).optional(),
+    profession: z.string().max(100).optional(),
     gender: genderSchema.optional(),
     ageGroup: ageGroupSchema.optional(),
+    dateOfBirth: z.coerce
+      .date()
+      .optional()
+      .refine((value) => !value || value <= new Date(), {
+        message: "Date of birth cannot be in the future",
+      }),
+    anniversary: z.coerce
+      .date()
+      .optional()
+      .refine((value) => !value || value <= new Date(), {
+        message: "Anniversary cannot be in the future",
+      }),
     productsExplored: z.array(productCategorySchema).default([]),
     purchaseStatus: purchaseStatusSchema.optional(),
     productsPurchased: z.array(productCategorySchema).default([]),

@@ -369,8 +369,12 @@ export interface VisitListItem {
   visitType: VisitType;
   sourceChannel: SourceChannel;
   area: string | null;
+  address: string | null;
+  profession: string | null;
   gender: string | null;
   ageGroup: string | null;
+  dateOfBirth: string | null;
+  anniversary: string | null;
   purchaseStatus: PurchaseStatus;
   productsExplored: string[];
   productsPurchased: string[];

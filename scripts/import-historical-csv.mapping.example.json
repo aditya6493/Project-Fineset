@@ -1,0 +1,108 @@
+{
+  "$comment": "Copy to scripts/<your-store>.mapping.json and edit column headers to match your CSV.",
+
+  "storeId": "REPLACE_WITH_STORE_CUID",
+  "defaultStaffId": "REPLACE_WITH_STAFF_CUID",
+
+  "storeColumn": null,
+  "storeMap": {
+    "Store Alpha": "REPLACE_WITH_STORE_CUID"
+  },
+
+  "staffColumn": "Employee ID",
+  "staffMap": {
+    "EMP001": "REPLACE_WITH_STAFF_CUID",
+    "EMP002": "REPLACE_WITH_STAFF_CUID"
+  },
+
+  "dateFormat": "auto",
+  "skipDuplicateVisits": true,
+  "batchSize": 200,
+
+  "columns": {
+    "customerName": "Customer Name",
+    "customerPhone": "Phone",
+    "visitDate": "Visit Date",
+    "customerType": "Customer Type",
+    "visitType": "Visit Type",
+    "purchaseStatus": "Purchase Status",
+    "sourceChannel": "Source",
+    "area": "Area",
+    "gender": "Gender",
+    "ageGroup": "Age Group",
+    "profession": "Profession",
+    "productsExplored": "Products Explored",
+    "productsPurchased": "Products Purchased",
+    "transactionAmount": "Transaction Amount",
+    "intentTier": "Intent",
+    "reasonNoPurchase": "Reason No Purchase",
+    "staffNotes": "Notes",
+    "followUpNeeded": "Follow Up Needed",
+    "followUpDate": "Follow Up Date",
+    "enrollmentOutcome": "Scheme Outcome",
+    "schemesPitched": "Schemes Pitched",
+    "budgetStated": "Budget",
+    "purchaseOccasion": "Occasion",
+    "metalKtPref": "Metal Preference",
+    "competitorMention": "Competitor"
+  },
+
+  "defaults": {
+    "customerType": "NEW",
+    "visitType": "WALK_IN",
+    "purchaseStatus": "NOT_PURCHASED",
+    "sourceChannel": "OTHER"
+  },
+
+  "enumMaps": {
+    "customerType": {
+      "new": "NEW",
+      "repeat": "REPEAT",
+      "vip": "VIP"
+    },
+    "visitType": {
+      "walk in": "WALK_IN",
+      "walk-in": "WALK_IN",
+      "appointment": "APPOINTMENT"
+    },
+    "purchaseStatus": {
+      "purchased": "PURCHASED",
+      "yes": "PURCHASED",
+      "not purchased": "NOT_PURCHASED",
+      "no": "NOT_PURCHASED",
+      "pending": "PENDING"
+    },
+    "sourceChannel": {
+      "walk in": "ORGANIC_WALK_IN",
+      "referral": "REFERRAL",
+      "social media": "SOCIAL_MEDIA",
+      "internet": "INTERNET",
+      "phone": "PHONE",
+      "other": "OTHER"
+    },
+    "intentTier": {
+      "hot": "HOT",
+      "warm": "WARM",
+      "cold": "COLD",
+      "browsing": "BROWSING"
+    },
+    "enrollmentOutcome": {
+      "enrolled ghs": "ENROLLED_GHS",
+      "enrolled gpp": "ENROLLED_GPP",
+      "interested": "INTERESTED",
+      "declined": "DECLINED",
+      "callback": "CALLBACK"
+    },
+    "gender": {
+      "male": "MALE",
+      "female": "FEMALE",
+      "other": "OTHER"
+    },
+    "ageGroup": {
+      "18-25": "18-25",
+      "26-35": "26-35",
+      "36-50": "36-50",
+      "50+": "50+"
+    }
+  }
+}

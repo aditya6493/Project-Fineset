@@ -1,3 +1,4 @@
+import { ensureProductionCustomerSchema } from "@/lib/db/ensure-production-customer-schema";
 import { prisma } from "@/lib/db/prisma";
 import type { CreateVisitInput } from "@/lib/validations/visit.schema";
 import type { VisitListItem } from "@/types";
@@ -18,14 +19,20 @@ interface CreateVisitParams extends CreateVisitInput {
 }
 
 export async function createVisit(params: CreateVisitParams): Promise<Visit> {
+  await ensureProductionCustomerSchema();
+
   const {
     storeId,
     staffId,
     customerName,
     customerPhone,
     area,
+    address,
+    profession,
     gender,
     ageGroup,
+    dateOfBirth,
+    anniversary,
     followUpNeeded,
     followUpDate,
     purchaseStatus,
@@ -55,8 +62,12 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         nameSearch: customerPii.nameSearch,
         phoneLast4: customerPii.phoneLast4,
         area,
+        address,
+        profession,
         gender,
         ageGroup,
+        dateOfBirth,
+        anniversary,
         ghsEnrolled: schemeFlags.ghsPolicy,
         activeScheme: schemeFlags.activeScheme,
         storeId,
@@ -67,8 +78,12 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         nameSearch: customerPii.nameSearch,
         phoneLast4: customerPii.phoneLast4,
         area,
+        address,
+        profession,
         gender,
         ageGroup,
+        dateOfBirth,
+        anniversary,
         ...(schemeFlags.ghsPolicy ? { ghsEnrolled: true } : {}),
         ...(schemeFlags.activeScheme ? { activeScheme: schemeFlags.activeScheme } : {}),
       },
@@ -89,8 +104,12 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         customerNameSearch: customerPii.customerNameSearch,
         phoneLast4: customerPii.phoneLast4,
         area,
+        address,
+        profession,
         gender,
         ageGroup,
+        dateOfBirth,
+        anniversary,
         storeId,
         staffId,
         customerId: customer.id,
@@ -199,7 +218,17 @@ export async function listVisits(
       take: params.pageSize,
       include: {
         staff: { select: { name: true } },
-        customer: { select: { area: true, gender: true, ageGroup: true } },
+        customer: {
+          select: {
+            area: true,
+            address: true,
+            profession: true,
+            gender: true,
+            ageGroup: true,
+            dateOfBirth: true,
+            anniversary: true,
+          },
+        },
         followUp: { select: { status: true } },
       },
     }),
@@ -222,8 +251,18 @@ export async function listVisits(
       visitType: visit.visitType,
       sourceChannel: visit.sourceChannel,
       area: visit.area ?? visit.customer?.area ?? null,
+      address: visit.address ?? visit.customer?.address ?? null,
+      profession: visit.profession ?? visit.customer?.profession ?? null,
       gender: visit.gender ?? visit.customer?.gender ?? null,
       ageGroup: visit.ageGroup ?? visit.customer?.ageGroup ?? null,
+      dateOfBirth:
+        visit.dateOfBirth?.toISOString() ??
+        visit.customer?.dateOfBirth?.toISOString() ??
+        null,
+      anniversary:
+        visit.anniversary?.toISOString() ??
+        visit.customer?.anniversary?.toISOString() ??
+        null,
       purchaseStatus: visit.purchaseStatus,
       productsExplored: visit.productsExplored,
       productsPurchased: visit.productsPurchased,

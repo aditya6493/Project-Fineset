@@ -43,9 +43,12 @@ export interface CustomerProfile {
     name: string;
     phone: string;
     area: string | null;
+    address: string | null;
     gender: string | null;
     ageGroup: string | null;
     profession: string | null;
+    dateOfBirth: string | null;
+    anniversary: string | null;
     customerType: CustomerType | null;
     /** Staff tag on latest visit when it differs from profile segment. */
     latestVisitCustomerType: CustomerType | null;
@@ -341,9 +344,12 @@ export async function getCustomerProfile(
       name: decryptedCustomer.name,
       phone: decryptedCustomer.phone,
       area: customer.area,
+      address: customer.address,
       gender: customer.gender,
       ageGroup: customer.ageGroup,
       profession: customer.profession,
+      dateOfBirth: customer.dateOfBirth?.toISOString() ?? null,
+      anniversary: customer.anniversary?.toISOString() ?? null,
       customerType,
       latestVisitCustomerType: customerTypesDiffer(
         customerType,
