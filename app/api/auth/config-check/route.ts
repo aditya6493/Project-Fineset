@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { getCustomerSchemaHealth } from "@/lib/db/customer-schema-health";
+import { ensureProductionCustomerSchema } from "@/lib/db/ensure-production-customer-schema";
 import {
   ensureProductionStoreSchema,
   getDatabaseHostForDiagnostics,
@@ -96,6 +98,9 @@ export async function GET() {
 
   let storeHealth: Awaited<ReturnType<typeof getStoreSchemaHealth>> | null = null;
   let storeSchemaOk = false;
+  let customerHealth: Awaited<ReturnType<typeof getCustomerSchemaHealth>> | null =
+    null;
+  let customerSchemaOk = false;
   if (dbOk) {
     try {
       await ensureProductionStoreSchema();
@@ -107,6 +112,16 @@ export async function GET() {
     } catch (err) {
       console.error("[config-check] store schema probe failed", err);
     }
+    try {
+      await ensureProductionCustomerSchema();
+      customerHealth = await getCustomerSchemaHealth();
+      customerSchemaOk =
+        customerHealth.missingCustomerColumns.length === 0 &&
+        customerHealth.missingVisitColumns.length === 0 &&
+        customerHealth.prismaCustomerQueryOk;
+    } catch (err) {
+      console.error("[config-check] customer schema probe failed", err);
+    }
   }
   const missingStoreColumns = storeHealth?.missingStoreColumns ?? [];
 
@@ -116,7 +131,8 @@ export async function GET() {
       !dbUrlLikelyBroken &&
       Boolean(supabaseUrl) &&
       hasServiceRole &&
-      storeSchemaOk,
+      storeSchemaOk &&
+      customerSchemaOk,
     checks: {
       hasDatabaseUrl: dbUrl.length > 0,
       databaseUrlLikelyBroken: dbUrlLikelyBroken,
@@ -138,8 +154,14 @@ export async function GET() {
       storeCategoryOptionTableExists: storeHealth?.storeCategoryOptionTableExists,
       storeRowCount: storeHealth?.storeRowCount,
       prismaStoreQueryOk: storeHealth?.prismaStoreQueryOk,
+      customerSchemaOk,
+      missingCustomerColumns: customerHealth?.missingCustomerColumns ?? [],
+      missingVisitColumns: customerHealth?.missingVisitColumns ?? [],
+      prismaCustomerQueryOk: customerHealth?.prismaCustomerQueryOk,
     },
-    hint: !storeSchemaOk
+    hint: !customerSchemaOk
+      ? `Production DB missing customer/visit profile columns (Customer: ${(customerHealth?.missingCustomerColumns ?? []).join(", ") || "none"}; Visit: ${(customerHealth?.missingVisitColumns ?? []).join(", ") || "none"}). Run scripts/apply-production-customer-schema.sql or redeploy with DIRECT_URL set.`
+      : !storeSchemaOk
       ? `Production DB (host ${getDatabaseHostForDiagnostics()}) missing columns: ${missingStoreColumns.join(", ")}. Set Vercel DIRECT_URL to Supabase Session pooler :5432, redeploy, or run scripts/apply-production-store-schema.sql on that exact project.`
       : dbUrlLikelyBroken
         ? "DATABASE_URL password contains @ — encode as %40 in Vercel env vars."

@@ -32,8 +32,12 @@ export type VisitDraftFields = Pick<
   | "visitType"
   | "sourceChannel"
   | "area"
+  | "address"
+  | "profession"
   | "gender"
   | "ageGroup"
+  | "dateOfBirth"
+  | "anniversary"
   | "productsExplored"
   | "purchaseStatus"
   | "productsPurchased"
@@ -72,8 +76,12 @@ export function getDefaultVisitValues(
     outTime: undefined,
     sourceChannel: draft?.sourceChannel ?? "ORGANIC_WALK_IN",
     area: draft?.area,
+    address: draft?.address,
+    profession: draft?.profession,
     gender: draft?.gender,
     ageGroup: draft?.ageGroup,
+    dateOfBirth: draft?.dateOfBirth,
+    anniversary: draft?.anniversary,
     productsExplored: draft?.productsExplored ?? [],
     purchaseStatus: resolveDraftPurchaseStatus(draft?.purchaseStatus),
     productsPurchased: draft?.productsPurchased ?? [],
@@ -123,8 +131,12 @@ export function extractDraftFields(values: VisitFormValues): VisitDraftFields {
     visitType: values.visitType,
     sourceChannel: values.sourceChannel,
     area: values.area,
+    address: values.address,
+    profession: values.profession,
     gender: values.gender,
     ageGroup: values.ageGroup,
+    dateOfBirth: values.dateOfBirth,
+    anniversary: values.anniversary,
     productsExplored: values.productsExplored,
     purchaseStatus: resolveDraftPurchaseStatus(values.purchaseStatus),
     productsPurchased: values.productsPurchased,
@@ -155,8 +167,12 @@ export function getSectionFieldNames(
         "outTime",
         "sourceChannel",
         "area",
+        "address",
+        "profession",
         "gender",
         "ageGroup",
+        "dateOfBirth",
+        "anniversary",
       ];
     case "visit":
       return [

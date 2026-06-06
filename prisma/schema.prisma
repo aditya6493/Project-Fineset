@@ -124,9 +124,12 @@ model Customer {
   nameSearch   String   @default("")
   phoneLast4   String?
   area         String?
+  address      String?
   profession   String?
   gender       String?
   ageGroup     String?
+  dateOfBirth  DateTime?
+  anniversary  DateTime?
   activeScheme String?
   ghsEnrolled  Boolean  @default(false)
   storeId      String
@@ -160,8 +163,12 @@ model Visit {
   customerType        CustomerType
   visitType         VisitType
   area              String?
+  address           String?
+  profession        String?
   gender            String?
   ageGroup          String?
+  dateOfBirth       DateTime?
+  anniversary       DateTime?
   purchaseStatus    PurchaseStatus
   productsPurchased String[]
   productsExplored  String[]

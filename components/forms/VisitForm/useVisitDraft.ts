@@ -5,9 +5,28 @@ import type { UseFormWatch, UseFormReset } from "react-hook-form";
 import {
   VISIT_DRAFT_STORAGE_KEY,
   extractDraftFields,
+  parseDateInput,
   type VisitDraftFields,
   type VisitFormValues,
 } from "./VisitForm.types";
+
+const DRAFT_DATE_FIELDS = ["dateOfBirth", "anniversary"] as const;
+
+function normalizeLoadedDraft(
+  draft: Partial<VisitDraftFields>,
+): Partial<VisitDraftFields> {
+  const raw = draft as Partial<VisitDraftFields> & Record<string, Date | string | undefined>;
+  const next = { ...draft };
+
+  for (const key of DRAFT_DATE_FIELDS) {
+    const value = raw[key as string];
+    if (typeof value === "string") {
+      next[key] = parseDateInput(value.slice(0, 10));
+    }
+  }
+
+  return next;
+}
 
 function isVisitDraftFields(value: unknown): value is VisitDraftFields {
   if (!value || typeof value !== "object") return false;
@@ -53,7 +72,7 @@ export function useVisitDraft(
 
     const draft = loadVisitDraft();
     if (draft) {
-      reset((current) => ({ ...current, ...draft }));
+      reset((current) => ({ ...current, ...normalizeLoadedDraft(draft) }));
     }
   }, [enabled, reset]);
 

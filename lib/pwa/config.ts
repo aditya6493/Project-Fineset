@@ -1,10 +1,15 @@
 /** Bump when PWA or in-app logo assets change (triggers cache refresh for clients). */
 export const PWA_ASSET_VERSION = "3";
 
+export const BRAND_NAME = "MyStore";
+
 export const PWA_CONFIG = {
-  name: "FineSet",
-  shortName: "FineSet",
-  description: "Multi-tenant SaaS platform for jewelry store chains",
+  name: BRAND_NAME,
+  shortName: BRAND_NAME,
+  /** Shown in link previews (WhatsApp, iMessage, Slack, etc.). */
+  shareTitle: `${BRAND_NAME} — Performance analytics SaaS powered by tribly.ai`,
+  description:
+    "Performance analytics SaaS for multi-store retail, powered by tribly.ai",
   themeColor: "#b8972e",
   backgroundColor: "#faf7f2",
   startUrl: "/",

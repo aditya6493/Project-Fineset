@@ -7,7 +7,7 @@ import { StoreDashboardShell } from "@/components/store/StoreDashboardShell";
 import { requirePortalSession } from "@/lib/auth/require-portal-session";
 
 export const metadata: Metadata = {
-  title: "Store Dashboard | FineSet",
+  title: "Store Dashboard",
   robots: { index: false, follow: false },
 };
 
