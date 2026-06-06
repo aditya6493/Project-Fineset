@@ -55,8 +55,8 @@ export async function listStores(params: {
       { name: { contains: term, mode: "insensitive" } },
       { city: { contains: term, mode: "insensitive" } },
       { state: { contains: term, mode: "insensitive" } },
-      { email: { contains: term, mode: "insensitive" } },
-      { pocName: { contains: term, mode: "insensitive" } },
+      { businessOwnerName: { contains: term, mode: "insensitive" } },
+      { businessOwnerEmail: { contains: term, mode: "insensitive" } },
     ];
   }
 
@@ -88,9 +88,8 @@ export async function listStores(params: {
       city: store.city,
       state: store.state,
       pincode: store.pincode,
-      pocName: store.pocName,
-      pointOfContactPhone: store.pointOfContactPhone,
-      email: store.email,
+      businessOwnerName: store.businessOwnerName,
+      businessOwnerEmail: store.businessOwnerEmail,
       isActive: store.isActive,
       deletedAt: store.deletedAt?.toISOString() ?? null,
       purgeAt: store.purgeAt?.toISOString() ?? null,
@@ -122,7 +121,7 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
   const { password, ...storeFields } = input;
   const normalizedCustomCategory =
     storeFields.category === "OTHER" ? storeFields.customCategory?.trim() : undefined;
-  const managerEmail = storeFields.email?.trim().toLowerCase();
+  const managerEmail = storeFields.businessOwnerEmail?.trim().toLowerCase();
 
   let store: Store | undefined;
   try {
@@ -134,9 +133,8 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
         city: storeFields.city.trim(),
         state: storeFields.state.trim(),
         pincode: storeFields.pincode ?? null,
-        pocName: storeFields.pocName ?? null,
-        pointOfContactPhone: storeFields.pointOfContactPhone ?? null,
-        email: managerEmail ?? null,
+        businessOwnerName: storeFields.businessOwnerName ?? null,
+        businessOwnerEmail: managerEmail ?? null,
       },
     });
 
@@ -159,7 +157,7 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
         };
       } else if (password) {
         const invited = await inviteUser({
-          name: storeFields.pocName?.trim() || store.name,
+          name: storeFields.businessOwnerName?.trim() || store.name,
           email: managerEmail,
           password,
           role: "STORE_MANAGER",
@@ -246,7 +244,7 @@ export async function updateStoreManagerPassword(storeId: string, password: stri
 
   if (!manager) {
     throw new StoreServiceError(
-      "No store manager login exists for this store. Add a manager email and password when creating the store.",
+      "No store manager login exists for this store. Add a business owner email and password when creating the store.",
       404,
     );
   }
@@ -483,8 +481,12 @@ export async function getStorePerformanceRows(
         city: true,
         state: true,
         isActive: true,
-        pocName: true,
-        pointOfContactPhone: true,
+        staff: {
+          where: { role: "STORE_MANAGER" },
+          orderBy: [{ isActive: "desc" }, { name: "asc" }],
+          take: 1,
+          select: { name: true, phone: true },
+        },
         _count: { select: { staff: { where: { isActive: true } } } },
       },
     }),
@@ -595,8 +597,8 @@ export async function getStorePerformanceRows(
       city: store.city,
       state: store.state,
       isActive: store.isActive,
-      pocName: store.pocName,
-      pointOfContactPhone: store.pointOfContactPhone,
+      storeManagerName: store.staff[0]?.name ?? null,
+      storeManagerPhone: store.staff[0]?.phone ?? null,
       visits,
       revenue,
       conversionRate,

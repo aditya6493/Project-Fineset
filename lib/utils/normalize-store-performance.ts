@@ -1,13 +1,29 @@
 import type { StoreManagerPortfolio, StorePerformanceRow } from "@/types";
 
+/** True when SSR/cache rows include store manager fields (added after first deploy). */
+export function storePerformanceRowHasManagerFields(
+  row: StorePerformanceRow,
+): boolean {
+  return (
+    Object.prototype.hasOwnProperty.call(row, "storeManagerName") &&
+    Object.prototype.hasOwnProperty.call(row, "storeManagerPhone")
+  );
+}
+
+export function portfolioHasStoreManagerFields(
+  portfolio: StoreManagerPortfolio,
+): boolean {
+  return portfolio.stores.every(storePerformanceRowHasManagerFields);
+}
+
 /** Fills metrics added after first deploy so stale SSR/cache rows never render "undefined". */
 export function normalizeStorePerformanceRow(
   row: StorePerformanceRow,
 ): StorePerformanceRow {
   return {
     ...row,
-    pocName: row.pocName ?? null,
-    pointOfContactPhone: row.pointOfContactPhone ?? null,
+    storeManagerName: row.storeManagerName ?? null,
+    storeManagerPhone: row.storeManagerPhone ?? null,
     fieldSales: row.fieldSales ?? 0,
     userCalls: row.userCalls ?? 0,
     deltas: row.deltas

@@ -27,7 +27,8 @@ export async function seedPerfFixtures(): Promise<PerfSeedResult> {
       category: "JEWELRY",
       city: "Test City",
       state: "TS",
-      email: managerEmail,
+      businessOwnerName: "Perf Manager",
+      businessOwnerEmail: managerEmail,
     },
   });
   await prisma.appUser.create({

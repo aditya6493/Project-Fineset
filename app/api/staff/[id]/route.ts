@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server";
+import { handleRouteError } from "@/lib/api/route-handler";
+import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
 import {
   badRequest,
   getServerSession,
@@ -24,11 +26,18 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     const session = await getServerSession();
     if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
 
+    const { searchParams } = new URL(req.url);
+    const resolved = await resolveStoreManagerAnalyticsStoreId(
+      session,
+      searchParams.get("storeId") ?? undefined,
+    );
+    if (resolved instanceof NextResponse) return resolved;
+
     const body: unknown = await req.json();
     const parsed = updateStaffSchema.safeParse(body);
     if (!parsed.success) return badRequest(parsed.error.flatten());
 
-    const result = await updateStaff(id, session.storeId, parsed.data);
+    const result = await updateStaff(id, resolved, parsed.data);
     if (result.count === 0) return notFound("Staff member not found");
 
     return NextResponse.json({ count: result.count });
@@ -36,22 +45,29 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     if (error instanceof StaffUpdateError) {
       return NextResponse.json({ message: error.message }, { status: error.status });
     }
-    throw error;
+    return handleRouteError(error);
   }
 }
 
-export async function DELETE(_req: Request, { params }: RouteParams) {
+export async function DELETE(req: Request, { params }: RouteParams) {
   const { id } = await params;
-  const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
-
   try {
-    await deleteStaff(id, session.storeId);
+    const session = await getServerSession();
+    if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
+
+    const { searchParams } = new URL(req.url);
+    const resolved = await resolveStoreManagerAnalyticsStoreId(
+      session,
+      searchParams.get("storeId") ?? undefined,
+    );
+    if (resolved instanceof NextResponse) return resolved;
+
+    await deleteStaff(id, resolved);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
     if (error instanceof StaffDeleteError) {
       return NextResponse.json({ message: error.message }, { status: error.status });
     }
-    throw error;
+    return handleRouteError(error);
   }
 }

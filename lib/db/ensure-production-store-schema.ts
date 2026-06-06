@@ -30,34 +30,39 @@ export async function ensureProductionStoreSchema(): Promise<void> {
       ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "pincode" TEXT
     `;
     await client.$executeRaw`
-      ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "pointOfContactPhone" TEXT
+      ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "businessOwnerName" TEXT
     `;
     await client.$executeRaw`
-      ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "email" TEXT
+      ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "businessOwnerEmail" TEXT
     `;
     await client.$executeRaw`
       ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "customCategory" TEXT
     `;
     await client.$executeRaw`
-      ALTER TABLE "Store" ADD COLUMN IF NOT EXISTS "pocName" TEXT
-    `;
-    await client.$executeRaw`
-      ALTER TABLE "Store" DROP COLUMN IF EXISTS "pointOfContactRole"
-    `;
-
-    await client.$executeRaw`
       DO $$
       BEGIN
         IF EXISTS (
           SELECT 1 FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'Store' AND column_name = 'pointOfContact'
+          WHERE table_schema = 'public' AND table_name = 'Store' AND column_name = 'email'
         ) AND NOT EXISTS (
           SELECT 1 FROM information_schema.columns
-          WHERE table_schema = 'public' AND table_name = 'Store' AND column_name = 'pocName'
+          WHERE table_schema = 'public' AND table_name = 'Store' AND column_name = 'businessOwnerEmail'
         ) THEN
-          ALTER TABLE "Store" RENAME COLUMN "pointOfContact" TO "pocName";
+          ALTER TABLE "Store" RENAME COLUMN "email" TO "businessOwnerEmail";
         END IF;
       END $$
+    `;
+    await client.$executeRaw`
+      ALTER TABLE "Store" DROP COLUMN IF EXISTS "email"
+    `;
+    await client.$executeRaw`
+      ALTER TABLE "Store" DROP COLUMN IF EXISTS "pocName"
+    `;
+    await client.$executeRaw`
+      ALTER TABLE "Store" DROP COLUMN IF EXISTS "pointOfContactPhone"
+    `;
+    await client.$executeRaw`
+      ALTER TABLE "Store" DROP COLUMN IF EXISTS "pointOfContactRole"
     `;
 
     await client.$executeRaw`

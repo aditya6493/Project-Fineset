@@ -65,12 +65,19 @@ export function handleRouteError(error: unknown): NextResponse {
   }
 
   if (error instanceof Prisma.PrismaClientValidationError) {
+    const detail = error.message ?? "";
+    const staleClient =
+      /Unknown argument `phone`/i.test(detail) &&
+      /model Staff/i.test(detail);
+    const message = staleClient
+      ? "Server is using an outdated database client. Run `npm run db:generate`, restart `npm run dev`, then try again."
+      : "Invalid data for the database. Check required fields and try again.";
     return NextResponse.json(
       {
-        message: "Invalid store data for the database. Check required fields and try again.",
+        message,
         code: "PRISMA_VALIDATION",
       },
-      { status: 400 },
+      { status: staleClient ? 503 : 400 },
     );
   }
 

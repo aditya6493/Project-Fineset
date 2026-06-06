@@ -7,12 +7,28 @@ import {
 } from "@/lib/api/analytics";
 import { analyticsParamsMatch } from "@/lib/query/initial-data";
 import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
+import {
+  normalizeStorePerformanceRow,
+  portfolioHasStoreManagerFields,
+} from "@/lib/utils/normalize-store-performance";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
   GetAnalyticsParams,
   StoreDetailAnalytics,
+  StoreManagerPortfolio,
 } from "@/types";
+
+function normalizeAdminOverview(data: AdminDashboardOverview): AdminDashboardOverview {
+  return {
+    ...data,
+    stores: data.stores.map(normalizeStorePerformanceRow),
+  };
+}
+
+function adminOverviewAsPortfolio(data: AdminDashboardOverview): StoreManagerPortfolio {
+  return { period: data.period, stores: data.stores };
+}
 
 interface UseAnalyticsOptions<T> {
   initialData?: T;
@@ -48,12 +64,20 @@ export function useAdminDashboardOverview(
     options.initialParams &&
     analyticsParamsMatch(params, options.initialParams);
 
+  const normalizedInitial = useInitialData
+    ? normalizeAdminOverview(options!.initialData!)
+    : undefined;
+
+  const canHydrate =
+    Boolean(normalizedInitial) &&
+    portfolioHasStoreManagerFields(adminOverviewAsPortfolio(normalizedInitial!));
+
   return useQuery({
-    queryKey: ["analytics", "admin", "overview", params],
-    queryFn: () => getAdminDashboardOverview(params),
-    initialData: useInitialData ? options.initialData : undefined,
+    queryKey: ["analytics", "admin", "overview", "v4", params],
+    queryFn: async () => normalizeAdminOverview(await getAdminDashboardOverview(params)),
+    initialData: canHydrate ? normalizedInitial : undefined,
     ...LIVE_QUERY_OPTIONS,
-    ...queryOptionsForHydration(Boolean(useInitialData)),
+    refetchOnMount: "always",
   });
 }
 

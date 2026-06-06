@@ -103,6 +103,8 @@ export async function listStaff(storeId: string) {
       id: member.id,
       name: member.name,
       employeeId: member.employeeId,
+      phone: member.phone,
+      role: member.role,
       email: member.appUser?.email ?? null,
       createdAt: member.createdAt,
       isActive: member.isActive,
@@ -121,9 +123,10 @@ export async function createStaff(storeId: string, input: CreateStaffInput) {
     name: input.name,
     email: input.email,
     password: input.password,
-    role: "STAFF",
+    role: input.role,
     storeId,
     employeeId: input.employeeId,
+    phone: input.phone,
   });
 }
 
@@ -170,6 +173,12 @@ export async function updateStaff(
   if (input.employeeId !== undefined) {
     staffData.employeeId = input.employeeId;
   }
+  if (input.phone !== undefined) {
+    staffData.phone = input.phone;
+  }
+  if (input.role !== undefined) {
+    staffData.role = input.role;
+  }
   if (input.isActive !== undefined) {
     staffData.isActive = input.isActive;
   }
@@ -181,7 +190,11 @@ export async function updateStaff(
     });
   }
 
-  if (staff.appUser && (input.name !== undefined || normalizedEmail)) {
+  const appUserNeedsUpdate =
+    staff.appUser &&
+    (input.name !== undefined || normalizedEmail || input.role !== undefined);
+
+  if (appUserNeedsUpdate && staff.appUser) {
     const appUserData: Prisma.AppUserUpdateInput = {};
     if (input.name !== undefined) {
       appUserData.name = input.name.trim();
@@ -189,13 +202,23 @@ export async function updateStaff(
     if (normalizedEmail) {
       appUserData.email = normalizedEmail;
     }
+    if (input.role !== undefined) {
+      appUserData.role = input.role;
+    }
     await prisma.appUser.update({
       where: { id: staff.appUser.id },
       data: appUserData,
     });
   }
 
-  if (staff.appUser?.authId) {
+  const shouldSyncAuth =
+    staff.appUser?.authId &&
+    (appUserNeedsUpdate ||
+      input.employeeId !== undefined ||
+      input.phone !== undefined ||
+      input.isActive !== undefined);
+
+  if (shouldSyncAuth && staff.appUser?.authId) {
     const profile = await prisma.appUser.findUnique({
       where: { id: staff.appUser.id },
       include: {

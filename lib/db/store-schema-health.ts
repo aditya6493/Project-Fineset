@@ -2,9 +2,8 @@ import { prisma } from "@/lib/db/prisma";
 
 const REQUIRED_STORE_COLUMNS = [
   "pincode",
-  "pocName",
-  "pointOfContactPhone",
-  "email",
+  "businessOwnerName",
+  "businessOwnerEmail",
   "customCategory",
 ] as const;
 

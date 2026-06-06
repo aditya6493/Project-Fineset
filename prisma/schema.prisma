@@ -22,11 +22,10 @@ model Store {
   customCategory String?
   city           String
   state          String
-  pincode        String?
-  pocName        String?
-  pointOfContactPhone String?
-  email          String?
-  isActive       Boolean       @default(true)
+  pincode             String?
+  businessOwnerName   String?
+  businessOwnerEmail  String?
+  isActive            Boolean       @default(true)
   deletedAt      DateTime?
   purgeAt        DateTime?
   deletedByEmail String?
@@ -51,6 +50,7 @@ model Staff {
   id           String    @id @default(cuid())
   name         String
   employeeId   String    @unique
+  phone        String?
   role         StaffRole @default(STAFF)
   isActive     Boolean   @default(true)
   storeId      String

@@ -15,8 +15,8 @@ export interface StorePerformanceCardLabels {
   totalStaff: string;
   fieldSales: string;
   userCalls: string;
-  pocName: string;
-  pocPhone: string;
+  storeManager: string;
+  storeManagerPhone: string;
   notAvailable: string;
   active: string;
   inactive: string;
@@ -28,18 +28,16 @@ export function MetricItem({
   label,
   value,
   delta,
-  deltaPeriod,
 }: {
   label: string;
   value: string;
   delta?: number;
-  deltaPeriod?: string;
 }) {
   return (
     <div>
       <p className="text-xs text-text-muted">{label}</p>
       <p className="mt-1 font-medium text-text-primary">{value}</p>
-      {delta !== undefined && deltaPeriod && (
+      {delta !== undefined && (
         <p
           className={cn(
             "mt-0.5 text-xs",
@@ -47,7 +45,7 @@ export function MetricItem({
           )}
         >
           {delta >= 0 ? "+" : ""}
-          {delta}% {deltaPeriod}
+          {delta}%
         </p>
       )}
     </div>
@@ -95,8 +93,8 @@ export function StorePerformanceCard({
     totalStaff: admin!.kpis.totalStaff,
     fieldSales: admin!.kpis.fieldSales,
     userCalls: admin!.kpis.userCalls,
-    pocName: admin!.kpis.pocName,
-    pocPhone: admin!.kpis.pocPhone,
+    storeManager: admin!.kpis.storeManager,
+    storeManagerPhone: admin!.kpis.storeManagerPhone,
     notAvailable: admin!.kpis.notAvailable,
     active: admin!.table.active,
     inactive: admin!.table.inactive,
@@ -151,46 +149,38 @@ export function StorePerformanceCard({
           label={cardLabels.totalVisits}
           value={String(store.visits)}
           delta={store.deltas?.visits}
-          deltaPeriod={cardLabels.deltaPeriod}
         />
         <MetricItem
           label={cardLabels.totalRevenue}
           value={formatCurrency(store.revenue)}
           delta={store.deltas?.revenue}
-          deltaPeriod={cardLabels.deltaPeriod}
         />
         <MetricItem
           label={cardLabels.conversionRate}
           value={formatPercent(store.conversionRate)}
           delta={store.deltas?.conversionRate}
-          deltaPeriod={cardLabels.deltaPeriod}
         />
         <MetricItem
           label={cardLabels.fieldSales}
           value={String(store.fieldSales ?? 0)}
           delta={store.deltas?.fieldSales}
-          deltaPeriod={cardLabels.deltaPeriod}
         />
         <MetricItem
           label={cardLabels.userCalls}
           value={String(store.userCalls ?? 0)}
           delta={store.deltas?.userCalls}
-          deltaPeriod={cardLabels.deltaPeriod}
         />
         <MetricItem label={cardLabels.totalStaff} value={String(store.staffCount)} />
       </div>
 
       <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border px-4 py-4 sm:px-5">
         <ContactItem
-          label={cardLabels.pocName}
-          value={displayContactValue(store.pocName, cardLabels.notAvailable)}
+          label={cardLabels.storeManager}
+          value={displayContactValue(store.storeManagerName, cardLabels.notAvailable)}
         />
         <ContactItem
-          label={cardLabels.pocPhone}
-          value={displayContactValue(
-            store.pointOfContactPhone,
-            cardLabels.notAvailable,
-          )}
+          label={cardLabels.storeManagerPhone}
+          value={displayContactValue(store.storeManagerPhone, cardLabels.notAvailable)}
         />
       </dl>
 

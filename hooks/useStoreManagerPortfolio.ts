@@ -1,11 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { getStoreManagerPortfolio } from "@/lib/api/analytics";
 import { analyticsParamsMatch } from "@/lib/query/initial-data";
-import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
-import { normalizeStoreManagerPortfolio } from "@/lib/utils/normalize-store-performance";
+import { LIVE_QUERY_OPTIONS } from "@/lib/sync/constants";
+import {
+  normalizeStoreManagerPortfolio,
+  portfolioHasStoreManagerFields,
+} from "@/lib/utils/normalize-store-performance";
 import type { GetAnalyticsParams, StoreManagerPortfolio } from "@/types";
 
-const PORTFOLIO_QUERY_KEY = "v2";
+const PORTFOLIO_QUERY_KEY = "v4";
 
 interface UseStoreManagerPortfolioOptions {
   initialData?: StoreManagerPortfolio;
@@ -25,12 +28,16 @@ export function useStoreManagerPortfolio(
     ? normalizeStoreManagerPortfolio(options!.initialData!)
     : undefined;
 
+  const canHydrate =
+    Boolean(normalizedInitial) &&
+    portfolioHasStoreManagerFields(normalizedInitial!);
+
   return useQuery({
     queryKey: ["analytics", "store", "portfolio", PORTFOLIO_QUERY_KEY, params],
     queryFn: async () =>
       normalizeStoreManagerPortfolio(await getStoreManagerPortfolio(params)),
-    initialData: normalizedInitial,
+    initialData: canHydrate ? normalizedInitial : undefined,
     ...LIVE_QUERY_OPTIONS,
-    ...queryOptionsForHydration(Boolean(useInitialData)),
+    refetchOnMount: "always",
   });
 }

@@ -12,6 +12,8 @@ interface StaffListItem {
   id: string;
   name: string;
   employeeId: string;
+  phone: string | null;
+  role: "STAFF" | "STORE_MANAGER" | "MASTER_ADMIN";
   email: string | null;
   createdAt: Date | string;
   isActive: boolean;
@@ -28,10 +30,15 @@ export async function getStaff(storeId?: string): Promise<StaffListItem[]> {
   return apiFetch<StaffListItem[]>(`/api/staff${qs}`);
 }
 
+function staffStoreQuery(storeId?: string): string {
+  return storeId ? `?storeId=${encodeURIComponent(storeId)}` : "";
+}
+
 export async function createStaff(
   payload: CreateStaffInput,
+  storeId?: string,
 ): Promise<InviteStaffResponse> {
-  return apiFetch<InviteStaffResponse>("/api/staff", {
+  return apiFetch<InviteStaffResponse>(`/api/staff${staffStoreQuery(storeId)}`, {
     method: "POST",
     body: JSON.stringify(payload),
   });
@@ -40,15 +47,19 @@ export async function createStaff(
 export async function updateStaff(
   staffId: string,
   payload: UpdateStaffInput,
+  storeId?: string,
 ): Promise<{ count: number }> {
-  return apiFetch<{ count: number }>(`/api/staff/${staffId}`, {
-    method: "PATCH",
-    body: JSON.stringify(payload),
-  });
+  return apiFetch<{ count: number }>(
+    `/api/staff/${staffId}${staffStoreQuery(storeId)}`,
+    {
+      method: "PATCH",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
-export async function deleteStaff(staffId: string): Promise<void> {
-  await apiFetch<void>(`/api/staff/${staffId}`, {
+export async function deleteStaff(staffId: string, storeId?: string): Promise<void> {
+  await apiFetch<void>(`/api/staff/${staffId}${staffStoreQuery(storeId)}`, {
     method: "DELETE",
   });
 }

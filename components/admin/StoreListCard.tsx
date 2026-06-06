@@ -107,12 +107,12 @@ export function StoreListCard({
         <DetailItem label={storesCopy.modal.stateLabel} value={displayValue(store.state)} />
         <DetailItem label={storesCopy.columns.pincode} value={displayValue(store.pincode)} />
         <DetailItem
-          label={storesCopy.modal.pocNameLabel}
-          value={displayValue(store.pocName)}
+          label={storesCopy.columns.businessOwnerName}
+          value={displayValue(store.businessOwnerName)}
         />
         <DetailItem
-          label={storesCopy.modal.pointOfContactPhoneLabel}
-          value={displayValue(store.pointOfContactPhone)}
+          label={storesCopy.columns.businessOwnerEmail}
+          value={displayValue(store.businessOwnerEmail)}
         />
         <DetailItem
           label={storesCopy.columns.staffCount}

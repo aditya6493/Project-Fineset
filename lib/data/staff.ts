@@ -24,9 +24,8 @@ export interface InitialStaffFilterStoresPayload {
     city: string;
     state: string;
     pincode: string | null;
-    pocName: string | null;
-    pointOfContactPhone: string | null;
-    email: string | null;
+    businessOwnerName: string | null;
+    businessOwnerEmail: string | null;
     isActive: boolean;
     staffCount: number;
     visits: number;
