@@ -192,22 +192,21 @@ export async function updateStore(storeId: string, input: UpdateStoreInput) {
     throw new StoreServiceError("Store not found", 404);
   }
 
-  if (input.email !== undefined) {
-    await syncStoreManagerEmail(storeId, input.email, {
+  const { businessOwnerEmail: emailInput, ...rest } = input;
+
+  if (emailInput !== undefined) {
+    await syncStoreManagerEmail(storeId, emailInput, {
       storeName: existing.name,
     });
   }
 
-  const emailForStore =
-    input.email !== undefined
-      ? normalizeStoreManagerEmail(input.email)
-      : input.email;
-
   const store = await prisma.store.update({
     where: { id: storeId },
     data: {
-      ...input,
-      email: emailForStore,
+      ...rest,
+      ...(emailInput !== undefined
+        ? { businessOwnerEmail: normalizeStoreManagerEmail(emailInput) }
+        : {}),
       customCategory: shouldClearCustomCategory ? null : normalizedCustomCategory,
     },
   });
