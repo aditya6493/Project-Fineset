@@ -13,10 +13,20 @@ export function isPasswordRecoveryRedirect(
   return next === PASSWORD_RECOVERY_PATH || type === "recovery";
 }
 
-export function isRecoverySessionUser(user: User | null | undefined): boolean {
-  if (!user?.amr?.length) return false;
+type RecoveryAmrEntry = { method?: string; timestamp?: number };
 
-  return user.amr.some((entry) => {
+function readUserAmr(user: User | null | undefined): RecoveryAmrEntry[] | undefined {
+  if (!user || typeof user !== "object") return undefined;
+
+  const amr = (user as User & { amr?: RecoveryAmrEntry[] }).amr;
+  return Array.isArray(amr) ? amr : undefined;
+}
+
+export function isRecoverySessionUser(user: User | null | undefined): boolean {
+  const amr = readUserAmr(user);
+  if (!amr?.length) return false;
+
+  return amr.some((entry) => {
     const method =
       typeof entry === "object" && entry !== null && "method" in entry
         ? String((entry as { method?: string }).method ?? "")

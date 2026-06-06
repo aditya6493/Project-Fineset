@@ -16,11 +16,13 @@ describe("password-recovery helpers", () => {
   it("detects recovery sessions from amr", () => {
     const user = {
       amr: [{ method: "recovery", timestamp: 1 }],
-    } as User;
+    } as unknown as User;
 
     expect(isRecoverySessionUser(user)).toBe(true);
     expect(
-      isRecoverySessionUser({ amr: [{ method: "password", timestamp: 1 }] } as User),
+      isRecoverySessionUser({
+        amr: [{ method: "password", timestamp: 1 }],
+      } as unknown as User),
     ).toBe(false);
   });
 
