@@ -11,7 +11,6 @@ on:
 
 jobs:
   migrate:
-    if: ${{ secrets.DATABASE_URL != '' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,8 +26,9 @@ jobs:
           DIRECT_URL: ${{ secrets.DIRECT_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "::error::Add GitHub repo secret DATABASE_URL (Supabase pooler :6543)."
-            exit 1
+            echo "::warning::DATABASE_URL secret not set; skipping migrate deploy."
+            echo "SKIP_MIGRATE=true" >> "$GITHUB_ENV"
+            exit 0
           fi
           if [ -n "$DIRECT_URL" ]; then
             resolved_direct="$DIRECT_URL"
@@ -43,4 +43,6 @@ jobs:
           echo "DATABASE_URL=$DATABASE_URL" >> "$GITHUB_ENV"
           echo "DIRECT_URL=$resolved_direct" >> "$GITHUB_ENV"
 
-      - run: npx prisma migrate deploy
+      - name: Run npx prisma migrate deploy
+        if: env.SKIP_MIGRATE != 'true'
+        run: npx prisma migrate deploy
