@@ -41,6 +41,8 @@ export const content = {
       resetEmailError: "Could not send the reset email. Try again in a few minutes.",
       resetEmailRateLimited:
         "Too many reset requests. Please wait a few minutes and try again.",
+      resetEmailRedirectError:
+        "Password reset is misconfigured. Add the encoded callback URL in Supabase Redirect URLs, then try again.",
     },
     resetPassword: {
       title: "Reset your password",
@@ -55,6 +57,8 @@ export const content = {
       errorMismatch: "Passwords do not match.",
       errorNoSession:
         "This reset link is invalid or has expired. Request a new one from the sign-in page.",
+      errorAuthCallback:
+        "This reset link could not be verified. Request a new link from the same browser, open it once, and do not use a private/incognito window.",
     },
     staff: {
       title: "Staff Login",

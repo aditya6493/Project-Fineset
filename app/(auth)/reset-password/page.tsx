@@ -36,6 +36,7 @@ export default function ResetPasswordPage() {
             errorGeneric={c.errorGeneric}
             errorMismatch={c.errorMismatch}
             errorNoSession={c.errorNoSession}
+            errorAuthCallback={c.errorAuthCallback}
           />
         </Suspense>
       </div>

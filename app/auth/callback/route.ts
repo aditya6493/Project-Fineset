@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
 import { activateProfileForAuthUser } from "@/lib/auth/activate-profile";
 import { appSessionFromProfile } from "@/lib/auth/get-app-session";
 import {
@@ -10,9 +9,19 @@ import {
   PASSWORD_RECOVERY_PATH,
 } from "@/lib/auth/password-recovery";
 import { getRedirectForRole } from "@/lib/auth/routes";
+import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 function logCallback(event: string, payload: Record<string, unknown>) {
   console.info("[auth.callback]", JSON.stringify({ event, ...payload }));
+}
+
+function decodeNextParam(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 export async function GET(request: Request) {
@@ -27,29 +36,35 @@ export async function GET(request: Request) {
 
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next");
+  const next = decodeNextParam(searchParams.get("next"));
   const type = searchParams.get("type");
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
-  const supabase = await createClient();
+  const recoveryCandidate = isPasswordRecoveryRedirect(next, type);
+  const recoveryDestination = `${origin}${PASSWORD_RECOVERY_PATH}`;
+  let response = NextResponse.redirect(
+    recoveryCandidate ? recoveryDestination : `${origin}/`,
+  );
+
+  const supabase = await createSupabaseRouteHandlerClient(response);
   mark("createClient");
 
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   mark("exchangeCodeForSession");
 
-  const isRecoveryFlow =
-    isPasswordRecoveryRedirect(next, type) || isRecoverySessionUser(data.user);
+  const isRecoveryFlow = recoveryCandidate || isRecoverySessionUser(data.user);
 
   if (isRecoveryFlow) {
     if (error || !data.session) {
       logCallback("reset_exchange_failed", {
         totalMs: Date.now() - startedAt,
         timings,
+        message: error?.message ?? "missing_session",
       });
-      return NextResponse.redirect(`${origin}${PASSWORD_RECOVERY_PATH}?error=auth_callback`);
+      return NextResponse.redirect(`${recoveryDestination}?error=auth_callback`);
     }
 
     logCallback("reset_success", {
@@ -57,7 +72,6 @@ export async function GET(request: Request) {
       timings,
     });
 
-    const response = NextResponse.redirect(`${origin}${PASSWORD_RECOVERY_PATH}`);
     response.cookies.set(PASSWORD_RECOVERY_FLOW_COOKIE, "1", getPasswordRecoveryCookieOptions());
     return response;
   }
@@ -66,6 +80,7 @@ export async function GET(request: Request) {
     logCallback("exchange_failed", {
       totalMs: Date.now() - startedAt,
       timings,
+      message: error?.message ?? "missing_user",
     });
     return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
@@ -109,5 +124,15 @@ export async function GET(request: Request) {
     timings,
   });
 
-  return NextResponse.redirect(`${origin}${destination}`);
+  return copyResponseCookies(
+    response,
+    NextResponse.redirect(`${origin}${destination}`),
+  );
+}
+
+function copyResponseCookies(source: NextResponse, target: NextResponse): NextResponse {
+  source.cookies.getAll().forEach((cookie) => {
+    target.cookies.set(cookie);
+  });
+  return target;
 }

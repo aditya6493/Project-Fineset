@@ -52,6 +52,7 @@ export function LoginScreen({ showLogo = false }: LoginScreenProps) {
             resetEmailSent={c.resetEmailSent}
             resetEmailError={c.resetEmailError}
             resetEmailRateLimited={c.resetEmailRateLimited}
+            resetEmailRedirectError={c.resetEmailRedirectError}
             resetSuccessMessage={c.resetSuccess}
           />
         </Suspense>

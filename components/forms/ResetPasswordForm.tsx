@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { useSearchParams } from "next/navigation";
 import { clearPasswordRecoveryFlowAction } from "@/lib/auth/clear-password-recovery-flow";
 import { createClient } from "@/lib/supabase/client";
 import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
@@ -29,6 +30,7 @@ interface ResetPasswordFormProps {
   errorGeneric: string;
   errorMismatch: string;
   errorNoSession: string;
+  errorAuthCallback: string;
 }
 
 export function ResetPasswordForm({
@@ -43,7 +45,10 @@ export function ResetPasswordForm({
   errorGeneric,
   errorMismatch,
   errorNoSession,
+  errorAuthCallback,
 }: ResetPasswordFormProps) {
+  const searchParams = useSearchParams();
+  const callbackError = searchParams.get("error");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [sessionChecked, setSessionChecked] = useState(false);
@@ -141,7 +146,7 @@ export function ResetPasswordForm({
         {sessionChecked && !hasSession ? (
           <div className="space-y-4">
             <p className="text-sm text-status-error" role="alert">
-              {errorNoSession}
+              {callbackError === "auth_callback" ? errorAuthCallback : errorNoSession}
             </p>
             <Button asChild className="w-full">
               <Link href="/">{backToSignInLabel}</Link>

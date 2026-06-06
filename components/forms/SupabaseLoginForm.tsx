@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
-import { requestPasswordResetAction } from "@/lib/auth/request-password-reset-action";
+import { buildPasswordResetRedirectUrl } from "@/lib/auth/build-password-reset-redirect-url";
+import { parsePasswordResetClientError } from "@/lib/auth/parse-password-reset-error";
 import { signInAction } from "@/lib/auth/sign-in-action";
+import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -29,6 +31,7 @@ interface SupabaseLoginFormProps {
   resetEmailSent: string;
   resetEmailError: string;
   resetEmailRateLimited: string;
+  resetEmailRedirectError: string;
   resetSuccessMessage: string;
 }
 
@@ -46,6 +49,7 @@ export function SupabaseLoginForm({
   resetEmailSent,
   resetEmailError,
   resetEmailRateLimited,
+  resetEmailRedirectError,
   resetSuccessMessage,
 }: SupabaseLoginFormProps) {
   const searchParams = useSearchParams();
@@ -149,23 +153,34 @@ export function SupabaseLoginForm({
     setResetMessage(null);
 
     startTransition(async () => {
-      const result = await requestPasswordResetAction(email);
+      try {
+        const supabase = createClient();
+        const redirectTo = buildPasswordResetRedirectUrl(window.location.origin);
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo,
+        });
 
-      if (!result.ok) {
-        switch (result.code) {
-          case "invalid_email":
-            setError(forgotPasswordEmailRequired);
-            break;
-          case "rate_limited":
-            setError(resetEmailRateLimited);
-            break;
-          default:
-            setError(resetEmailError);
+        if (error) {
+          switch (parsePasswordResetClientError(error.message)) {
+            case "invalid_email":
+              setError(forgotPasswordEmailRequired);
+              break;
+            case "rate_limited":
+              setError(resetEmailRateLimited);
+              break;
+            case "redirect_not_allowed":
+              setError(resetEmailRedirectError);
+              break;
+            default:
+              setError(resetEmailError);
+          }
+          return;
         }
-        return;
-      }
 
-      setResetMessage(resetEmailSent);
+        setResetMessage(resetEmailSent);
+      } catch {
+        setError(resetEmailError);
+      }
     });
   }
 

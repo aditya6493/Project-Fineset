@@ -1,13 +1,17 @@
 "use server";
 
+import { buildPasswordResetRedirectUrl } from "@/lib/auth/build-password-reset-redirect-url";
+import { parsePasswordResetClientError } from "@/lib/auth/parse-password-reset-error";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { createClient } from "@/lib/supabase/server";
-import { getAuthRedirectBaseUrl } from "@/lib/supabase/env";
 import { checkLoginRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 
 export type PasswordResetRequestResult =
   | { ok: true }
-  | { ok: false; code: "invalid_email" | "rate_limited" | "failed" };
+  | {
+      ok: false;
+      code: "invalid_email" | "rate_limited" | "redirect_not_allowed" | "failed";
+    };
 
 export async function requestPasswordResetAction(
   email: string,
@@ -25,14 +29,14 @@ export async function requestPasswordResetAction(
 
   try {
     const supabase = await createClient();
-    const redirectTo = `${getAuthRedirectBaseUrl()}/auth/callback?next=/reset-password`;
+    const redirectTo = buildPasswordResetRedirectUrl();
     const { error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
       redirectTo,
     });
 
     if (error) {
       console.error("[password-reset]", error.message);
-      return { ok: false, code: "failed" };
+      return { ok: false, code: parsePasswordResetClientError(error.message) };
     }
 
     void logAuthEvent({
