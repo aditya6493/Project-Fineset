@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, useTransition } from "react";
+import { clearPasswordRecoveryFlowAction } from "@/lib/auth/clear-password-recovery-flow";
 import { createClient } from "@/lib/supabase/client";
 import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
 import { validatePassword } from "@/lib/auth/password-policy";
@@ -118,6 +119,7 @@ export function ResetPasswordForm({
           return;
         }
 
+        await clearPasswordRecoveryFlowAction();
         await supabase.auth.signOut();
         window.location.assign("/?reset=success");
       } catch {

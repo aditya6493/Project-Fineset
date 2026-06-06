@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { activateProfileForAuthUser } from "@/lib/auth/activate-profile";
 import { appSessionFromProfile } from "@/lib/auth/get-app-session";
+import {
+  getPasswordRecoveryCookieOptions,
+  isPasswordRecoveryRedirect,
+  isRecoverySessionUser,
+  PASSWORD_RECOVERY_FLOW_COOKIE,
+  PASSWORD_RECOVERY_PATH,
+} from "@/lib/auth/password-recovery";
 import { getRedirectForRole } from "@/lib/auth/routes";
 
 function logCallback(event: string, payload: Record<string, unknown>) {
@@ -21,6 +28,7 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next");
+  const type = searchParams.get("type");
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=auth_callback`);
@@ -32,20 +40,26 @@ export async function GET(request: Request) {
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   mark("exchangeCodeForSession");
 
-  if (next === "/reset-password") {
+  const isRecoveryFlow =
+    isPasswordRecoveryRedirect(next, type) || isRecoverySessionUser(data.user);
+
+  if (isRecoveryFlow) {
     if (error || !data.session) {
       logCallback("reset_exchange_failed", {
         totalMs: Date.now() - startedAt,
         timings,
       });
-      return NextResponse.redirect(`${origin}/reset-password?error=auth_callback`);
+      return NextResponse.redirect(`${origin}${PASSWORD_RECOVERY_PATH}?error=auth_callback`);
     }
 
     logCallback("reset_success", {
       totalMs: Date.now() - startedAt,
       timings,
     });
-    return NextResponse.redirect(`${origin}/reset-password`);
+
+    const response = NextResponse.redirect(`${origin}${PASSWORD_RECOVERY_PATH}`);
+    response.cookies.set(PASSWORD_RECOVERY_FLOW_COOKIE, "1", getPasswordRecoveryCookieOptions());
+    return response;
   }
 
   if (error || !data.user) {

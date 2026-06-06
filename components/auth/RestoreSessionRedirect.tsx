@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { PASSWORD_RECOVERY_PATH } from "@/lib/auth/password-recovery";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import { createClient } from "@/lib/supabase/client";
 import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
@@ -23,6 +24,14 @@ export function RestoreSessionRedirect() {
 
     const supabase = createClient();
 
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY") {
+        router.replace(PASSWORD_RECOVERY_PATH);
+      }
+    });
+
     void supabase.auth.getUser().then(({ data: { user }, error }) => {
       if (error) {
         if (isInvalidRefreshTokenError(error)) {
@@ -35,6 +44,10 @@ export function RestoreSessionRedirect() {
         router.replace(getRedirectForRole(role));
       }
     });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, [router]);
 
   return null;
