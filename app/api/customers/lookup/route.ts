@@ -5,15 +5,18 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
-import { requireStaffContext } from "@/lib/auth/resolve-staff";
+import {
+  PORTAL_ACTOR_ROLES,
+  requirePortalActorContext,
+} from "@/lib/auth/resolve-staff";
 import { lookupCustomerByPhone } from "@/lib/services/customers";
 import { lookupCustomerQuerySchema } from "@/lib/validations/analytics.schema";
 
 export async function GET(req: Request) {
   const session = await getServerSession();
-  if (!requireRole(session, ["STAFF"])) return unauthorized();
+  if (!requireRole(session, PORTAL_ACTOR_ROLES)) return unauthorized();
 
-  const staff = await requireStaffContext(session);
+  const staff = await requirePortalActorContext(session);
   if (!staff) return unauthorized();
 
   const { searchParams } = new URL(req.url);

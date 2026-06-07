@@ -32,7 +32,11 @@ export class StaffUpdateError extends Error {
 }
 
 export async function listStaff(storeId: string) {
-  const [staff, visitMetrics] = await Promise.all([
+  const staffIds = await prisma.staff
+    .findMany({ where: { storeId }, select: { id: true } })
+    .then((rows) => rows.map((r) => r.id));
+
+  const [staff, visitAggregates, openFollowUps] = await Promise.all([
     prisma.staff.findMany({
       where: { storeId },
       orderBy: { name: "asc" },
@@ -51,53 +55,51 @@ export async function listStaff(storeId: string) {
         },
       },
     }),
-    prisma.visit.findMany({
+    prisma.visit.groupBy({
+      by: ["staffId", "purchaseStatus"],
       where: { storeId },
-      select: {
-        staffId: true,
-        purchaseStatus: true,
-        transactionAmount: true,
-      },
+      _count: { _all: true },
+      _sum: { transactionAmount: true },
     }),
-  ]);
-
-  const visitsByStaff = new Map<
-    string,
-    Array<{ purchaseStatus: PurchaseStatus; transactionAmount: number | null }>
-  >();
-  for (const visit of visitMetrics) {
-    const list = visitsByStaff.get(visit.staffId) ?? [];
-    list.push({
-      purchaseStatus: visit.purchaseStatus,
-      transactionAmount: visit.transactionAmount,
-    });
-    visitsByStaff.set(visit.staffId, list);
-  }
-
-  const staffIds = staff.map((member) => member.id);
-  const openFollowUps =
     staffIds.length === 0
-      ? []
-      : await prisma.followUp.groupBy({
+      ? Promise.resolve([])
+      : prisma.followUp.groupBy({
           by: ["assignedStaffId"],
           where: {
             assignedStaffId: { in: staffIds },
             status: "OPEN",
           },
           _count: { _all: true },
-        });
+        }),
+  ]);
+
+  const revenueByStaff = new Map<string, number>();
+  const conversionByStaff = new Map<string, { purchased: number; total: number }>();
+  for (const row of visitAggregates) {
+    revenueByStaff.set(
+      row.staffId,
+      (revenueByStaff.get(row.staffId) ?? 0) +
+        (row.purchaseStatus === "PURCHASED" ? (row._sum.transactionAmount ?? 0) : 0),
+    );
+    const conv = conversionByStaff.get(row.staffId) ?? { purchased: 0, total: 0 };
+    conv.total += row._count._all;
+    if (row.purchaseStatus === "PURCHASED") conv.purchased += row._count._all;
+    conversionByStaff.set(row.staffId, conv);
+  }
 
   const followUpCountByStaff = new Map(
     openFollowUps.map((row) => [row.assignedStaffId, row._count._all]),
   );
 
   return staff.map((member) => {
-    const visits = visitsByStaff.get(member.id) ?? [];
     const visitCount = member._count.visits;
     const hasActivity =
       visitCount > 0 ||
       member._count.fieldSales > 0 ||
       member._count.assignedFollowUps > 0;
+    const conv = conversionByStaff.get(member.id) ?? { purchased: 0, total: 0 };
+    const conversionRate =
+      conv.total > 0 ? Math.round((conv.purchased / conv.total) * 1000) / 10 : 0;
 
     return {
       id: member.id,
@@ -111,8 +113,8 @@ export async function listStaff(storeId: string) {
       visitCount,
       canDelete: !hasActivity,
       monthlyVisits: visitCount,
-      monthlyRevenue: calculateTotalRevenue(visits),
-      conversionRate: calculateConversionRate(visits),
+      monthlyRevenue: revenueByStaff.get(member.id) ?? 0,
+      conversionRate,
       openFollowUps: followUpCountByStaff.get(member.id) ?? 0,
     };
   });

@@ -13,10 +13,11 @@ import { useStaffCallFilters } from "@/hooks/useStaffCallFilters";
 import { toast } from "@/hooks/useToast";
 import { CallFeedbackDialog } from "@/components/staff/CallFeedbackDialog";
 import { CallLogList, StaffCallCard, StaffCallFilterPanel } from "@/components/shared/calls";
+import { STAFF_DASHBOARD_PATH } from "@/lib/auth/routes";
 import { content } from "@/content/en";
 import { getStaffCallsErrorMessage } from "@/lib/utils/staff-calls-errors";
 import type { Content } from "@/content/en";
-import type { GetStaffCallsParams, StaffCallListItem } from "@/types";
+import type { GetStaffCallsParams, StaffCallListItem, StaffCallListResponse } from "@/types";
 
 type StaffContent = Content["staff"];
 
@@ -24,12 +25,18 @@ interface StaffCallListProps {
   copy: StaffContent;
   emptyMessage: string;
   initialCallsParams?: GetStaffCallsParams;
+  initialData?: StaffCallListResponse;
+  initialParams?: GetStaffCallsParams;
+  backHref?: string;
 }
 
 export function StaffCallList({
   copy,
   emptyMessage,
   initialCallsParams,
+  initialData,
+  initialParams,
+  backHref = STAFF_DASHBOARD_PATH,
 }: StaffCallListProps) {
   const {
     filters,
@@ -40,7 +47,10 @@ export function StaffCallList({
     bindFilterCounts,
   } = useStaffCallFilters({ initialParams: initialCallsParams });
 
-  const { data, isLoading, isError, error, refetch } = useStaffCalls(queryParams);
+  const { data, isLoading, isError, error, refetch } = useStaffCalls(queryParams, {
+    initialData,
+    initialParams,
+  });
   const { data: filterCounts } = useStaffCallFilterCounts(queryParams);
   const revealPhone = useRevealStaffCallPhone();
   const submitOutcome = useSubmitStaffCallOutcome();
@@ -125,7 +135,7 @@ export function StaffCallList({
     <div className="min-w-0 space-y-4 lg:space-y-5">
       <div className="space-y-3">
         <Link
-          href="/staff/dashboard"
+          href={backHref}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-text-secondary transition-colors hover:text-brand-gold"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden />

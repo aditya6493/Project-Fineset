@@ -42,7 +42,9 @@ async function resolveAppSession(): Promise<AppSession | null> {
   let user;
   let error;
   try {
-    ({ data: { user }, error } = await supabase.auth.getUser());
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    error = sessionError;
+    user = session?.user ?? null;
   } catch {
     return null;
   }

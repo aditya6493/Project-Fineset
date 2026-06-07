@@ -1,3 +1,5 @@
+import { BUSINESS_OWNER_DASHBOARD_PATH } from "@/lib/auth/routes";
+
 export interface FieldLogLinkFilters {
   year?: number;
   month?: number;
@@ -77,5 +79,5 @@ export function buildStoreFieldSalesLogHref(filters: FieldLogLinkFilters): strin
   if (filters.storeId) params.set("storeId", filters.storeId);
 
   const qs = params.toString();
-  return `/store/dashboard/field-sales${qs ? `?${qs}` : ""}`;
+  return `${BUSINESS_OWNER_DASHBOARD_PATH}/field-sales${qs ? `?${qs}` : ""}`;
 }

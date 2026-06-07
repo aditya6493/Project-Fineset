@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { STORE_MANAGER_DASHBOARD_PATH } from "@/lib/auth/routes";
 import type { Content } from "@/content/en";
 
 type StoreContent = Content["store"];
@@ -18,8 +19,8 @@ interface StoreManagerPortalProps {
 }
 
 const actionIcons = {
-  visitLog: ClipboardList,
-  callRecordings: Phone,
+  logVisit: ClipboardList,
+  callUsers: Phone,
   fieldSales: MapPin,
   storeDashboard: BarChart3,
 } as const;
@@ -27,23 +28,23 @@ const actionIcons = {
 export function StoreManagerPortal({ copy, storeId }: StoreManagerPortalProps) {
   const actions = [
     {
-      key: "visitLog" as const,
-      href: "/store/dashboard/visits",
-      ...copy.managerPortal.actions.visitLog,
+      key: "logVisit" as const,
+      href: `${STORE_MANAGER_DASHBOARD_PATH}/visits`,
+      ...copy.managerPortal.actions.logVisit,
     },
     {
-      key: "callRecordings" as const,
-      href: "/store/dashboard/calls",
-      ...copy.managerPortal.actions.callRecordings,
+      key: "callUsers" as const,
+      href: `${STORE_MANAGER_DASHBOARD_PATH}/calls`,
+      ...copy.managerPortal.actions.callUsers,
     },
     {
       key: "fieldSales" as const,
-      href: "/store/dashboard/field-sales",
+      href: `${STORE_MANAGER_DASHBOARD_PATH}/field-sales`,
       ...copy.managerPortal.actions.fieldSales,
     },
     {
       key: "storeDashboard" as const,
-      href: `/store/dashboard/stores/${storeId}`,
+      href: `${STORE_MANAGER_DASHBOARD_PATH}/stores/${storeId}`,
       ...copy.managerPortal.actions.storeDashboard,
     },
   ];
@@ -57,7 +58,7 @@ export function StoreManagerPortal({ copy, storeId }: StoreManagerPortalProps) {
         <p className="text-text-secondary">{copy.managerPortal.subtitle}</p>
       </header>
 
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {actions.map((action) => {
           const Icon = actionIcons[action.key];
 

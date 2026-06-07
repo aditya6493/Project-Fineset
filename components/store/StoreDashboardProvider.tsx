@@ -14,8 +14,7 @@ import {
   parseStoreIdFromPath,
   SELECTED_STORE_STORAGE_KEY,
 } from "@/lib/utils/store-dashboard-url";
-import { useMyStores } from "@/hooks/useMyStores";
-import type { StorePortalSession } from "@/types";
+import type { MyStoresResponse, StorePortalSession } from "@/types";
 
 interface StoreDashboardContextValue {
   storeId: string | null;
@@ -32,28 +31,50 @@ interface StoreDashboardProviderProps {
   children: ReactNode;
   portalRole: StorePortalSession["role"];
   assignedStoreId: string;
+  initialMyStores?: MyStoresResponse;
 }
 
-export function StoreDashboardProvider({
+function SingleStoreDashboardProvider({
   children,
-  portalRole,
   assignedStoreId,
-}: StoreDashboardProviderProps) {
+}: {
+  children: ReactNode;
+  assignedStoreId: string;
+}) {
+  const value = useMemo(
+    () => ({
+      storeId: assignedStoreId,
+      setStoreId: () => {},
+      hasMultipleStores: false,
+      isSingleStoreManager: true,
+    }),
+    [assignedStoreId],
+  );
+
+  return (
+    <StoreDashboardContext.Provider value={value}>
+      {children}
+    </StoreDashboardContext.Provider>
+  );
+}
+
+function MultiStoreDashboardProvider({
+  children,
+  assignedStoreId,
+  initialMyStores,
+}: {
+  children: ReactNode;
+  assignedStoreId: string;
+  initialMyStores: MyStoresResponse;
+}) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { data: myStores } = useMyStores();
-  const stores = myStores?.data ?? [];
-  const isSingleStoreManager = portalRole === "STORE_MANAGER";
-
+  const stores = initialMyStores.data;
   const pathStoreId = parseStoreIdFromPath(pathname);
   const queryStoreId = searchParams.get("storeId");
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
 
   const resolvedStoreId = useMemo(() => {
-    if (isSingleStoreManager) {
-      return assignedStoreId;
-    }
-
     const allowedIds = new Set(stores.map((s) => s.id));
     const candidates = [
       pathStoreId,
@@ -62,52 +83,75 @@ export function StoreDashboardProvider({
       typeof window !== "undefined"
         ? window.localStorage.getItem(SELECTED_STORE_STORAGE_KEY)
         : null,
-      myStores?.selectedStoreId,
+      initialMyStores.selectedStoreId,
       stores[0]?.id,
     ];
     for (const id of candidates) {
       if (id && allowedIds.has(id)) return id;
     }
-    return pathStoreId ?? queryStoreId ?? null;
+    return pathStoreId ?? queryStoreId ?? assignedStoreId;
   }, [
-    isSingleStoreManager,
     assignedStoreId,
     pathStoreId,
     manualStoreId,
     queryStoreId,
-    myStores,
+    initialMyStores.selectedStoreId,
     stores,
   ]);
 
   useEffect(() => {
-    if (resolvedStoreId && !isSingleStoreManager) {
+    if (resolvedStoreId) {
       window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, resolvedStoreId);
     }
-  }, [resolvedStoreId, isSingleStoreManager]);
+  }, [resolvedStoreId]);
 
-  const setStoreId = useCallback(
-    (id: string) => {
-      if (isSingleStoreManager) return;
-      setManualStoreId(id);
-      window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, id);
-    },
-    [isSingleStoreManager],
-  );
+  const setStoreId = useCallback((id: string) => {
+    setManualStoreId(id);
+    window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, id);
+  }, []);
 
   const value = useMemo(
     () => ({
       storeId: resolvedStoreId,
       setStoreId,
-      hasMultipleStores: !isSingleStoreManager && stores.length > 1,
-      isSingleStoreManager,
+      hasMultipleStores: stores.length > 1,
+      isSingleStoreManager: false,
     }),
-    [resolvedStoreId, setStoreId, isSingleStoreManager, stores.length],
+    [resolvedStoreId, setStoreId, stores.length],
   );
 
   return (
     <StoreDashboardContext.Provider value={value}>
       {children}
     </StoreDashboardContext.Provider>
+  );
+}
+
+export function StoreDashboardProvider({
+  children,
+  portalRole,
+  assignedStoreId,
+  initialMyStores,
+}: StoreDashboardProviderProps) {
+  if (portalRole === "STORE_MANAGER") {
+    return (
+      <SingleStoreDashboardProvider assignedStoreId={assignedStoreId}>
+        {children}
+      </SingleStoreDashboardProvider>
+    );
+  }
+
+  if (!initialMyStores) {
+    throw new Error("Business owner dashboard requires initialMyStores");
+  }
+
+  return (
+    <MultiStoreDashboardProvider
+      assignedStoreId={assignedStoreId}
+      initialMyStores={initialMyStores}
+    >
+      {children}
+    </MultiStoreDashboardProvider>
   );
 }
 

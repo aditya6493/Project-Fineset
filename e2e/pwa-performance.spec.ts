@@ -90,7 +90,7 @@ test.describe("PWA performance", () => {
   test("C8 no duplicate service worker registrations", async ({ page }) => {
     await page.goto("/");
     await waitForServiceWorker(page, 15_000);
-    await page.goto("/store/dashboard/visits").catch(() => undefined);
+    await page.goto("/business-owner/dashboard/visits").catch(() => undefined);
     await page.goto("/");
     await page.goto("/login").catch(() => undefined);
 

@@ -8,6 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { STAFF_DASHBOARD_PATH } from "@/lib/auth/routes";
 import type { Content } from "@/content/en";
 
 type StaffContent = Content["staff"];
@@ -26,17 +27,17 @@ export function StaffPortal({ copy }: StaffPortalProps) {
   const actions = [
     {
       key: "logVisit" as const,
-      href: "/staff/dashboard/visits",
+      href: `${STAFF_DASHBOARD_PATH}/visits`,
       ...copy.portal.actions.logVisit,
     },
     {
       key: "callUsers" as const,
-      href: "/staff/dashboard/calls",
+      href: `${STAFF_DASHBOARD_PATH}/calls`,
       ...copy.portal.actions.callUsers,
     },
     {
       key: "fieldSales" as const,
-      href: "/staff/dashboard/field-sales",
+      href: `${STAFF_DASHBOARD_PATH}/field-sales`,
       ...copy.portal.actions.fieldSales,
     },
   ];

@@ -8,7 +8,7 @@ import {
   PASSWORD_RECOVERY_FLOW_COOKIE,
   PASSWORD_RECOVERY_PATH,
 } from "@/lib/auth/password-recovery";
-import { getRedirectForRole } from "@/lib/auth/routes";
+import { resolvePostAuthRedirect } from "@/lib/auth/routes";
 import { createSupabaseRouteHandlerClient } from "@/lib/supabase/route-handler";
 
 function logCallback(event: string, payload: Record<string, unknown>) {
@@ -115,8 +115,7 @@ export async function GET(request: Request) {
     return NextResponse.redirect(`${origin}/?error=auth_callback`);
   }
 
-  const destination =
-    next && next.startsWith("/") ? next : getRedirectForRole(role);
+  const destination = resolvePostAuthRedirect(role, next);
 
   logCallback("success", {
     totalMs: Date.now() - startedAt,

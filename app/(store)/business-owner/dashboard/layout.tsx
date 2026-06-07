@@ -5,6 +5,7 @@ import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
 import { StoreDashboardProvider } from "@/components/store/StoreDashboardProvider";
 import { StoreDashboardShell } from "@/components/store/StoreDashboardShell";
 import { requirePortalSession } from "@/lib/auth/require-portal-session";
+import { listAccessibleStores } from "@/lib/services/manager-stores";
 
 export const metadata: Metadata = {
   title: "Store Dashboard",
@@ -18,13 +19,19 @@ export default async function StoreLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const session = await requirePortalSession(["STORE_MANAGER", "BUSINESS_OWNER"]);
+  const session = await requirePortalSession(["BUSINESS_OWNER"]);
+  const stores = await listAccessibleStores(session);
+  const initialMyStores = {
+    data: stores,
+    selectedStoreId: session.storeId,
+  };
 
   return (
     <Suspense fallback={null}>
       <StoreDashboardProvider
         portalRole={session.role}
         assignedStoreId={session.storeId}
+        initialMyStores={initialMyStores}
       >
         <StoreDashboardShell
           title={content.store.shell.title}

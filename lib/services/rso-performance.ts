@@ -109,11 +109,46 @@ export async function getStoreRsoPerformance(
   const currentRange = getPeriodRange(period, referenceDate);
   const previousRange = getPreviousPeriodRange(period, referenceDate);
 
-  const staff = await prisma.staff.findMany({
-    where: { storeId, isActive: true, role: "STAFF" },
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
+  const [staff, visits] = await Promise.all([
+    prisma.staff.findMany({
+      where: { storeId, isActive: true, role: "STAFF" },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.visit.findMany({
+      where: {
+        storeId,
+        visitDate: { gte: previousRange.start, lte: currentRange.end },
+      },
+      select: {
+        staffId: true,
+        visitDate: true,
+        purchaseStatus: true,
+        transactionAmount: true,
+        schemeEnrolled: true,
+        outTime: true,
+        area: true,
+        gender: true,
+        ageGroup: true,
+        productsPurchased: true,
+        productsExplored: true,
+        intentTier: true,
+        reasonNoPurchase: true,
+        competitorMention: true,
+        purchaseOccasion: true,
+        metalKtPref: true,
+        budgetStated: true,
+        schemesPitched: true,
+        enrollmentOutcome: true,
+        monthlyCommitment: true,
+        reasonNoEnrollment: true,
+        schemeCompetitorMention: true,
+        followUpNeeded: true,
+        followUpDate: true,
+        staffNotes: true,
+      },
+    }),
+  ]);
 
   const statsMap = new Map<string, StaffPeriodStats>(
     staff.map((member) => [
@@ -134,40 +169,6 @@ export async function getStoreRsoPerformance(
       },
     ]),
   );
-
-  const visits = await prisma.visit.findMany({
-    where: {
-      storeId,
-      visitDate: { gte: previousRange.start, lte: currentRange.end },
-    },
-    select: {
-      staffId: true,
-      visitDate: true,
-      purchaseStatus: true,
-      transactionAmount: true,
-      schemeEnrolled: true,
-      outTime: true,
-      area: true,
-      gender: true,
-      ageGroup: true,
-      productsPurchased: true,
-      productsExplored: true,
-      intentTier: true,
-      reasonNoPurchase: true,
-      competitorMention: true,
-      purchaseOccasion: true,
-      metalKtPref: true,
-      budgetStated: true,
-      schemesPitched: true,
-      enrollmentOutcome: true,
-      monthlyCommitment: true,
-      reasonNoEnrollment: true,
-      schemeCompetitorMention: true,
-      followUpNeeded: true,
-      followUpDate: true,
-      staffNotes: true,
-    },
-  });
 
   for (const visit of visits) {
     const stats = statsMap.get(visit.staffId);

@@ -405,12 +405,10 @@ export async function getStoreFieldSaleAnalytics(
   const { start, end } = getPeriodRange(period, referenceDate);
   const previous = getPreviousPeriodRange(period, referenceDate);
 
-  const rows = await fetchFieldSalesForStore(storeId, start, end);
-  const previousRows = await fetchFieldSalesForStore(
-    storeId,
-    previous.start,
-    previous.end,
-  );
+  const [rows, previousRows] = await Promise.all([
+    fetchFieldSalesForStore(storeId, start, end),
+    fetchFieldSalesForStore(storeId, previous.start, previous.end),
+  ]);
 
   const noteSnippets = rows
     .map((r) => r.staffNotes?.trim())

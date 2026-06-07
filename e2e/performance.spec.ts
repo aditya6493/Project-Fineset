@@ -86,7 +86,7 @@ test.describe("Navigation performance", () => {
       "/api/analytics/store/portfolio",
     );
 
-    await page.goto("/store/dashboard");
+    await page.goto("/business-owner/dashboard");
     await page.getByTestId("portal-shell").waitFor({ state: "visible" });
     await waitMs(3000);
 
@@ -96,7 +96,7 @@ test.describe("Navigation performance", () => {
 
   test("D3.2 store portfolio shell loads under 4s", async ({ page }) => {
     const started = Date.now();
-    await page.goto("/store/dashboard");
+    await page.goto("/business-owner/dashboard");
     await page.getByTestId("portal-shell").waitFor({ state: "visible" });
     expect(Date.now() - started).toBeLessThan(4000);
   });

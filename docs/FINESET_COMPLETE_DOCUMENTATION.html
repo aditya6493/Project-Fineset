@@ -58,9 +58,14 @@
 <td>Log visits, field sales, follow-up calls</td>
 </tr>
 <tr>
-<td>Store (<code>/store/dashboard</code>)</td>
-<td>Store manager</td>
-<td>Monitor store data, staff, calls, analytics</td>
+<td>Store Manager (<code>/store-manager/dashboard</code>)</td>
+<td>Per-store managers</td>
+<td>Log visits, calls, field sales; store analytics</td>
+</tr>
+<tr>
+<td>Business Owner (<code>/business-owner/dashboard</code>)</td>
+<td>Chain owners</td>
+<td>Multi-store portfolio, visits, staff, analytics</td>
 </tr>
 <tr>
 <td>Admin (<code>/admin/dashboard</code>)</td>
@@ -277,7 +282,7 @@
 <p><strong>Files:</strong> <code>lib/auth/get-app-session.ts</code>, <code>lib/auth/session-from-metadata.ts</code>, <code>lib/auth/activate-profile.ts</code></p>
 <hr>
 <h3>Step 12 â€” Protected portals with <strong>proxy.ts</strong> middleware</h3>
-<p><strong>What we did:</strong><br><code>proxy.ts</code> runs on <code>/staff/dashboard/*</code>, <code>/store/dashboard/*</code>, <code>/admin/dashboard/*</code>:</p>
+<p><strong>What we did:</strong><br><code>proxy.ts</code> runs on <code>/staff/dashboard/*</code>, <code>/store-manager/dashboard/*</code>, <code>/business-owner/dashboard/*</code>, <code>/admin/dashboard/*</code> (legacy <code>/store/dashboard/*</code> redirects per role):</p>
 <ol>
 <li>Refresh Supabase session (cookies stay valid).  </li>
 <li>If not logged in â†’ redirect to <code>/login</code>.  </li>
@@ -362,7 +367,7 @@
 <td>No stale SSR data when filters change</td>
 </tr>
 </tbody></table>
-<p><strong>Files:</strong> <code>lib/data/visits.ts</code>, <code>hooks/useVisits.ts</code>, <code>lib/query/initial-data.ts</code>, <code>app/(store)/store/dashboard/visits/page.tsx</code></p>
+<p><strong>Files:</strong> <code>lib/data/visits.ts</code>, <code>hooks/useVisits.ts</code>, <code>lib/query/initial-data.ts</code>, <code>app/(store)/business-owner/dashboard/visits/page.tsx</code></p>
 <hr>
 <h3>Step 20 â€” Split <strong>Server Components</strong> vs <strong>Client Components</strong></h3>
 <p><strong>What we did:</strong>  </p>

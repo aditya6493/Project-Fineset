@@ -15,9 +15,10 @@ import { isStoreKPIs } from "@/lib/utils/type-guards";
 import { isPeriodValue } from "@/lib/utils/analytics-period-url";
 import { formatStoreLocation } from "@/lib/utils/format-store-location";
 import {
-  appendStoreQuery,
+  portalDashboardPath,
+  portalSectionPath,
   SELECTED_STORE_STORAGE_KEY,
-  storeDetailHref,
+  storeDetailHrefForRole,
 } from "@/lib/utils/store-dashboard-url";
 import type { StoreOverviewBundle } from "@/lib/services/store-overview-bundle";
 import type { Content } from "@/content/en";
@@ -28,6 +29,7 @@ type StoreContent = Content["store"];
 interface StoreDetailOverviewProps {
   storeId: string;
   store: StoreContent;
+  portalRole?: "STORE_MANAGER" | "BUSINESS_OWNER";
   showStaffNav?: boolean;
   initialOverviewBundle?: StoreOverviewBundle;
   initialOverviewParams?: GetAnalyticsParams;
@@ -36,6 +38,7 @@ interface StoreDetailOverviewProps {
 export function StoreDetailOverview({
   storeId,
   store: storeFromPage,
+  portalRole = "BUSINESS_OWNER",
   showStaffNav = true,
   initialOverviewBundle,
   initialOverviewParams,
@@ -112,12 +115,13 @@ export function StoreDetailOverview({
   const storeLocation = storeMeta
     ? formatStoreLocation(storeMeta.city, storeMeta.state)
     : null;
+  const dashboardPath = portalDashboardPath(portalRole);
 
   return (
     <div className="min-w-0 space-y-6">
       <div className="space-y-3">
         <Link
-          href="/store/dashboard"
+          href={dashboardPath}
           prefetch={false}
           className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
         >
@@ -151,7 +155,7 @@ export function StoreDetailOverview({
         >
           <Button asChild size="sm" variant="default">
             <Link
-              href={storeDetailHref(storeId, period)}
+              href={storeDetailHrefForRole(storeId, portalRole, period)}
               prefetch={false}
               aria-current="page"
             >
@@ -159,18 +163,24 @@ export function StoreDetailOverview({
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={appendStoreQuery("/store/dashboard/visits", storeId)} prefetch={false}>
+            <Link
+              href={portalSectionPath("visits", portalRole, storeId)}
+              prefetch={false}
+            >
               {detail.viewVisits}
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
-            <Link href={appendStoreQuery("/store/dashboard/calls", storeId)} prefetch={false}>
+            <Link
+              href={portalSectionPath("calls", portalRole, storeId)}
+              prefetch={false}
+            >
               {detail.viewCalls}
             </Link>
           </Button>
           <Button asChild size="sm" variant="outline">
             <Link
-              href={appendStoreQuery("/store/dashboard/field-sales", storeId)}
+              href={portalSectionPath("field-sales", portalRole, storeId)}
               prefetch={false}
             >
               {detail.viewFieldSales}
@@ -178,7 +188,10 @@ export function StoreDetailOverview({
           </Button>
           {showStaffNav ? (
             <Button asChild size="sm" variant="outline">
-              <Link href={appendStoreQuery("/store/dashboard/staff", storeId)} prefetch={false}>
+              <Link
+                href={portalSectionPath("staff", portalRole, storeId)}
+                prefetch={false}
+              >
                 {detail.viewStaff}
               </Link>
             </Button>

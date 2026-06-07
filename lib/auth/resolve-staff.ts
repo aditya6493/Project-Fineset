@@ -7,11 +7,71 @@ export interface ResolvedStaffContext {
   storeId: string;
 }
 
+export const PORTAL_ACTOR_ROLES = ["STAFF", "STORE_MANAGER"] as const;
+
 export async function requireStaffContext(
   session: AppSession | null,
 ): Promise<ResolvedStaffContext | null> {
   if (!session || session.role !== "STAFF") return null;
   return resolveStaffContext(session);
+}
+
+async function resolveStoreManagerStaffContext(
+  session: AppSession & { role: "STORE_MANAGER"; storeId: string },
+): Promise<ResolvedStaffContext | null> {
+  if (session.userId.startsWith("dev-")) {
+    try {
+      const staff = await prisma.staff.findFirst({
+        where: {
+          isActive: true,
+          role: "STORE_MANAGER",
+          ...(isPlaceholderDevId(session.storeId)
+            ? {}
+            : { storeId: session.storeId }),
+        },
+        select: { id: true, storeId: true },
+        orderBy: { createdAt: "asc" },
+      });
+      if (staff) {
+        return { staffId: staff.id, storeId: staff.storeId };
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
+  const appUser = await prisma.appUser.findUnique({
+    where: { id: session.userId },
+    select: {
+      staff: {
+        select: { id: true, storeId: true, isActive: true },
+      },
+    },
+  });
+
+  if (!appUser?.staff?.isActive || appUser.staff.storeId !== session.storeId) {
+    return null;
+  }
+
+  return { staffId: appUser.staff.id, storeId: appUser.staff.storeId };
+}
+
+/** Staff and per-store managers who log visits, calls, and field sales. */
+export async function requirePortalActorContext(
+  session: AppSession | null,
+): Promise<ResolvedStaffContext | null> {
+  if (!session) return null;
+
+  if (session.role === "STAFF") {
+    return resolveStaffContext(session);
+  }
+
+  if (session.role === "STORE_MANAGER") {
+    return resolveStoreManagerStaffContext(session);
+  }
+
+  return null;
 }
 
 function isPlaceholderDevId(value: string): boolean {

@@ -3,7 +3,10 @@ import {
   isStoreAllowedForSession,
   isStorePortalSession,
 } from "@/lib/services/manager-stores";
-import { storeDetailHref } from "@/lib/utils/store-dashboard-url";
+import {
+  BUSINESS_OWNER_DASHBOARD_PATH,
+  storeDetailHrefForRole,
+} from "@/lib/utils/store-dashboard-url";
 import type { AppSession } from "@/types";
 
 /**
@@ -21,14 +24,14 @@ export async function resolveStoreDetailAccess(
 
   if (session.role === "STORE_MANAGER") {
     if (urlStoreId !== session.storeId) {
-      redirect(storeDetailHref(session.storeId, period));
+      redirect(storeDetailHrefForRole(session.storeId, "STORE_MANAGER", period));
     }
     return session.storeId;
   }
 
   const allowed = await isStoreAllowedForSession(session, urlStoreId);
   if (!allowed) {
-    redirect("/store/dashboard");
+    redirect(BUSINESS_OWNER_DASHBOARD_PATH);
   }
 
   return urlStoreId;

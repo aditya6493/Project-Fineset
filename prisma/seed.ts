@@ -106,6 +106,15 @@ async function main(): Promise<void> {
     storeId: storeBeta.id,
   });
 
+  const managerAlpha = await prisma.staff.create({
+    data: {
+      name: "Store Alpha Manager",
+      employeeId: "MGR001",
+      role: "STORE_MANAGER",
+      storeId: storeAlpha.id,
+    },
+  });
+
   // ── Customers (Store Alpha) ──────────────────────────────────────────────
 
   const piiAnita = customerPii("Anita Reddy", "9810001001");
@@ -666,7 +675,8 @@ async function main(): Promise<void> {
 
   console.log("Seed complete:", {
     stores: 2,
-    staff: 3,
+    staff: 4,
+    storeManagerEmployeeId: managerAlpha.employeeId,
     customers: 10,
     visitsForStaffA: 8,
     visitsTotal: 10,

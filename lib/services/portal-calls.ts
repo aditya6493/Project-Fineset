@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db/prisma";
+import { unstable_cache } from "next/cache";
 import type { PortalCallsQuery } from "@/lib/validations/portal-calls.schema";
 import {
   buildCallsPeriodRange,
@@ -7,6 +8,7 @@ import {
 } from "@/lib/services/call-queue-utils";
 import {
   buildVisitSegmentWhere,
+  buildVisitValueTierWhere,
 } from "@/lib/services/staff-calls-query";
 import {
   buildVisitCallSummary,
@@ -33,7 +35,7 @@ import type {
   StaffCallSegment,
   StaffCallValueTier,
 } from "@/types";
-import type { Prisma } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 
 interface ListPortalCallsParams extends PortalCallsQuery {
   storeId?: string;
@@ -274,6 +276,7 @@ export function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.Vi
   const where: Prisma.VisitWhereInput = {
     visitDate: { gte: start, lte: end },
     ...buildVisitSegmentWhere(params.segment),
+    ...buildVisitValueTierWhere(params.valueTier),
   };
 
   if (params.queue === "NOT_ANSWERED") {
@@ -290,33 +293,158 @@ export function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.Vi
   return where;
 }
 
-async function fetchPortalVisitsForPeriod(params: ListPortalCallsParams) {
-  return prisma.visit.findMany({
-    where: buildPortalVisitsWhere(params),
+/** Base WHERE without filter dimensions — for filter count queries. */
+function buildPortalCountBaseWhere(params: ListPortalCallsParams): Prisma.VisitWhereInput {
+  const where: Prisma.VisitWhereInput = {};
+  if (params.storeId) where.storeId = params.storeId;
+  if (params.staffId) where.staffId = params.staffId;
+  if (params.intentTier) where.intentTier = params.intentTier;
+  return where;
+}
+
+/** Build WHERE for a specific filter dimension count (all active filters except the one varying). */
+function buildPortalCountWhere(
+  params: ListPortalCallsParams,
+  overrides: {
+    segment?: StaffCallSegment;
+    valueTier?: StaffCallValueTier;
+    queue?: StaffCallQueue;
+    month?: number;
+  },
+): Prisma.VisitWhereInput {
+  const segment = overrides.segment ?? params.segment;
+  const valueTier = overrides.valueTier ?? params.valueTier;
+  const queue = overrides.queue ?? params.queue;
+  const month = overrides.month ?? params.month;
+
+  const { start, end } = portalPeriodRange(params.year, month);
+  const where: Prisma.VisitWhereInput = {
+    ...buildPortalCountBaseWhere(params),
+    visitDate: { gte: start, lte: end },
+    ...buildVisitSegmentWhere(segment),
+    ...buildVisitValueTierWhere(valueTier),
+  };
+
+  if (queue === "NOT_ANSWERED") {
+    Object.assign(where, buildNotAnsweredWhere());
+  } else if (queue === "FOLLOW_UP") {
+    where.followUp = params.staffId
+      ? buildFollowUpOpenWhere(params.staffId)
+      : { is: { status: "OPEN" } };
+  }
+
+  return where;
+}
+
+async function getPortalAvailableYears(storeId?: string, staffId?: string): Promise<number[]> {
+  type YearRow = { year: number };
+  const parts: Prisma.Sql[] = [];
+  if (storeId) parts.push(Prisma.sql`"storeId" = ${storeId}`);
+  if (staffId) parts.push(Prisma.sql`"staffId" = ${staffId}`);
+  const whereClause =
+    parts.length > 0
+      ? Prisma.sql`WHERE ${Prisma.join(parts, " AND ")}`
+      : Prisma.empty;
+
+  const rows = await prisma.$queryRaw<YearRow[]>`
+    SELECT DISTINCT EXTRACT(YEAR FROM "visitDate")::int AS year
+    FROM "Visit"
+    ${whereClause}
+    ORDER BY year DESC
+    LIMIT 10
+  `;
+
+  const years = new Set(rows.map((r) => Number(r.year)));
+  years.add(new Date().getFullYear());
+  return Array.from(years).sort((a, b) => b - a);
+}
+
+async function computePortalFilterCounts(
+  params: ListPortalCallsParams,
+): Promise<StaffCallFilterCounts> {
+  const segments: StaffCallSegment[] = ["ALL", "NEW", "RETAINED", "PURCHASED", "NOT_PURCHASED"];
+  const valueTiers: StaffCallValueTier[] = ["ALL", "HIGH", "MID", "LOW"];
+  const queues: StaffCallQueue[] = ["ALL", "NOT_ANSWERED", "FOLLOW_UP"];
+  const months = Array.from({ length: 12 }, (_, i) => i + 1);
+
+  const [segmentCounts, valueTierCounts, queueCounts, monthCounts, availableYears] =
+    await Promise.all([
+      Promise.all(
+        segments.map((s) =>
+          prisma.visit.count({ where: buildPortalCountWhere(params, { segment: s }) }),
+        ),
+      ),
+      Promise.all(
+        valueTiers.map((vt) =>
+          prisma.visit.count({ where: buildPortalCountWhere(params, { valueTier: vt }) }),
+        ),
+      ),
+      Promise.all(
+        queues.map((q) =>
+          prisma.visit.count({ where: buildPortalCountWhere(params, { queue: q }) }),
+        ),
+      ),
+      Promise.all(
+        months.map((m) =>
+          prisma.visit.count({ where: buildPortalCountWhere(params, { month: m }) }),
+        ),
+      ),
+      getPortalAvailableYears(params.storeId, params.staffId),
+    ]);
+
+  const total = segmentCounts[0] ?? 0;
+
+  return {
+    segments: segments.map((key, i) => ({ key, count: segmentCounts[i] ?? 0 })),
+    valueTiers: valueTiers.map((key, i) => ({ key, count: valueTierCounts[i] ?? 0 })),
+    queues: queues.map((key, i) => ({ key, count: queueCounts[i] ?? 0 })),
+    birthdays: [
+      { key: "ALL", count: total },
+      { key: "THIS_MONTH", count: 0 },
+    ],
+    anniversaries: [
+      { key: "ALL", count: total },
+      { key: "THIS_MONTH", count: 0 },
+    ],
+    masters: [
+      { key: "ALL" as const, count: total },
+      { key: "STORE_VISIT" as const, count: total },
+      { key: "FIELD_SALE" as const, count: 0 },
+      { key: "EXTERNAL" as const, count: 0 },
+    ],
+    months: months.map((month, i) => ({ month, count: monthCounts[i] ?? 0 })),
+    availableYears,
+  };
+}
+
+/** Fallback path when search is active — requires in-memory PII decryption. */
+async function listPortalCallsWithSearch(
+  params: ListPortalCallsParams,
+): Promise<PortalCallListResponse> {
+  const { start, end } = portalPeriodRange(params.year, params.month);
+  const periodWhere: Prisma.VisitWhereInput = {
+    visitDate: { gte: start, lte: end },
+    ...buildPortalCountBaseWhere(params),
+  };
+
+  const allVisits = await prisma.visit.findMany({
+    where: periodWhere,
     orderBy: { visitDate: "desc" },
     select: portalVisitListSelect(),
   });
-}
 
-export async function listPortalCalls(
-  params: ListPortalCallsParams,
-): Promise<PortalCallListResponse> {
-  const visits = await fetchPortalVisitsForPeriod(params);
-
-  const filtered = visits.filter(
+  const filtered = allVisits.filter(
     (visit) =>
-      (!params.staffId || visit.staffId === params.staffId) &&
       matchesSearch(visit, params.search) &&
       matchesCallSegment(visit, params.segment) &&
       matchesCallValueTier(visit, params.valueTier) &&
       matchesCallIntentTier(visit, params.intentTier) &&
-      matchesCallQueue(visit, params.queue) &&
-      matchesVisitPeriod(visit.visitDate, params.year, params.month),
+      matchesCallQueue(visit, params.queue),
   );
 
   const total = filtered.length;
-  const start = (params.page - 1) * params.pageSize;
-  const pageItems = filtered.slice(start, start + params.pageSize);
+  const pageStart = (params.page - 1) * params.pageSize;
+  const pageItems = filtered.slice(pageStart, pageStart + params.pageSize);
 
   return {
     data: pageItems.map(toPortalCallItem),
@@ -325,7 +453,7 @@ export async function listPortalCalls(
     pageSize: params.pageSize,
     year: params.year,
     month: params.month,
-    filters: countFilters(visits, {
+    filters: countFilters(allVisits, {
       segment: params.segment,
       valueTier: params.valueTier,
       queue: params.queue,
@@ -336,4 +464,50 @@ export async function listPortalCalls(
       intentTier: params.intentTier,
     }),
   };
+}
+
+export async function listPortalCalls(
+  params: ListPortalCallsParams,
+): Promise<PortalCallListResponse> {
+  // Search requires in-memory PII decryption — cannot be pushed to SQL
+  if (params.search?.trim()) {
+    return listPortalCallsWithSearch(params);
+  }
+
+  return unstable_cache(
+    async (p: ListPortalCallsParams) => {
+      const where = buildPortalVisitsWhere(p);
+      const skip = (p.page - 1) * p.pageSize;
+
+      const [pageItems, total, filters] = await Promise.all([
+        prisma.visit.findMany({
+          where,
+          orderBy: { visitDate: "desc" },
+          skip,
+          take: p.pageSize,
+          select: portalVisitListSelect(),
+        }),
+        prisma.visit.count({ where }),
+        computePortalFilterCounts(p),
+      ]);
+
+      return {
+        data: pageItems.map(toPortalCallItem),
+        total,
+        page: p.page,
+        pageSize: p.pageSize,
+        year: p.year,
+        month: p.month,
+        filters,
+      };
+    },
+    ["listPortalCalls", params.storeId ?? "", String(params.year), String(params.month), String(params.page)],
+    {
+      revalidate: 30,
+      tags: [
+        "analytics",
+        ...(params.storeId ? [`store:${params.storeId}`] : []),
+      ],
+    },
+  )(params);
 }

@@ -1,6 +1,12 @@
+import {
+  BUSINESS_OWNER_DASHBOARD_PATH,
+  STORE_MANAGER_DASHBOARD_PATH,
+} from "@/lib/auth/routes";
+
 const SELECTED_STORE_STORAGE_KEY = "fineset-manager-selected-store-id";
 
 export { SELECTED_STORE_STORAGE_KEY };
+export { BUSINESS_OWNER_DASHBOARD_PATH, STORE_MANAGER_DASHBOARD_PATH };
 
 export function appendStoreQuery(
   path: string,
@@ -14,8 +20,29 @@ export function appendStoreQuery(
   return qs ? `${base}?${qs}` : base;
 }
 
+export function portalDashboardPath(
+  role: "STORE_MANAGER" | "BUSINESS_OWNER",
+): string {
+  return role === "STORE_MANAGER"
+    ? STORE_MANAGER_DASHBOARD_PATH
+    : BUSINESS_OWNER_DASHBOARD_PATH;
+}
+
 export function storeDetailPath(storeId: string): string {
-  return `/store/dashboard/stores/${storeId}`;
+  return `${BUSINESS_OWNER_DASHBOARD_PATH}/stores/${storeId}`;
+}
+
+export function storeManagerDetailPath(storeId: string): string {
+  return `${STORE_MANAGER_DASHBOARD_PATH}/stores/${storeId}`;
+}
+
+export function storeDetailPathForRole(
+  storeId: string,
+  role: "STORE_MANAGER" | "BUSINESS_OWNER",
+): string {
+  return role === "STORE_MANAGER"
+    ? storeManagerDetailPath(storeId)
+    : storeDetailPath(storeId);
 }
 
 export function storeDetailHref(storeId: string, period?: string): string {
@@ -24,7 +51,28 @@ export function storeDetailHref(storeId: string, period?: string): string {
   return `${path}?period=${encodeURIComponent(period)}`;
 }
 
+export function storeDetailHrefForRole(
+  storeId: string,
+  role: "STORE_MANAGER" | "BUSINESS_OWNER",
+  period?: string,
+): string {
+  const path = storeDetailPathForRole(storeId, role);
+  if (!period) return path;
+  return `${path}?period=${encodeURIComponent(period)}`;
+}
+
+export function portalSectionPath(
+  section: "visits" | "calls" | "field-sales" | "staff",
+  role: "STORE_MANAGER" | "BUSINESS_OWNER",
+  storeId?: string | null,
+): string {
+  const base = `${portalDashboardPath(role)}/${section}`;
+  return role === "BUSINESS_OWNER" ? appendStoreQuery(base, storeId) : base;
+}
+
 export function parseStoreIdFromPath(pathname: string): string | null {
-  const match = pathname.match(/^\/store\/dashboard\/stores\/([^/]+)/);
+  const match = pathname.match(
+    /^\/(?:business-owner\/dashboard|store-manager\/dashboard)\/stores\/([^/]+)/,
+  );
   return match?.[1] ?? null;
 }

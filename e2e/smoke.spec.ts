@@ -24,12 +24,23 @@ test.describe("Public routes", () => {
     await page.goto("/staff/login");
     await expect(page).toHaveURL("/");
   });
+
+  test("legacy store dashboard redirects to business owner dashboard", async ({ page }) => {
+    await page.goto("/store/dashboard/visits");
+    await expect(page).toHaveURL("/business-owner/dashboard/visits");
+  });
 });
 
 test.describe("Protected dashboard routes", () => {
-  test("store visits redirects unauthenticated users to login", async ({ page }) => {
-    await page.goto("/store/dashboard/visits");
-    await expect(page).not.toHaveURL(/\/store\/dashboard\/visits/);
+  test("store manager visits redirects unauthenticated users to login", async ({ page }) => {
+    await page.goto("/store-manager/dashboard/visits");
+    await expect(page).not.toHaveURL(/\/store-manager\/dashboard\/visits/);
+    await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
+  });
+
+  test("business owner visits redirects unauthenticated users to login", async ({ page }) => {
+    await page.goto("/business-owner/dashboard/visits");
+    await expect(page).not.toHaveURL(/\/business-owner\/dashboard\/visits/);
     await expect(page.getByRole("button", { name: /sign in/i })).toBeVisible();
   });
 

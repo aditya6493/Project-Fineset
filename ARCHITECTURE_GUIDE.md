@@ -11,7 +11,8 @@ FineSet is a **multi-tenant SaaS** for jewelry store chains (and similar retail)
 | Portal | URL prefix | Who uses it | Main jobs |
 |--------|------------|-------------|-----------|
 | **Staff** | `/staff/dashboard` | Floor sales staff (RSO) | Log store visits, field sales, follow-up calls |
-| **Store** | `/store/dashboard` | Store managers | View store visits, staff, calls queue, analytics |
+| **Store Manager** | `/store-manager/dashboard` | Per-store managers | Log visits/calls/field sales, store analytics |
+| **Business Owner** | `/business-owner/dashboard` | Chain owners | Multi-store portfolio, visits, staff, analytics |
 | **Admin** | `/admin/dashboard` | Master admin (HQ) | All stores, invite users, chain-wide analytics |
 
 **Business domains we model:**
@@ -346,7 +347,7 @@ See also `FE_ARCHITECTURE.md` in the repo. Summary:
 
 ### 8.1 Hybrid data loading (our main pattern)
 
-**Example: Store visits page** (`app/(store)/store/dashboard/visits/page.tsx`)
+**Example: Business owner visits page** (`app/(store)/business-owner/dashboard/visits/page.tsx`)
 
 ```tsx
 // Server Component (async)
@@ -506,7 +507,7 @@ Connection pooler already configured. Next steps: read replicas for analytics, R
 | DB schema | `prisma/schema.prisma` |
 | Visit create logic | `lib/services/visits.ts` |
 | Visit API | `app/api/visits/route.ts` |
-| SSR visits | `lib/data/visits.ts`, `app/(store)/store/dashboard/visits/page.tsx` |
+| SSR visits | `lib/data/visits.ts`, `app/(store)/business-owner/dashboard/visits/page.tsx` |
 | Auth session | `lib/auth/get-app-session.ts` |
 | Login | `lib/auth/sign-in-action.ts` |
 | Middleware | `proxy.ts` |

@@ -16,12 +16,13 @@ Run this checklist after every production deploy.
 
 1. Open `/admin/dashboard` and switch `Today`, `This Week`, `This Month`.
 2. Open `/admin/dashboard/stores` and one `/admin/dashboard/stores/[storeId]` page.
-3. Open `/store/dashboard` and switch `Today`, `This Week`, `This Month`.
+3. Open `/business-owner/dashboard` and switch `Today`, `This Week`, `This Month`.
 4. Open store sub-pages:
-   - `/store/dashboard/visits`
-   - `/store/dashboard/calls`
-   - `/store/dashboard/field-sales`
-   - `/store/dashboard/staff`
+   - `/business-owner/dashboard/visits`
+   - `/business-owner/dashboard/calls`
+   - `/business-owner/dashboard/field-sales`
+   - `/business-owner/dashboard/staff`
+   - `/store-manager/dashboard` (store manager portal)
 5. Confirm browser network has no repeated 500 bursts for:
    - `/api/analytics/admin`
    - `/api/analytics/store`

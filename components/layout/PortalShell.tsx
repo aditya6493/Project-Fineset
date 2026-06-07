@@ -8,6 +8,12 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { clearVisitDraft } from "@/components/forms/VisitForm/useVisitDraft";
+import {
+  ADMIN_DASHBOARD_PATH,
+  BUSINESS_OWNER_DASHBOARD_PATH,
+  STAFF_DASHBOARD_PATH,
+  STORE_MANAGER_DASHBOARD_PATH,
+} from "@/lib/auth/routes";
 import { Logo } from "@/components/shared/Logo";
 
 interface NavItem {
@@ -56,15 +62,22 @@ export function PortalShell({
   }
 
   function isActive(href: string): boolean {
-    if (href === "/staff/dashboard") {
+    if (href === STAFF_DASHBOARD_PATH) {
       return pathname === href;
     }
-    if (href === "/store/dashboard") {
+    if (href === BUSINESS_OWNER_DASHBOARD_PATH) {
       return (
-        pathname === href || pathname.startsWith("/store/dashboard/stores/")
+        pathname === href ||
+        pathname.startsWith(`${BUSINESS_OWNER_DASHBOARD_PATH}/stores/`)
       );
     }
-    if (href === "/admin/dashboard") {
+    if (href === STORE_MANAGER_DASHBOARD_PATH) {
+      return (
+        pathname === href ||
+        pathname.startsWith(`${STORE_MANAGER_DASHBOARD_PATH}/stores/`)
+      );
+    }
+    if (href === ADMIN_DASHBOARD_PATH) {
       return pathname === href;
     }
     return pathname.startsWith(href);
@@ -96,7 +109,6 @@ export function PortalShell({
                   <Link
                     key={item.href}
                     href={item.href}
-                    prefetch={false}
                     aria-current={isActive(item.href) ? "page" : undefined}
                     className={cn(
                       "text-sm transition-colors",
@@ -129,7 +141,6 @@ export function PortalShell({
               <Link
                 key={item.href}
                 href={item.href}
-                prefetch={false}
                 aria-current={isActive(item.href) ? "page" : undefined}
                 className={cn(
                   "whitespace-nowrap rounded-chip px-3 py-2 text-xs",

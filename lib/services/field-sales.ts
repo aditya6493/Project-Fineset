@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/db/prisma";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import type { FieldSale, Prisma } from "@prisma/client";
+import { Prisma as PrismaClient } from "@prisma/client";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
 import { normalizeSchemesPitched } from "@/lib/validations/scheme.schema";
 import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
@@ -230,12 +231,15 @@ export async function listFieldSales(params: ListFieldSalesParams) {
   const where = buildFieldSaleWhere(params);
   const yearWhere = buildFieldSaleYearWhere(params);
 
-  const yearRecordsWhere = {
-    ...(params.storeId ? { storeId: params.storeId } : {}),
-    ...(params.staffId ? { staffId: params.staffId } : {}),
-  };
+  const yearRecordsBaseParts: PrismaClient.Sql[] = [];
+  if (params.storeId) yearRecordsBaseParts.push(PrismaClient.sql`"storeId" = ${params.storeId}`);
+  if (params.staffId) yearRecordsBaseParts.push(PrismaClient.sql`"staffId" = ${params.staffId}`);
+  const yearWhereClause =
+    yearRecordsBaseParts.length > 0
+      ? PrismaClient.sql`WHERE ${PrismaClient.join(yearRecordsBaseParts, " AND ")}`
+      : PrismaClient.empty;
 
-  const [records, total, yearActivityDates, yearRecords] = await Promise.all([
+  const [records, total, yearActivityDates, yearRows] = await Promise.all([
     prisma.fieldSale.findMany({
       where,
       orderBy: { activityDate: "desc" },
@@ -251,17 +255,20 @@ export async function listFieldSales(params: ListFieldSalesParams) {
       where: yearWhere,
       select: { activityDate: true },
     }),
-    prisma.fieldSale.findMany({
-      where: yearRecordsWhere,
-      select: { activityDate: true },
-    }),
+    prisma.$queryRaw<Array<{ year: number }>>`
+      SELECT DISTINCT EXTRACT(YEAR FROM "activityDate")::int AS year
+      FROM "FieldSale"
+      ${yearWhereClause}
+      ORDER BY year DESC
+      LIMIT 10
+    `,
   ]);
 
   const months = countFieldSaleMonthsFromDates(yearActivityDates);
 
   const availableYears = Array.from(
     new Set([
-      ...yearRecords.map((record) => record.activityDate.getFullYear()),
+      ...yearRows.map((r) => Number(r.year)),
       new Date().getFullYear(),
     ]),
   ).sort((a, b) => b - a);

@@ -1,3 +1,4 @@
+import { BUSINESS_OWNER_DASHBOARD_PATH } from "@/lib/auth/routes";
 import type {
   StaffCallSegment,
   StaffCallValueTier,
@@ -79,7 +80,7 @@ export function buildStoreCallsLogHref(filters: CallLogLinkFilters): string {
   if (filters.storeId) params.set("storeId", filters.storeId);
 
   const qs = params.toString();
-  return `/store/dashboard/calls${qs ? `?${qs}` : ""}`;
+  return `${BUSINESS_OWNER_DASHBOARD_PATH}/calls${qs ? `?${qs}` : ""}`;
 }
 
 export function mergeCallLogFilters(

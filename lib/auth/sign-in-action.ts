@@ -6,7 +6,7 @@ import {
   isDevAuthBypassEnabled,
   setDevSessionCookie,
 } from "@/lib/auth/dev-bypass";
-import { getRedirectForRole } from "@/lib/auth/routes";
+import { resolvePostAuthRedirect } from "@/lib/auth/routes";
 import { isMetadataComplete } from "@/lib/auth/session-from-metadata";
 import { logAuthEvent } from "@/lib/auth/audit";
 import { createClient } from "@/lib/supabase/server";
@@ -60,10 +60,7 @@ export async function signInAction(
       role: session.role,
     });
 
-    const redirectTo =
-      callbackUrl && callbackUrl.startsWith("/")
-        ? callbackUrl
-        : getRedirectForRole(session.role);
+    const redirectTo = resolvePostAuthRedirect(session.role, callbackUrl);
 
     logSignIn("dev_bypass_success", {
       totalMs: Date.now() - startedAt,
@@ -126,10 +123,7 @@ export async function signInAction(
   const totalMs = Date.now() - startedAt;
   await logLoginSuccess(user, session, totalMs);
 
-  const redirectTo =
-    callbackUrl && callbackUrl.startsWith("/")
-      ? callbackUrl
-      : getRedirectForRole(session.role);
+  const redirectTo = resolvePostAuthRedirect(session.role, callbackUrl);
 
   logSignIn("success", {
     totalMs,

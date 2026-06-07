@@ -1,5 +1,6 @@
 import { mergeStoreWhere, storeNotDeletedWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
+import { unstable_cache } from "next/cache";
 import type {
   AdminDashboardOverview,
   AnalyticsData,
@@ -74,41 +75,41 @@ function buildVisitBreakdowns(
   };
 }
 
-export async function getStoreAnalytics(
-  storeId: string,
-  period: AnalyticsPeriod["label"],
-): Promise<AnalyticsData> {
+export const getStoreAnalytics = unstable_cache(
+  async (storeId: string, period: AnalyticsPeriod["label"]): Promise<AnalyticsData> => {
   const { start, end } = getPeriodRange(period);
   const previousRange = getPreviousPeriodRange(period);
 
-  const visits = await prisma.visit.findMany({
-    where: {
-      storeId,
-      visitDate: { gte: start, lte: end },
-    },
-    select: {
-      purchaseStatus: true,
-      transactionAmount: true,
-      customerType: true,
-    },
-  });
-  const previousVisits = await prisma.visit.findMany({
-    where: {
-      storeId,
-      visitDate: { gte: previousRange.start, lte: previousRange.end },
-    },
-    select: {
-      purchaseStatus: true,
-      transactionAmount: true,
-      customerType: true,
-    },
-  });
-  const openFollowUps = await prisma.followUp.count({
-    where: {
-      visit: { storeId },
-      status: "OPEN",
-    },
-  });
+  const [visits, previousVisits, openFollowUps] = await Promise.all([
+    prisma.visit.findMany({
+      where: {
+        storeId,
+        visitDate: { gte: start, lte: end },
+      },
+      select: {
+        purchaseStatus: true,
+        transactionAmount: true,
+        customerType: true,
+      },
+    }),
+    prisma.visit.findMany({
+      where: {
+        storeId,
+        visitDate: { gte: previousRange.start, lte: previousRange.end },
+      },
+      select: {
+        purchaseStatus: true,
+        transactionAmount: true,
+        customerType: true,
+      },
+    }),
+    prisma.followUp.count({
+      where: {
+        visit: { storeId },
+        status: "OPEN",
+      },
+    }),
+  ]);
 
   const kpis = buildStoreKPIs(visits, openFollowUps);
   const previousKpis = buildStoreKPIs(previousVisits, openFollowUps);
@@ -129,31 +130,37 @@ export async function getStoreAnalytics(
     kpis,
     kpiDeltas,
   };
-}
+  },
+  ["getStoreAnalytics"],
+  { revalidate: 60, tags: ["analytics"] },
+);
 
-export async function getStoreManagerPortfolio(
-  email: string,
-  primaryStoreId: string,
-  period: AnalyticsPeriod["label"],
-): Promise<StoreManagerPortfolio> {
-  const stores = await getManagerStorePerformanceRows(
-    email,
-    primaryStoreId,
-    period,
-  );
-  return { period, stores };
-}
+export const getStoreManagerPortfolio = unstable_cache(
+  async (
+    email: string,
+    primaryStoreId: string,
+    period: AnalyticsPeriod["label"],
+  ): Promise<StoreManagerPortfolio> => {
+    const stores = await getManagerStorePerformanceRows(
+      email,
+      primaryStoreId,
+      period,
+    );
+    return { period, stores };
+  },
+  ["getStoreManagerPortfolio"],
+  { revalidate: 60, tags: ["analytics"] },
+);
 
-export async function getAdminDashboardOverview(
-  period: AnalyticsPeriod["label"],
-): Promise<AdminDashboardOverview> {
-  const startedAt = Date.now();
-  try {
-    const totalStores = await prisma.store.count({ where: storeNotDeletedWhere });
-    const activeStores = await prisma.store.count({
-      where: mergeStoreWhere({ isActive: true }),
-    });
-    const stores = await getStorePerformanceRows(period);
+export const getAdminDashboardOverview = unstable_cache(
+  async (period: AnalyticsPeriod["label"]): Promise<AdminDashboardOverview> => {
+    const startedAt = Date.now();
+    try {
+    const [totalStores, activeStores, stores] = await Promise.all([
+      prisma.store.count({ where: storeNotDeletedWhere }),
+      prisma.store.count({ where: mergeStoreWhere({ isActive: true }) }),
+      getStorePerformanceRows(period),
+    ]);
 
     return {
       totalStores,
@@ -169,55 +176,59 @@ export async function getAdminDashboardOverview(
     });
     throw error;
   }
-}
+  },
+  ["getAdminDashboardOverview"],
+  { revalidate: 60, tags: ["analytics"] },
+);
 
 export async function getAdminStoreDetailAnalytics(
   storeId: string,
   period: AnalyticsPeriod["label"],
 ): Promise<StoreDetailAnalytics> {
-  const store = await prisma.store.findFirst({
-    where: mergeStoreWhere({ id: storeId }),
-    select: {
-      id: true,
-      name: true,
-      category: true,
-      city: true,
-      state: true,
-      isActive: true,
-    },
-  });
+  const { start, end } = getPeriodRange(period);
+  const previousRange = getPreviousPeriodRange(period);
+
+  const [store, visits, previousVisits, openFollowUps] = await Promise.all([
+    prisma.store.findFirst({
+      where: mergeStoreWhere({ id: storeId }),
+      select: {
+        id: true,
+        name: true,
+        category: true,
+        city: true,
+        state: true,
+        isActive: true,
+      },
+    }),
+    prisma.visit.findMany({
+      where: {
+        storeId,
+        visitDate: { gte: start, lte: end },
+      },
+      select: visitAnalyticsSelect,
+    }),
+    prisma.visit.findMany({
+      where: {
+        storeId,
+        visitDate: { gte: previousRange.start, lte: previousRange.end },
+      },
+      select: {
+        purchaseStatus: true,
+        transactionAmount: true,
+        customerType: true,
+      },
+    }),
+    prisma.followUp.count({
+      where: {
+        visit: { storeId },
+        status: "OPEN",
+      },
+    }),
+  ]);
 
   if (!store) {
     throw new Error("Store not found");
   }
-
-  const { start, end } = getPeriodRange(period);
-  const previousRange = getPreviousPeriodRange(period);
-
-  const visits = await prisma.visit.findMany({
-    where: {
-      storeId,
-      visitDate: { gte: start, lte: end },
-    },
-    select: visitAnalyticsSelect,
-  });
-  const previousVisits = await prisma.visit.findMany({
-    where: {
-      storeId,
-      visitDate: { gte: previousRange.start, lte: previousRange.end },
-    },
-    select: {
-      purchaseStatus: true,
-      transactionAmount: true,
-      customerType: true,
-    },
-  });
-  const openFollowUps = await prisma.followUp.count({
-    where: {
-      visit: { storeId },
-      status: "OPEN",
-    },
-  });
 
   const kpis = buildStoreKPIs(visits, openFollowUps);
   const previousKpis = buildStoreKPIs(previousVisits, openFollowUps);

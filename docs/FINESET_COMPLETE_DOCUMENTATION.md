@@ -31,7 +31,8 @@ FineSet is a **multi-store jewelry retail SaaS**. One application serves many st
 | Portal | Who | Main work |
 |--------|-----|-----------|
 | Staff (`/staff/dashboard`) | Sales staff on the floor | Log visits, field sales, follow-up calls |
-| Store (`/store/dashboard`) | Store manager | Monitor store data, staff, calls, analytics |
+| Store Manager (`/store-manager/dashboard`) | Per-store managers | Log visits, calls, field sales; store analytics |
+| Business Owner (`/business-owner/dashboard`) | Chain owners | Multi-store portfolio, visits, staff, analytics |
 | Admin (`/admin/dashboard`) | HQ / master admin | All stores, user invites, chain analytics |
 
 ### What problem it solves
@@ -249,7 +250,7 @@ On login, sync `role`, `storeId`, `staffId` into Supabase `user.app_metadata`.
 ### Step 12 — Protected portals with **proxy.ts** middleware
 
 **What we did:**  
-`proxy.ts` runs on `/staff/dashboard/*`, `/store/dashboard/*`, `/admin/dashboard/*`:
+`proxy.ts` runs on `/staff/dashboard/*`, `/store-manager/dashboard/*`, `/business-owner/dashboard/*`, `/admin/dashboard/*` (legacy `/store/dashboard/*` redirects per role):
 
 1. Refresh Supabase session (cookies stay valid).  
 2. If not logged in → redirect to `/login`.  
@@ -365,7 +366,7 @@ Reject bad data at the boundary with clear 400 errors. Same rules on client and 
 | React Query after | Smooth pagination without full page reload |
 | Param matching | No stale SSR data when filters change |
 
-**Files:** `lib/data/visits.ts`, `hooks/useVisits.ts`, `lib/query/initial-data.ts`, `app/(store)/store/dashboard/visits/page.tsx`
+**Files:** `lib/data/visits.ts`, `hooks/useVisits.ts`, `lib/query/initial-data.ts`, `app/(store)/business-owner/dashboard/visits/page.tsx`
 
 ---
 

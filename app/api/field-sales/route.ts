@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import {
   badRequest,
   getServerSession,
@@ -7,7 +8,10 @@ import {
 } from "@/lib/auth/session";
 import { handleRouteError } from "@/lib/api/route-handler";
 import { resolveStorePortalStoreId } from "@/lib/auth/resolve-manager-store-id";
-import { requireStaffContext } from "@/lib/auth/resolve-staff";
+import {
+  PORTAL_ACTOR_ROLES,
+  requirePortalActorContext,
+} from "@/lib/auth/resolve-staff";
 import { createFieldSale, listFieldSales } from "@/lib/services/field-sales";
 import {
   createFieldSaleSchema,
@@ -59,9 +63,9 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STAFF"])) return unauthorized();
+    if (!requireRole(session, PORTAL_ACTOR_ROLES)) return unauthorized();
 
-    const staff = await requireStaffContext(session);
+    const staff = await requirePortalActorContext(session);
     if (!staff) return unauthorized();
 
     const body: unknown = await req.json();
@@ -73,6 +77,9 @@ export async function POST(req: Request) {
       storeId: staff.storeId,
       staffId: staff.staffId,
     });
+
+    revalidateTag(`store:${staff.storeId}`, { expire: 0 });
+    revalidateTag("analytics", { expire: 0 });
 
     return NextResponse.json(fieldSale, { status: 201 });
   } catch (error) {

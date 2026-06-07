@@ -1,5 +1,7 @@
 import { mergeStoreWhere } from "@/lib/db/store-scope";
 import { prisma } from "@/lib/db/prisma";
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type { AppSession, BusinessOwnerSession, StoreSession } from "@/types";
 import type { ManagerStoreOption } from "@/types";
 
@@ -48,25 +50,26 @@ export async function findExistingStoreManagerByEmail(email: string) {
   return findExistingBusinessOwnerByEmail(email);
 }
 
-export async function listOwnedStoresForBusinessOwner(
-  email: string,
-  primaryStoreId: string,
-): Promise<ManagerStoreOption[]> {
-  const normalized = normalizeManagerEmail(email);
-  if (!normalized) return [];
+export const listOwnedStoresForBusinessOwner = unstable_cache(
+  async (email: string, primaryStoreId: string): Promise<ManagerStoreOption[]> => {
+    const normalized = normalizeManagerEmail(email);
+    if (!normalized) return [];
 
-  return prisma.store.findMany({
-    where: mergeStoreWhere({
-      isActive: true,
-      OR: [
-        { businessOwnerEmail: { equals: normalized, mode: "insensitive" } },
-        { id: primaryStoreId },
-      ],
-    }),
-    select: { id: true, name: true, city: true, state: true },
-    orderBy: { name: "asc" },
-  });
-}
+    return prisma.store.findMany({
+      where: mergeStoreWhere({
+        isActive: true,
+        OR: [
+          { businessOwnerEmail: { equals: normalized, mode: "insensitive" } },
+          { id: primaryStoreId },
+        ],
+      }),
+      select: { id: true, name: true, city: true, state: true },
+      orderBy: { name: "asc" },
+    });
+  },
+  ["listOwnedStoresForBusinessOwner"],
+  { revalidate: 30, tags: ["store-list"] },
+);
 
 export async function listAssignedStoreForManager(
   storeId: string,
@@ -79,15 +82,15 @@ export async function listAssignedStoreForManager(
   return store ? [store] : [];
 }
 
-export async function listAccessibleStores(
-  session: StorePortalSession,
-): Promise<ManagerStoreOption[]> {
-  if (session.role === "STORE_MANAGER") {
-    return listAssignedStoreForManager(session.storeId);
-  }
+export const listAccessibleStores = cache(
+  async (session: StorePortalSession): Promise<ManagerStoreOption[]> => {
+    if (session.role === "STORE_MANAGER") {
+      return listAssignedStoreForManager(session.storeId);
+    }
 
-  return listOwnedStoresForBusinessOwner(session.email, session.storeId);
-}
+    return listOwnedStoresForBusinessOwner(session.email, session.storeId);
+  },
+);
 
 /** @deprecated Use listOwnedStoresForBusinessOwner or listAccessibleStores */
 export async function listStoresLinkedToManagerEmail(

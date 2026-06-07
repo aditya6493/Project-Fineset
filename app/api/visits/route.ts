@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { revalidateTag } from "next/cache";
 import { unauthorized } from "@/lib/auth/session";
-import { requireStaffContext } from "@/lib/auth/resolve-staff";
+import {
+  PORTAL_ACTOR_ROLES,
+  requirePortalActorContext,
+} from "@/lib/auth/resolve-staff";
 import { checkWriteRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
 import { resolveStorePortalStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { createVisit, listVisits } from "@/lib/services/visits";
@@ -12,10 +16,10 @@ import {
 } from "@/lib/validations/visit.schema";
 
 export const POST = await withAuthValidation(
-  ["STAFF"] as const,
+  PORTAL_ACTOR_ROLES,
   createVisitSchema,
   async (session, data) => {
-    const staff = await requireStaffContext(session);
+    const staff = await requirePortalActorContext(session);
     if (!staff) return unauthorized();
 
     const identifier = await getRequestIdentifier();
@@ -32,6 +36,9 @@ export const POST = await withAuthValidation(
       storeId: staff.storeId,
       staffId: staff.staffId,
     });
+
+    revalidateTag(`store:${staff.storeId}`, { expire: 0 });
+    revalidateTag("analytics", { expire: 0 });
 
     return NextResponse.json(visit, { status: 201 });
   },

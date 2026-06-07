@@ -21,6 +21,7 @@ import { PeriodSwitcher, type PeriodValue } from "@/components/shared/PeriodSwit
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ADMIN_DASHBOARD_PATH } from "@/lib/auth/routes";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { getStoreCategoryLabel } from "@/lib/utils/store-category";
 import type { Content } from "@/content/en";
@@ -184,7 +185,7 @@ export function AdminStoreDetail({
 function BackLink({ label }: { label: string }) {
   return (
     <Link
-      href="/admin/dashboard"
+      href={ADMIN_DASHBOARD_PATH}
       prefetch={false}
       className="inline-flex items-center gap-1 text-sm font-medium text-text-secondary hover:text-brand-gold"
     >

@@ -3,27 +3,41 @@ import {
   getDevSessionFromRequest,
   isDevAuthBypassEnabled,
 } from "@/lib/auth/dev-bypass";
+import {
+  getProtectedRouteForPath,
+  getRedirectForRole,
+  LEGACY_STORE_DASHBOARD_PATH,
+  PROTECTED_PORTAL_ROUTES,
+  resolveLegacyDashboardRedirect,
+} from "@/lib/auth/routes";
 import { updateSession } from "@/lib/supabase/middleware";
 import type { UserRole } from "@/types";
 
-/** Dashboard routes that require an authenticated user with one of the listed roles. */
-const PROTECTED_PREFIXES: ReadonlyArray<{
-  prefix: string;
-  roles: readonly UserRole[];
-}> = [
-  { prefix: "/staff/dashboard", roles: ["STAFF"] },
-  { prefix: "/store/dashboard", roles: ["STORE_MANAGER", "BUSINESS_OWNER"] },
-  { prefix: "/admin/dashboard", roles: ["MASTER_ADMIN"] },
-];
-
 export async function proxy(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  const protectedRoute = PROTECTED_PREFIXES.find((r) =>
-    pathname.startsWith(r.prefix),
-  );
+  if (
+    pathname === LEGACY_STORE_DASHBOARD_PATH ||
+    pathname.startsWith(`${LEGACY_STORE_DASHBOARD_PATH}/`)
+  ) {
+    let role: UserRole | undefined;
 
-  // API routes in the matcher only need session refresh (handled above).
+    if (isDevAuthBypassEnabled()) {
+      role = getDevSessionFromRequest(request)?.role;
+    } else {
+      const { user } = await updateSession(request);
+      role = user?.app_metadata?.role as UserRole | undefined;
+    }
+
+    const destination = new URL(
+      `${resolveLegacyDashboardRedirect(pathname, role)}${search}`,
+      request.url,
+    );
+    return NextResponse.redirect(destination);
+  }
+
+  const protectedRoute = getProtectedRouteForPath(pathname);
+
   if (!protectedRoute) {
     if (isDevAuthBypassEnabled()) {
       return NextResponse.next({ request });
@@ -42,9 +56,9 @@ export async function proxy(request: NextRequest) {
     }
 
     if (!protectedRoute.roles.includes(devSession.role)) {
-      const loginUrl = new URL("/", request.url);
-      loginUrl.searchParams.set("error", "wrong_portal");
-      return NextResponse.redirect(loginUrl);
+      return NextResponse.redirect(
+        new URL(getRedirectForRole(devSession.role), request.url),
+      );
     }
 
     return NextResponse.next({ request });
@@ -63,9 +77,9 @@ export async function proxy(request: NextRequest) {
 
   const metadataRole = user.app_metadata?.role as UserRole | undefined;
   if (metadataRole && !protectedRoute.roles.includes(metadataRole)) {
-    const loginUrl = new URL("/", request.url);
-    loginUrl.searchParams.set("error", "wrong_portal");
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(
+      new URL(getRedirectForRole(metadataRole), request.url),
+    );
   }
 
   return response;
@@ -80,7 +94,11 @@ export const config = {
     "/api/visits/:path*",
     "/api/field-sales/:path*",
     "/staff/dashboard/:path*",
-    "/store/dashboard/:path*",
+    "/store-manager/dashboard/:path*",
+    "/business-owner/dashboard/:path*",
     "/admin/dashboard/:path*",
+    "/store/dashboard/:path*",
   ],
 };
+
+export { PROTECTED_PORTAL_ROUTES };

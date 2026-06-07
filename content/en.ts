@@ -609,24 +609,27 @@ export const content = {
     shell: {
       title: "Store Dashboard",
     },
-    managerPortal: {
+    managerShell: {
       title: "Store Manager Portal",
-      subtitle: "Choose an action for your assigned store",
+    },
+    managerPortal: {
+      title: "What would you like to do?",
+      subtitle: "Choose an action to get started",
       actions: {
-        visitLog: {
-          title: "Visit log",
-          description: "Review customer visits logged at your store",
-          cta: "View visits",
+        logVisit: {
+          title: "Log Customer Visit",
+          description: "Record walk-in or appointment details for store analytics",
+          cta: "Log visit",
         },
-        callRecordings: {
-          title: "Call recordings",
-          description: "Listen to and review retention calls from your team",
-          cta: "View calls",
+        callUsers: {
+          title: "Call Users",
+          description: "Call customers you served and log retention outcomes",
+          cta: "View call list",
         },
         fieldSales: {
-          title: "Field sales",
-          description: "Track outdoor GHS and JPP enrollment activity",
-          cta: "View field sales",
+          title: "Field Sales",
+          description: "Log outdoor visits and GHS / JPP enrollments in the field",
+          cta: "Log field sale",
         },
         storeDashboard: {
           title: "Store dashboard",

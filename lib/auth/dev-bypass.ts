@@ -24,6 +24,10 @@ const DEV_STAFF_EMPLOYEE_IDS: Record<string, string> = {
   "staff-a@store-alpha.local": "EMP001",
 };
 
+const DEV_STORE_MANAGER_EMPLOYEE_IDS: Record<string, string> = {
+  "store-manager@store-alpha.local": "MGR001",
+};
+
 function getDevEmailRoles(): Record<string, UserRole> {
   const roles = { ...DEV_EMAIL_ROLES };
   const masterEmail = process.env.MASTER_ADMIN_EMAIL?.trim().toLowerCase();
@@ -174,6 +178,71 @@ async function buildDevStaffSession(email: string): Promise<AppSession> {
   return buildStaticDevSession(normalized, "STAFF");
 }
 
+async function buildDevStoreManagerSession(email: string): Promise<AppSession> {
+  const normalized = email.trim().toLowerCase();
+  const preferredEmployeeId = DEV_STORE_MANAGER_EMPLOYEE_IDS[normalized];
+
+  try {
+    const profile = await loadAppUserProfileByEmail(normalized);
+    if (profile?.isActive && profile.role === "STORE_MANAGER" && profile.staffId) {
+      const assignedStore =
+        profile.staff?.store ?? profile.store;
+      const assignedStoreId = profile.staff?.storeId ?? profile.storeId;
+      if (assignedStoreId && assignedStore) {
+        return {
+          userId: profile.id,
+          email: normalized,
+          role: "STORE_MANAGER",
+          storeId: assignedStoreId,
+          storeName: assignedStore.name,
+        };
+      }
+    }
+
+    const staff =
+      (preferredEmployeeId
+        ? await prisma.staff.findFirst({
+            where: {
+              employeeId: preferredEmployeeId,
+              isActive: true,
+              role: "STORE_MANAGER",
+            },
+            select: {
+              id: true,
+              storeId: true,
+              store: { select: { name: true } },
+            },
+          })
+        : null) ??
+      (await prisma.staff.findFirst({
+        where: {
+          isActive: true,
+          role: "STORE_MANAGER",
+        },
+        select: {
+          id: true,
+          storeId: true,
+          store: { select: { name: true } },
+        },
+        orderBy: { createdAt: "asc" },
+      }));
+
+    if (staff?.store) {
+      return {
+        userId: profile?.id ?? "dev-store-manager",
+        email: normalized,
+        role: "STORE_MANAGER",
+        storeId: staff.storeId,
+        storeName: staff.store.name,
+      };
+    }
+  } catch (error) {
+    console.warn("[dev-bypass] store manager session DB lookup skipped", error);
+  }
+
+  return buildStaticDevSession(normalized, "STORE_MANAGER");
+}
+
 /** Static session that never touches the database. */
 export function buildStaticDevSession(email: string, role: UserRole): AppSession {
   const normalized = email.trim().toLowerCase();
@@ -305,6 +374,8 @@ async function resolveDevAppSessionInternal(
   if (devRole === "STAFF") {
     // Build from DB so we get real staffId/storeId (cached across requests after first hit).
     session = await buildDevStaffSession(normalized);
+  } else if (devRole === "STORE_MANAGER") {
+    session = await buildDevStoreManagerSession(normalized);
   } else if (devRole) {
     // Non-staff roles use static data — no DB needed.
     session = buildStaticDevSession(normalized, devRole);

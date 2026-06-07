@@ -117,7 +117,7 @@ async function main() {
     }
   }
 
-  console.log("\nDone. Sign in as manager@store-alpha.local and open /store/dashboard.");
+  console.log("\nDone. Sign in as manager@store-alpha.local and open /business-owner/dashboard.");
   console.log("You should see a store dropdown with", upserted.length, "stores.");
   console.log("Dev password (after auth:bootstrap-dev): FineSet#1dev");
 }
