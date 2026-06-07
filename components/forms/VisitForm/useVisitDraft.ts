@@ -5,6 +5,7 @@ import type { UseFormWatch, UseFormReset } from "react-hook-form";
 import {
   VISIT_DRAFT_STORAGE_KEY,
   extractDraftFields,
+  getDefaultVisitValues,
   parseDateInput,
   type VisitDraftFields,
   type VisitFormValues,
@@ -62,6 +63,15 @@ export function clearVisitDraft(): void {
   localStorage.removeItem(VISIT_DRAFT_STORAGE_KEY);
 }
 
+export function buildClientVisitFormValues(
+  draft?: Partial<VisitDraftFields>,
+): VisitFormValues {
+  return {
+    ...getDefaultVisitValues(draft ? normalizeLoadedDraft(draft) : undefined),
+    inTime: new Date(),
+  };
+}
+
 export function useVisitDraft(
   watch: UseFormWatch<VisitFormValues>,
   reset: UseFormReset<VisitFormValues>,
@@ -69,11 +79,7 @@ export function useVisitDraft(
 ): void {
   useEffect(() => {
     if (!enabled) return;
-
-    const draft = loadVisitDraft();
-    if (draft) {
-      reset((current) => ({ ...current, ...normalizeLoadedDraft(draft) }));
-    }
+    reset(buildClientVisitFormValues(loadVisitDraft()));
   }, [enabled, reset]);
 
   useEffect(() => {

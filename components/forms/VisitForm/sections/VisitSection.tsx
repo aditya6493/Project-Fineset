@@ -6,10 +6,10 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { ChipMultiSelect } from "@/components/shared/ChipMultiSelect";
+import { CurrencyInput } from "@/components/shared/CurrencyInput";
 import { FormSection } from "../FormSection";
 import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
 
@@ -100,15 +100,11 @@ export function VisitSection({ copy, control, purchaseStatus }: VisitSectionProp
               <FormItem className="max-w-xs">
                 <FormLabel>{fields.transactionAmount.label}</FormLabel>
                 <FormControl>
-                  <Input
-                    type="number"
-                    min={1}
+                  <CurrencyInput
                     placeholder={fields.transactionAmount.placeholder}
-                    value={field.value ?? ""}
-                    onChange={(event) => {
-                      const val = event.target.value;
-                      field.onChange(val ? Number(val) : undefined);
-                    }}
+                    value={field.value}
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
                   />
                 </FormControl>
                 <FormMessage />

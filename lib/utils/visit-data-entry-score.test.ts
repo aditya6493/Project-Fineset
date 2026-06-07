@@ -43,7 +43,7 @@ describe("calculateVisitDataEntryScore", () => {
   it("scores purchased visits against purchase-specific fields", () => {
     const score = calculateVisitDataEntryScore(
       baseVisit({
-        productsPurchased: ["RINGS"],
+        productsPurchased: ["FINGER_RINGS"],
         transactionAmount: 25000,
         area: "Koramangala",
         gender: "FEMALE",
@@ -61,7 +61,7 @@ describe("calculateVisitDataEntryScore", () => {
     const filledScore = calculateVisitDataEntryScore(
       baseVisit({
         purchaseStatus: "NOT_PURCHASED",
-        productsExplored: ["EARRINGS"],
+        productsExplored: ["EAR_RINGS"],
         reasonNoPurchase: "BUDGET",
         competitorMention: "Tanishq",
       }),

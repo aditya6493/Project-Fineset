@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db/prisma";
 import type { CreateVisitInput } from "@/lib/validations/visit.schema";
 import type { VisitListItem } from "@/types";
 import type { Prisma, SourceChannel, Visit } from "@prisma/client";
+import { visitDenormFields } from "@/lib/services/call-record-denorm";
 import { buildVisitSearchWhere } from "@/lib/services/customer-search";
 import {
   decryptCustomerFields,
@@ -11,6 +12,7 @@ import {
 } from "@/lib/services/pii";
 import { calculateDurationMins } from "@/lib/utils/formatters";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
+import { normalizeSchemesPitched } from "@/lib/validations/scheme.schema";
 import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
 
 interface CreateVisitParams extends CreateVisitInput {
@@ -20,6 +22,8 @@ interface CreateVisitParams extends CreateVisitInput {
 
 export async function createVisit(params: CreateVisitParams): Promise<Visit> {
   await ensureProductionCustomerSchema();
+
+  const normalizedParams = normalizeSchemesPitched(params);
 
   const {
     storeId,
@@ -38,7 +42,7 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
     purchaseStatus,
     enrollmentOutcome,
     ...visitData
-  } = params;
+  } = normalizedParams;
 
   if (!purchaseStatus) {
     throw new Error("Purchase status is required");
@@ -94,6 +98,14 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
     const durationMins =
       outTime !== null ? calculateDurationMins(inTime, outTime) : null;
 
+    const denorm = visitDenormFields({
+      transactionAmount: visitData.transactionAmount ?? null,
+      budgetStated: visitData.budgetStated ?? null,
+      purchaseStatus,
+      dateOfBirth: dateOfBirth ?? customer.dateOfBirth,
+      anniversary: anniversary ?? customer.anniversary,
+    });
+
     const visit = await tx.visit.create({
       data: {
         ...visitData,
@@ -121,6 +133,7 @@ export async function createVisit(params: CreateVisitParams): Promise<Visit> {
         enrollmentOutcome,
         schemeEnrolled: schemeFlags.schemeEnrolled,
         ghsPolicy: schemeFlags.ghsPolicy,
+        ...denorm,
       },
     });
 

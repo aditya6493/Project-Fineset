@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2 } from "lucide-react";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -80,7 +79,7 @@ interface StoresManagementProps {
     conversionRate: number;
     createdAt: string;
   }>;
-  initialStoresParams?: { page?: number; pageSize?: number; search?: string };
+  initialStoresParams?: { page?: number; pageSize?: number };
 }
 
 export function StoresManagement({
@@ -99,14 +98,11 @@ export function StoresManagement({
     password: string;
   } | null>(null);
 
-  const [searchInput, setSearchInput] = useState("");
-  const debouncedSearch = useDebouncedValue(searchInput, 300);
   const storesParams = {
     page: 1,
     pageSize: 50,
-    search: debouncedSearch.trim() || undefined,
   };
-  const { data, isLoading, isFetching } = useStores(storesParams, {
+  const { data, isLoading } = useStores(storesParams, {
     initialData: initialStores,
     initialParams: initialStoresParams ?? storesParams,
   });
@@ -233,25 +229,6 @@ export function StoresManagement({
       </div>
 
       <AdminDashboardNav labels={admin.nav} />
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-        <div className="relative max-w-sm">
-          <Input
-            value={searchInput}
-            onChange={(event) => setSearchInput(event.target.value)}
-            placeholder={admin.stores.searchPlaceholder}
-            aria-label={admin.stores.searchPlaceholder}
-            aria-busy={isFetching && Boolean(debouncedSearch.trim())}
-            className={isFetching && debouncedSearch.trim() ? "pr-9" : undefined}
-          />
-          {isFetching && debouncedSearch.trim() ? (
-            <Loader2
-              className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-text-muted"
-              aria-hidden
-            />
-          ) : null}
-        </div>
-      </div>
 
       {isLoading && !data ? (
         <div

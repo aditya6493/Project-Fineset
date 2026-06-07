@@ -11,7 +11,7 @@ import { followUpQuerySchema } from "@/lib/validations/follow-ups.schema";
 
 export async function GET(req: Request) {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "STAFF"])) return unauthorized();
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "STAFF"])) return unauthorized();
 
   const { searchParams } = new URL(req.url);
   const query = followUpQuerySchema.safeParse(

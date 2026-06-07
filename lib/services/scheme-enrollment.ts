@@ -9,9 +9,9 @@ export function resolveSchemeEnrollmentFlags(outcome?: SchemeEnrollmentOutcome |
     case "ENROLLED_GHS":
       return { schemeEnrolled: true, ghsPolicy: true, activeScheme: "GHS" };
     case "ENROLLED_GPP":
-      return { schemeEnrolled: true, ghsPolicy: false, activeScheme: "GPP" };
+      return { schemeEnrolled: true, ghsPolicy: false, activeScheme: "JPP" };
     case "ENROLLED_BOTH":
-      return { schemeEnrolled: true, ghsPolicy: true, activeScheme: "GHS+GPP" };
+      return { schemeEnrolled: true, ghsPolicy: true, activeScheme: "GHS+JPP" };
     default:
       return { schemeEnrolled: false, ghsPolicy: false, activeScheme: null };
   }

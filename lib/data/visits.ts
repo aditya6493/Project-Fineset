@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
-import { resolveManagerStoreId } from "@/lib/services/manager-stores";
+import { resolveAccessibleStoreId } from "@/lib/services/manager-stores";
 import { listVisits } from "@/lib/services/visits";
 import { DEFAULT_VISITS_PARAMS } from "@/lib/query/initial-data";
 import type { GetVisitsParams, PaginatedResponse, VisitListItem } from "@/types";
@@ -15,7 +15,7 @@ export const fetchInitialVisits = cache(async function fetchInitialVisits(
   overrides: GetVisitsParams = {},
 ): Promise<InitialVisitsPayload | null> {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
     return null;
   }
 
@@ -24,10 +24,9 @@ export const fetchInitialVisits = cache(async function fetchInitialVisits(
   const pageSize = Number(params.pageSize ?? 20);
 
   let storeId: string | undefined;
-  if (session.role === "STORE_MANAGER") {
-    storeId = await resolveManagerStoreId(
-      session.email,
-      session.storeId,
+  if (session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER") {
+    storeId = await resolveAccessibleStoreId(
+      session,
       storeIdOverride ?? params.storeId,
     );
   } else {

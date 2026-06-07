@@ -12,7 +12,7 @@ import { storeInviteUserSchema } from "@/lib/validations/user-invite.schema";
 export async function POST(req: Request) {
   const session = await getServerSession();
   if (!session) return unauthorized();
-  if (!requireRole(session, ["STORE_MANAGER"])) return forbidden();
+  if (!requireRole(session, ["BUSINESS_OWNER"])) return forbidden();
 
   const body: unknown = await req.json();
   const parsed = storeInviteUserSchema.safeParse(body);

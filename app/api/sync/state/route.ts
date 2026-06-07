@@ -28,7 +28,7 @@ export async function GET() {
   const startedAt = Date.now();
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STAFF", "STORE_MANAGER", "MASTER_ADMIN"])) {
+    if (!requireRole(session, ["STAFF", "STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
       return unauthorized();
     }
 

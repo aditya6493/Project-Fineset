@@ -223,7 +223,13 @@ export async function updateStaff(
       where: { id: staff.appUser.id },
       include: {
         store: { select: { name: true } },
-        staff: { select: { employeeId: true } },
+        staff: {
+          select: {
+            employeeId: true,
+            storeId: true,
+            store: { select: { name: true } },
+          },
+        },
       },
     });
 

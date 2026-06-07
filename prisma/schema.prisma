@@ -76,6 +76,7 @@ enum StaffRole {
 
 enum AppRole {
   MASTER_ADMIN
+  BUSINESS_OWNER
   STORE_MANAGER
   STAFF
 }
@@ -190,6 +191,11 @@ model Visit {
   followUpDate      DateTime?
   staffNotes        String?
   sourceChannel     SourceChannel
+  lastCallAnswered  CallAnswerStatus?
+  lastCallAt        DateTime?
+  callValueTier     CallValueTier?
+  birthMonth        Int?
+  anniversaryMonth  Int?
   createdAt         DateTime                 @default(now())
   updatedAt         DateTime                 @updatedAt
 
@@ -202,6 +208,8 @@ model Visit {
 
   @@index([storeId, visitDate(sort: Desc)])
   @@index([staffId, storeId, visitDate(sort: Desc)])
+  @@index([staffId, storeId, visitDate(sort: Desc), lastCallAnswered])
+  @@index([staffId, storeId, visitDate(sort: Desc), callValueTier, birthMonth, anniversaryMonth])
   @@index([storeId, customerPhoneHash])
   @@index([storeId, customerNameSearch])
   @@index([storeId, phoneLast4])
@@ -285,31 +293,43 @@ enum CallAnswerStatus {
   NOT_ANSWERED
 }
 
-model StaffCallLog {
-  id        String           @id @default(cuid())
-  visitId   String
-  staffId   String
-  answered  CallAnswerStatus
-  feedback  String?
-  createdAt DateTime         @default(now())
+enum CallValueTier {
+  HIGH
+  MID
+  LOW
+}
 
-  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+model StaffCallLog {
+  id          String           @id @default(cuid())
+  visitId     String?
+  fieldSaleId String?
+  staffId     String
+  answered    CallAnswerStatus
+  feedback    String?
+  createdAt   DateTime         @default(now())
+
+  visit     Visit?     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  fieldSale FieldSale? @relation(fields: [fieldSaleId], references: [id], onDelete: Cascade)
+  staff     Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([visitId, staffId, createdAt(sort: Desc)])
+  @@index([fieldSaleId, staffId, createdAt(sort: Desc)])
   @@index([staffId, createdAt(sort: Desc)])
 }
 
 model PhoneRevealLog {
-  id        String   @id @default(cuid())
-  visitId   String
-  staffId   String
-  createdAt DateTime @default(now())
+  id          String   @id @default(cuid())
+  visitId     String?
+  fieldSaleId String?
+  staffId     String
+  createdAt   DateTime @default(now())
 
-  visit Visit @relation(fields: [visitId], references: [id], onDelete: Cascade)
-  staff Staff @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  visit     Visit?     @relation(fields: [visitId], references: [id], onDelete: Cascade)
+  fieldSale FieldSale? @relation(fields: [fieldSaleId], references: [id], onDelete: Cascade)
+  staff     Staff      @relation(fields: [staffId], references: [id], onDelete: Cascade)
 
   @@index([visitId, staffId, createdAt(sort: Desc)])
+  @@index([fieldSaleId, staffId, createdAt(sort: Desc)])
 }
 
 enum FieldActivityType {
@@ -325,6 +345,7 @@ enum FieldActivityType {
 enum SchemeProduct {
   GHS
   GPP
+  NONE
 }
 
 enum SchemeEnrollmentOutcome {
@@ -375,6 +396,11 @@ model FieldSale {
   followUpNeeded      Boolean                 @default(false)
   followUpDate        DateTime?
   staffNotes          String?
+  lastCallAnswered    CallAnswerStatus?
+  lastCallAt          DateTime?
+  callValueTier       CallValueTier?
+  birthMonth          Int?
+  anniversaryMonth    Int?
   createdAt           DateTime                @default(now())
   updatedAt           DateTime                @updatedAt
 
@@ -382,7 +408,11 @@ model FieldSale {
   staff    Staff     @relation(fields: [staffId], references: [id], onDelete: Restrict)
   customer Customer? @relation(fields: [customerId], references: [id], onDelete: SetNull)
   followUp FollowUp?
+  callLogs StaffCallLog[]
+  phoneRevealLogs PhoneRevealLog[]
 
   @@index([staffId, activityDate(sort: Desc)])
+  @@index([staffId, storeId, activityDate(sort: Desc), lastCallAnswered])
+  @@index([staffId, storeId, activityDate(sort: Desc), callValueTier, birthMonth, anniversaryMonth])
   @@index([storeId, activityDate(sort: Desc)])
 }

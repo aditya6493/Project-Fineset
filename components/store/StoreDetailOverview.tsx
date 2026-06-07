@@ -28,6 +28,7 @@ type StoreContent = Content["store"];
 interface StoreDetailOverviewProps {
   storeId: string;
   store: StoreContent;
+  showStaffNav?: boolean;
   initialOverviewBundle?: StoreOverviewBundle;
   initialOverviewParams?: GetAnalyticsParams;
 }
@@ -35,6 +36,7 @@ interface StoreDetailOverviewProps {
 export function StoreDetailOverview({
   storeId,
   store: storeFromPage,
+  showStaffNav = true,
   initialOverviewBundle,
   initialOverviewParams,
 }: StoreDetailOverviewProps) {
@@ -174,11 +176,13 @@ export function StoreDetailOverview({
               {detail.viewFieldSales}
             </Link>
           </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link href={appendStoreQuery("/store/dashboard/staff", storeId)} prefetch={false}>
-              {detail.viewStaff}
-            </Link>
-          </Button>
+          {showStaffNav ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={appendStoreQuery("/store/dashboard/staff", storeId)} prefetch={false}>
+                {detail.viewStaff}
+              </Link>
+            </Button>
+          ) : null}
         </nav>
       </div>
 

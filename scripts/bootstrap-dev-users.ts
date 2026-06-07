@@ -14,7 +14,7 @@ const DEV_PASSWORD = "FineSet#1dev";
 interface DevUserSpec {
   email: string;
   name: string;
-  role: "MASTER_ADMIN" | "STORE_MANAGER" | "STAFF";
+  role: "MASTER_ADMIN" | "BUSINESS_OWNER" | "STORE_MANAGER" | "STAFF";
   employeeId?: string;
 }
 
@@ -26,8 +26,14 @@ const DEV_USERS: DevUserSpec[] = [
   },
   {
     email: "manager@store-alpha.local",
+    name: "Store Alpha Owner",
+    role: "BUSINESS_OWNER",
+  },
+  {
+    email: "store-manager@store-alpha.local",
     name: "Store Alpha Manager",
     role: "STORE_MANAGER",
+    employeeId: "MGR001",
   },
   {
     email: "staff-a@store-alpha.local",
@@ -103,6 +109,24 @@ async function main(): Promise<void> {
       });
       if (!staff) {
         throw new Error(`Staff ${spec.employeeId} not found — run db:seed`);
+      }
+      staffId = staff.id;
+    }
+
+    if (spec.role === "STORE_MANAGER" && spec.employeeId) {
+      let staff = await prisma.staff.findUnique({
+        where: { employeeId: spec.employeeId },
+      });
+      if (!staff) {
+        staff = await prisma.staff.create({
+          data: {
+            name: spec.name,
+            employeeId: spec.employeeId,
+            role: "STORE_MANAGER",
+            storeId: storeAlpha.id,
+            isActive: true,
+          },
+        });
       }
       staffId = staff.id;
     }

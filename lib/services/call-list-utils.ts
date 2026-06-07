@@ -5,6 +5,20 @@ import type {
 } from "@/types";
 import type { BudgetRange, CustomerType, IntentTier, PurchaseStatus } from "@prisma/client";
 import { formatCurrency } from "@/lib/utils/formatters";
+import {
+  extractCallQueueSignals,
+  matchesCallQueueFilter,
+} from "@/lib/services/call-queue-utils";
+
+export {
+  deriveCallQueue,
+  matchesCallQueueFilter,
+  buildCallsPeriodRange,
+  buildFollowUpOpenWhere,
+  buildFieldSaleFollowUpOpenWhere,
+  buildNotAnsweredWhere,
+  extractCallQueueSignals,
+} from "@/lib/services/call-queue-utils";
 
 export function computeVisitValueTier(visit: {
   transactionAmount: number | null;
@@ -76,23 +90,12 @@ export function matchesCallQueue(
       assignedStaffId: string;
     } | null;
     callLogs: Array<{ answered: "ANSWERED" | "NOT_ANSWERED"; staffId?: string }>;
+    lastCallAnswered?: "ANSWERED" | "NOT_ANSWERED" | null;
   },
   queue: StaffCallQueue,
 ): boolean {
-  if (queue === "ALL") return true;
-
-  const hasOpenFollowUp =
-    visit.followUp?.status === "OPEN" &&
-    visit.followUp.assignedStaffId === visit.staffId;
-  const lastCall =
-    visit.callLogs.find((log) => log.staffId === visit.staffId) ??
-    visit.callLogs[0];
-
-  if (queue === "FOLLOW_UP") {
-    return hasOpenFollowUp || lastCall?.answered === "NOT_ANSWERED";
-  }
-
-  return !hasOpenFollowUp && lastCall?.answered !== "NOT_ANSWERED";
+  const signals = extractCallQueueSignals(visit);
+  return matchesCallQueueFilter(signals, queue);
 }
 
 export function matchesVisitPeriod(

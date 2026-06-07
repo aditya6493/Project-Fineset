@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
-import { resolveManagerStoreId } from "@/lib/services/manager-stores";
+import { resolveAccessibleStoreId } from "@/lib/services/manager-stores";
 import {
   getAdminDashboardOverview,
   getAdminStoreDetailAnalytics,
@@ -52,7 +52,7 @@ export const fetchInitialStoreManagerPortfolio = cache(
     overrides: GetAnalyticsParams = {},
   ): Promise<InitialStoreManagerPortfolioPayload | null> => {
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return null;
+    if (!requireRole(session, ["BUSINESS_OWNER"])) return null;
 
     const params: GetAnalyticsParams = {
       ...DEFAULT_ANALYTICS_PARAMS,
@@ -84,18 +84,26 @@ export const fetchInitialStoreAnalytics = cache(
   ): Promise<InitialStoreAnalyticsPayload | null> => {
     const startedAt = Date.now();
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return null;
+    if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER"])) return null;
 
     const params: GetAnalyticsParams = {
       ...DEFAULT_ANALYTICS_PARAMS,
       ...overrides,
     };
     const period = params.period ?? "week";
-    const storeId = await resolveManagerStoreId(
-      session.email,
-      session.storeId,
-      params.storeId,
-    );
+    let storeId: string;
+    try {
+      storeId = await resolveAccessibleStoreId(session, params.storeId);
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialStoreAnalytics access denied", {
+        period,
+        requestedStoreId: params.storeId,
+        sessionStoreId: session.storeId,
+        role: session.role,
+        error,
+      });
+      return null;
+    }
     try {
       const data = await getStoreAnalytics(storeId, period);
 
@@ -103,7 +111,7 @@ export const fetchInitialStoreAnalytics = cache(
     } catch (error) {
       console.error("[data.analytics] fetchInitialStoreAnalytics failed", {
         period,
-        storeId: session.storeId,
+        storeId,
         elapsedMs: Date.now() - startedAt,
         error,
       });
@@ -143,26 +151,29 @@ export const fetchInitialStoreOverviewBundle = cache(
   ): Promise<InitialStoreOverviewBundlePayload | null> => {
     const startedAt = Date.now();
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return null;
+    if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER"])) return null;
 
     const params: GetAnalyticsParams = {
       ...DEFAULT_ANALYTICS_PARAMS,
       ...overrides,
     };
     const period = params.period ?? "week";
-    const storeId = await resolveManagerStoreId(
-      session.email,
-      session.storeId,
-      params.storeId,
-    );
+    let storeId: string;
+    try {
+      storeId = await resolveAccessibleStoreId(session, params.storeId);
+    } catch (error) {
+      console.error("[data.analytics] fetchInitialStoreOverviewBundle access denied", {
+        period,
+        requestedStoreId: params.storeId,
+        sessionStoreId: session.storeId,
+        role: session.role,
+        error,
+      });
+      return null;
+    }
 
     try {
-      const bundle = await getStoreOverviewBundle(
-        session.email,
-        session.storeId,
-        storeId,
-        period,
-      );
+      const bundle = await getStoreOverviewBundle(session, storeId, period);
       return { params: { period, storeId }, bundle };
     } catch (error) {
       console.error("[data.analytics] fetchInitialStoreOverviewBundle failed", {

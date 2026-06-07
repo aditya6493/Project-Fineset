@@ -5,7 +5,7 @@ const THEME_PATTERNS: Array<{ key: string; label: string; pattern: RegExp }> = [
   { key: "interest", label: "Interest / intent", pattern: /\b(interested|want|consider|maybe)\b/i },
   { key: "no_answer", label: "Unreachable", pattern: /\b(no answer|not answering|rang|busy tone)\b/i },
   { key: "visit", label: "Store visit", pattern: /\b(visit|come to store|walk-?in)\b/i },
-  { key: "scheme", label: "Scheme / GHS / GPP", pattern: /\b(ghs|gpp|scheme|plan|installment)\b/i },
+  { key: "scheme", label: "Scheme / GHS / JPP", pattern: /\b(ghs|gpp|jpp|scheme|plan|installment)\b/i },
 ];
 
 export interface CallNotesInsightsInput {

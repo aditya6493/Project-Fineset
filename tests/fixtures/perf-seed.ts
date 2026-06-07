@@ -36,7 +36,7 @@ export async function seedPerfFixtures(): Promise<PerfSeedResult> {
       authId: "perf-manager-auth",
       email: managerEmail,
       name: "Perf Manager",
-      role: "STORE_MANAGER",
+      role: "BUSINESS_OWNER",
       storeId: store.id,
     },
   });

@@ -8,12 +8,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { FormSection } from "@/components/forms/VisitForm/FormSection";
 import type { FieldSalesFormCopy, FieldSalesFormValues } from "../FieldSalesForm.types";
-import { formatDateForInput, parseDateInput } from "../FieldSalesForm.types";
 
 interface FollowUpSectionProps {
   copy: FieldSalesFormCopy;
@@ -51,13 +50,11 @@ export function FollowUpSection({
             <FormItem className="max-w-sm">
               <FormLabel>{fields.followUpDate.label}</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? formatDateForInput(field.value) : ""}
-                  onChange={(event) => {
-                    if (!event.target.value) return;
-                    field.onChange(parseDateInput(event.target.value));
-                  }}
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  fromDate={new Date()}
                 />
               </FormControl>
               <FormMessage />

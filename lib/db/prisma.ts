@@ -7,6 +7,7 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
   prismaClientMtimeMs?: number;
   prismaSchemaMtimeMs?: number;
+  prismaMtimeCheckedAt?: number;
 };
 
 const GENERATED_CLIENT_PATH = resolve(
@@ -78,6 +79,9 @@ function prismaArtifactsMtimeMs(): {
   };
 }
 
+/** How often to re-check schema/client mtimes in dev (ms). Avoids statSync on every query. */
+const DEV_MTIME_CHECK_INTERVAL_MS = 5_000;
+
 function getPrismaClient(): PrismaClient {
   if (process.env.NODE_ENV === "production") {
     if (!globalForPrisma.prisma) {
@@ -86,9 +90,23 @@ function getPrismaClient(): PrismaClient {
     return globalForPrisma.prisma;
   }
 
+  // Fast path: return existing client if we checked recently.
+  const now = Date.now();
+  const lastCheck = globalForPrisma.prismaMtimeCheckedAt ?? 0;
+  if (globalForPrisma.prisma && now - lastCheck < DEV_MTIME_CHECK_INTERVAL_MS) {
+    return globalForPrisma.prisma;
+  }
+
+  globalForPrisma.prismaMtimeCheckedAt = now;
+
   const { clientMtime, schemaMtime } = prismaArtifactsMtimeMs();
+  const schemaAheadOfClient =
+    schemaMtime !== undefined &&
+    clientMtime !== undefined &&
+    schemaMtime > clientMtime;
   const cacheIsFresh =
     globalForPrisma.prisma !== undefined &&
+    !schemaAheadOfClient &&
     globalForPrisma.prismaClientMtimeMs === clientMtime &&
     globalForPrisma.prismaSchemaMtimeMs === schemaMtime;
 
@@ -106,7 +124,7 @@ function getPrismaClient(): PrismaClient {
   return globalForPrisma.prisma;
 }
 
-/** Re-resolve on each access so `prisma generate` picks up without a full dev restart. */
+/** Re-resolve periodically so `prisma generate` picks up without a full dev restart. */
 export const prisma = new Proxy({} as PrismaClient, {
   get(_target, prop, receiver) {
     const client = getPrismaClient();

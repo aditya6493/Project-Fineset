@@ -3,19 +3,19 @@ import { getAppSession } from "@/lib/auth/get-app-session";
 import { getRedirectForRole } from "@/lib/auth/routes";
 import type { AppSession, UserRole } from "@/types";
 
-export async function requirePortalSession(
-  allowed: UserRole | readonly UserRole[],
-): Promise<AppSession> {
-  const roles = Array.isArray(allowed) ? allowed : [allowed];
+export async function requirePortalSession<T extends UserRole>(
+  allowed: T | readonly T[],
+): Promise<Extract<AppSession, { role: T }>> {
+  const roles = (Array.isArray(allowed) ? allowed : [allowed]) as readonly T[];
   const session = await getAppSession();
 
   if (!session) {
     redirect("/");
   }
 
-  if (!roles.includes(session.role)) {
+  if (!roles.includes(session.role as T)) {
     redirect(getRedirectForRole(session.role));
   }
 
-  return session;
+  return session as Extract<AppSession, { role: T }>;
 }

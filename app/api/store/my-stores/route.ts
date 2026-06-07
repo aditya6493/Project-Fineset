@@ -5,21 +5,20 @@ import {
   requireRole,
   unauthorized,
 } from "@/lib/auth/session";
-import { listStoresLinkedToManagerEmail } from "@/lib/services/manager-stores";
+import { listAccessibleStores } from "@/lib/services/manager-stores";
 
 /**
  * GET /api/store/my-stores
- * Store manager: stores linked to the logged-in email (from DB).
+ * Store portal: stores accessible to the logged-in role (scoped in manager-stores).
  */
 export async function GET() {
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
+    if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER"])) {
+      return unauthorized();
+    }
 
-    const stores = await listStoresLinkedToManagerEmail(
-      session.email,
-      session.storeId,
-    );
+    const stores = await listAccessibleStores(session);
 
     return NextResponse.json({
       data: stores,

@@ -1,6 +1,6 @@
 import { cache } from "react";
 import { getServerSession, requireRole } from "@/lib/auth/session";
-import { resolveManagerStoreId } from "@/lib/services/manager-stores";
+import { resolveAccessibleStoreId } from "@/lib/services/manager-stores";
 import { listPortalCalls } from "@/lib/services/portal-calls";
 import { defaultPortalCallsParams } from "@/lib/query/initial-data";
 import type { GetPortalCallsParams, PortalCallListResponse } from "@/types";
@@ -15,15 +15,14 @@ export const fetchInitialPortalCalls = cache(async function fetchInitialPortalCa
   overrides?: GetPortalCallsParams,
 ): Promise<InitialPortalCallsPayload | null> {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
     return null;
   }
 
   let resolvedStoreId = storeId;
-  if (session.role === "STORE_MANAGER") {
-    resolvedStoreId = await resolveManagerStoreId(
-      session.email,
-      session.storeId,
+  if (session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER") {
+    resolvedStoreId = await resolveAccessibleStoreId(
+      session,
       storeId ?? overrides?.storeId,
     );
   }

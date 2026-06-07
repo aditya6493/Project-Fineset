@@ -10,7 +10,7 @@ import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
 import type { AppSession } from "@/types";
 
 function isAppRole(value: unknown): value is AppSession["role"] {
-  return value === "STAFF" || value === "STORE_MANAGER" || value === "MASTER_ADMIN";
+  return value === "STAFF" || value === "STORE_MANAGER" || value === "BUSINESS_OWNER" || value === "MASTER_ADMIN";
 }
 
 /**

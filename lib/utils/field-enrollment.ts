@@ -21,10 +21,11 @@ export function calculateFieldEnrollmentPercent(
 }
 
 export function schemePitchLabel(schemes: string[]): string {
+  if (schemes.includes("NONE")) return "None";
   const hasGhs = schemes.includes("GHS");
   const hasGpp = schemes.includes("GPP");
-  if (hasGhs && hasGpp) return "GHS + GPP";
+  if (hasGhs && hasGpp) return "GHS + JPP";
   if (hasGhs) return "GHS only";
-  if (hasGpp) return "GPP only";
+  if (hasGpp) return "JPP only";
   return "No scheme pitched";
 }

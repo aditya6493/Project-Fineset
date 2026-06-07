@@ -37,7 +37,7 @@ export async function syncStoreManagerEmail(
   if (!nextEmail) return;
 
   const manager = await prisma.appUser.findFirst({
-    where: { storeId, role: "STORE_MANAGER" },
+    where: { storeId, role: "BUSINESS_OWNER" },
     orderBy: { createdAt: "asc" },
     include: {
       store: { select: { name: true } },

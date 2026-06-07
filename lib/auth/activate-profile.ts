@@ -1,17 +1,16 @@
 import { prisma } from "@/lib/db/prisma";
 import { logAuthEvent } from "@/lib/auth/audit";
+import type { AppUserWithRelations } from "@/lib/auth/app-session-from-profile";
+import {
+  resolveEffectiveRole,
+  shouldPromoteToBusinessOwner,
+} from "@/lib/auth/resolve-effective-role";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { AppUser, Store } from "@prisma/client";
 import type { AppSession } from "@/types";
-
-type AppUserWithRelations = AppUser & {
-  store: Pick<Store, "name"> | null;
-  staff: { employeeId: string } | null;
-};
 
 export function buildAppMetadata(profile: AppUserWithRelations) {
   return {
-    role: profile.role,
+    role: resolveEffectiveRole(profile.role, profile.staffId),
     storeId: profile.storeId,
     staffId: profile.staffId,
     appUserId: profile.id,
@@ -48,7 +47,13 @@ export async function activateProfileForAuthUser(
     where: { authId },
     include: {
       store: { select: { name: true } },
-      staff: { select: { employeeId: true } },
+      staff: {
+        select: {
+          employeeId: true,
+          storeId: true,
+          store: { select: { name: true } },
+        },
+      },
     },
   });
 
@@ -60,6 +65,22 @@ export async function activateProfileForAuthUser(
       metadata: { reason: "no_app_user_profile" },
     });
     return null;
+  }
+
+  if (shouldPromoteToBusinessOwner(profile.role, profile.staffId)) {
+    try {
+      await prisma.appUser.update({
+        where: { id: profile.id },
+        data: { role: "BUSINESS_OWNER" },
+      });
+      profile.role = "BUSINESS_OWNER";
+    } catch (error) {
+      console.warn(
+        "[activate-profile] BUSINESS_OWNER promotion skipped — run prisma migrate deploy",
+        profile.id,
+        error,
+      );
+    }
   }
 
   const isFirstActivation = !profile.isActive;
@@ -113,7 +134,13 @@ export async function syncAuthMetadataForSession(
       where: { id: session.userId },
       include: {
         store: { select: { name: true } },
-        staff: { select: { employeeId: true } },
+        staff: {
+        select: {
+          employeeId: true,
+          storeId: true,
+          store: { select: { name: true } },
+        },
+      },
       },
     });
 

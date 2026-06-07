@@ -18,11 +18,14 @@ export default async function StoreLayout({
 }: {
   children: React.ReactNode;
 }) {
-  await requirePortalSession("STORE_MANAGER");
+  const session = await requirePortalSession(["STORE_MANAGER", "BUSINESS_OWNER"]);
 
   return (
     <Suspense fallback={null}>
-      <StoreDashboardProvider>
+      <StoreDashboardProvider
+        portalRole={session.role}
+        assignedStoreId={session.storeId}
+      >
         <StoreDashboardShell
           title={content.store.shell.title}
           signOutLabel={content.common.signOut}

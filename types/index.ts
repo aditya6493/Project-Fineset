@@ -22,7 +22,7 @@ export type {
   VisitType,
 };
 
-export type UserRole = "STAFF" | "STORE_MANAGER" | "MASTER_ADMIN";
+export type UserRole = "STAFF" | "STORE_MANAGER" | "BUSINESS_OWNER" | "MASTER_ADMIN";
 
 interface SessionBase {
   userId: string;
@@ -43,11 +43,19 @@ export interface StoreSession extends SessionBase {
   storeName: string;
 }
 
+export interface BusinessOwnerSession extends SessionBase {
+  role: "BUSINESS_OWNER";
+  storeId: string;
+  storeName: string;
+}
+
 export interface AdminSession extends SessionBase {
   role: "MASTER_ADMIN";
 }
 
-export type AppSession = StaffSession | StoreSession | AdminSession;
+export type AppSession = StaffSession | StoreSession | BusinessOwnerSession | AdminSession;
+
+export type StorePortalSession = StoreSession | BusinessOwnerSession;
 
 export interface SyncState {
   version: string;
@@ -414,12 +422,21 @@ export type StaffCallSegment =
 
 export type StaffCallValueTier = "ALL" | "HIGH" | "MID" | "LOW";
 
-export type StaffCallQueue = "ALL" | "RETENTION" | "FOLLOW_UP";
+export type StaffCallQueue = "ALL" | "RETENTION" | "FOLLOW_UP" | "NOT_ANSWERED";
+
+export type StaffCallOccasionFilter = "ALL" | "THIS_MONTH";
+
+export type StaffCallMasterSource = "STORE_VISIT" | "FIELD_SALE" | "EXTERNAL";
+
+export type StaffCallMasterFilter = "ALL" | StaffCallMasterSource;
 
 export type CallAnswerStatus = "ANSWERED" | "NOT_ANSWERED";
 
 export interface StaffCallListItem {
-  visitId: string;
+  recordId: string;
+  masterSource: StaffCallMasterSource;
+  visitId: string | null;
+  fieldSaleId: string | null;
   followUpId: string | null;
   displayName: string;
   visitDate: string;
@@ -428,7 +445,7 @@ export interface StaffCallListItem {
   purchaseStatus: PurchaseStatus;
   valueTier: Exclude<StaffCallValueTier, "ALL">;
   visitSummary: string;
-  queue: StaffCallQueue;
+  queue: Exclude<StaffCallQueue, "ALL">;
   followUpDueDate: string | null;
   lastCallStatus: CallAnswerStatus | null;
   notes: string | null;
@@ -436,9 +453,12 @@ export interface StaffCallListItem {
 }
 
 export interface StaffCallFilterCounts {
+  masters: Array<{ key: StaffCallMasterFilter; count: number }>;
   segments: Array<{ key: StaffCallSegment; count: number }>;
   valueTiers: Array<{ key: StaffCallValueTier; count: number }>;
   queues: Array<{ key: StaffCallQueue; count: number }>;
+  birthdays: Array<{ key: StaffCallOccasionFilter; count: number }>;
+  anniversaries: Array<{ key: StaffCallOccasionFilter; count: number }>;
   months: Array<{ month: number; count: number }>;
   availableYears: number[];
 }
@@ -450,18 +470,25 @@ export interface StaffCallListResponse {
   pageSize: number;
   year: number;
   month: number;
-  filters: StaffCallFilterCounts;
+  /** Loaded separately via /api/staff/calls/filters to keep list responses fast. */
+  filters?: StaffCallFilterCounts;
 }
 
 export interface StaffCallDialResult {
-  visitId: string;
+  recordId: string;
+  masterSource: StaffCallMasterSource;
+  visitId: string | null;
+  fieldSaleId: string | null;
   displayName: string;
   phone: string;
   dialUrl: string;
 }
 
 export interface StaffCallOutcomeResult {
-  visitId: string;
+  recordId: string;
+  masterSource: StaffCallMasterSource;
+  visitId: string | null;
+  fieldSaleId: string | null;
   followUpId: string | null;
   queue: StaffCallQueue;
   message: string;
@@ -471,6 +498,9 @@ export interface GetStaffCallsParams {
   segment?: StaffCallSegment;
   valueTier?: StaffCallValueTier;
   queue?: StaffCallQueue;
+  master?: StaffCallMasterFilter;
+  birthday?: StaffCallOccasionFilter;
+  anniversary?: StaffCallOccasionFilter;
   year?: number;
   month?: number;
   page?: number;
@@ -652,15 +682,7 @@ export interface MyStoresResponse {
   selectedStoreId: string;
 }
 
-export type ProductCategory =
-  | "RINGS"
-  | "NECKLACES"
-  | "BANGLES"
-  | "EARRINGS"
-  | "CHAINS"
-  | "PENDANTS"
-  | "SETS"
-  | "OTHER";
+export type { ProductCategory } from "@/lib/constants/product-categories";
 
 export type AgeGroup = "18-25" | "26-35" | "36-50" | "50+";
 
@@ -682,8 +704,8 @@ export type PurchaseOccasion =
   | "FESTIVAL";
 
 export type MetalKtPref =
+  | "GOLD_14KT"
   | "GOLD_18KT"
   | "GOLD_22KT"
   | "DIAMOND"
-  | "PLATINUM"
   | "SILVER";

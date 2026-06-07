@@ -91,9 +91,12 @@ describe("visit display helpers", () => {
   });
 
   it("formatProducts joins mapped labels", () => {
-    expect(formatProducts(["RINGS", "CHAINS"], { RINGS: "Rings", CHAINS: "Chains" })).toBe(
-      "Rings, Chains",
-    );
+    expect(
+      formatProducts(["FINGER_RINGS", "CHAINS"], {
+        FINGER_RINGS: "Finger rings",
+        CHAINS: "Chains",
+      }),
+    ).toBe("Finger rings, Chains");
   });
 
   it("boolLabel returns yes/no labels", () => {

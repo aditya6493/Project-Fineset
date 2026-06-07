@@ -13,6 +13,11 @@ import { QueryLoadState } from "@/components/shared/QueryLoadState";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { DatePicker } from "@/components/shared/DatePicker";
+import {
+  formatDateForInput,
+  parseDateInput,
+} from "@/components/forms/VisitForm/VisitForm.types";
 import type { Content } from "@/content/en";
 import type {
   GetVisitsParams,
@@ -137,26 +142,26 @@ export function StoreVisitsLog({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="space-y-1">
           <Label htmlFor="startDate">{store.visits.filters.startDate}</Label>
-          <Input
+          <DatePicker
             id="startDate"
-            type="date"
-            value={startDate}
-            onChange={(event) => {
-              setStartDate(event.target.value);
+            value={startDate ? parseDateInput(startDate) : undefined}
+            onChange={(date) => {
+              setStartDate(date ? formatDateForInput(date) : "");
               setPage(1);
             }}
+            className="min-w-[220px]"
           />
         </div>
         <div className="space-y-1">
           <Label htmlFor="endDate">{store.visits.filters.endDate}</Label>
-          <Input
+          <DatePicker
             id="endDate"
-            type="date"
-            value={endDate}
-            onChange={(event) => {
-              setEndDate(event.target.value);
+            value={endDate ? parseDateInput(endDate) : undefined}
+            onChange={(date) => {
+              setEndDate(date ? formatDateForInput(date) : "");
               setPage(1);
             }}
+            className="min-w-[220px]"
           />
         </div>
       </div>

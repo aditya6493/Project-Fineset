@@ -155,7 +155,10 @@ export function staffCallsParamsMatch(
       (initial.month ?? new Date().getMonth() + 1) &&
     (current.segment ?? "ALL") === (initial.segment ?? "ALL") &&
     (current.valueTier ?? "ALL") === (initial.valueTier ?? "ALL") &&
-    (current.queue ?? "ALL") === (initial.queue ?? "ALL")
+    (current.queue ?? "ALL") === (initial.queue ?? "ALL") &&
+    (current.master ?? "ALL") === (initial.master ?? "ALL") &&
+    (current.birthday ?? "ALL") === (initial.birthday ?? "ALL") &&
+    (current.anniversary ?? "ALL") === (initial.anniversary ?? "ALL")
   );
 }
 
@@ -169,5 +172,8 @@ export function defaultStaffCallsParams(): GetStaffCallsParams {
     segment: "ALL",
     valueTier: "ALL",
     queue: "ALL",
+    master: "ALL",
+    birthday: "ALL",
+    anniversary: "ALL",
   };
 }

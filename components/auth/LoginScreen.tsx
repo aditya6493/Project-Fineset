@@ -30,10 +30,10 @@ export function LoginScreen({ showLogo = false }: LoginScreenProps) {
         ) : null}
         {devBypass ? (
           <p className="rounded-input border border-status-warning/30 bg-status-warning/10 px-4 py-3 text-sm text-text-secondary">
-            Dev mode: Supabase login is bypassed. Use{" "}
-            <code className="text-xs">admin@fineset.local</code>,{" "}
-            <code className="text-xs">manager@store-alpha.local</code>, or{" "}
-            <code className="text-xs">staff-a@store-alpha.local</code> with any password.
+            Dev mode: Supabase login is bypassed. Use any registered AppUser email
+            (e.g. business owner or store manager accounts), or seeded dev accounts
+            like <code className="text-xs">manager@store-alpha.local</code> with any
+            password.
           </p>
         ) : null}
         {!devBypass ? <RestoreSessionRedirect /> : null}

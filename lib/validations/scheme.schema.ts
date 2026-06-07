@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const schemeProductSchema = z.enum(["GHS", "GPP"]);
+export const schemeProductSchema = z.enum(["GHS", "GPP", "NONE"]);
 
 export const schemeEnrollmentOutcomeSchema = z.enum([
   "ENROLLED_GHS",
@@ -20,8 +20,45 @@ export const fieldDeclineReasonSchema = z.enum([
   "COMPETITOR_SCHEME",
 ]);
 
+export type SchemeProductValue = z.infer<typeof schemeProductSchema>;
+
+export function hasNoneSchemesPitched(
+  schemes: SchemeProductValue[],
+): boolean {
+  return schemes.includes("NONE");
+}
+
+export function hasActualSchemesPitched(
+  schemes: SchemeProductValue[],
+): boolean {
+  return schemes.some((scheme) => scheme === "GHS" || scheme === "GPP");
+}
+
+export function normalizeSchemesPitched<
+  T extends {
+    schemesPitched: SchemeProductValue[];
+    enrollmentOutcome?: z.infer<typeof schemeEnrollmentOutcomeSchema>;
+    monthlyCommitment?: number;
+    reasonNoEnrollment?: z.infer<typeof fieldDeclineReasonSchema>;
+    schemeCompetitorMention?: string;
+  },
+>(data: T): T {
+  if (!hasNoneSchemesPitched(data.schemesPitched)) {
+    return data;
+  }
+
+  return {
+    ...data,
+    schemesPitched: ["NONE"],
+    enrollmentOutcome: undefined,
+    monthlyCommitment: undefined,
+    reasonNoEnrollment: undefined,
+    schemeCompetitorMention: undefined,
+  };
+}
+
 export interface SchemeFieldValues {
-  schemesPitched: z.infer<typeof schemeProductSchema>[];
+  schemesPitched: SchemeProductValue[];
   enrollmentOutcome?: z.infer<typeof schemeEnrollmentOutcomeSchema>;
   monthlyCommitment?: number;
   reasonNoEnrollment?: z.infer<typeof fieldDeclineReasonSchema>;
@@ -32,7 +69,44 @@ export function refineSchemeFields(
   ctx: z.RefinementCtx,
   options?: { requireOutcome?: boolean },
 ): void {
-  const hasSchemes = data.schemesPitched.length > 0;
+  if (
+    hasNoneSchemesPitched(data.schemesPitched) &&
+    hasActualSchemesPitched(data.schemesPitched)
+  ) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "None cannot be selected with other schemes",
+      path: ["schemesPitched"],
+    });
+    return;
+  }
+
+  if (hasNoneSchemesPitched(data.schemesPitched)) {
+    if (data.enrollmentOutcome) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Enrollment outcome is not applicable when no schemes were pitched",
+        path: ["enrollmentOutcome"],
+      });
+    }
+    if (data.monthlyCommitment) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Monthly commitment is not applicable when no schemes were pitched",
+        path: ["monthlyCommitment"],
+      });
+    }
+    if (data.reasonNoEnrollment) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Reason is not applicable when no schemes were pitched",
+        path: ["reasonNoEnrollment"],
+      });
+    }
+    return;
+  }
+
+  const hasSchemes = hasActualSchemesPitched(data.schemesPitched);
   const hasOutcome = Boolean(data.enrollmentOutcome);
 
   if (options?.requireOutcome && !hasOutcome) {
@@ -84,7 +158,7 @@ export function refineSchemeFields(
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "GPP must be pitched when enrolling in GPP",
+      message: "JPP must be pitched when enrolling in JPP",
       path: ["schemesPitched"],
     });
   }
@@ -95,7 +169,7 @@ export function refineSchemeFields(
   ) {
     ctx.addIssue({
       code: z.ZodIssueCode.custom,
-      message: "Both GHS and GPP must be pitched for dual enrollment",
+      message: "Both GHS and JPP must be pitched for dual enrollment",
       path: ["schemesPitched"],
     });
   }

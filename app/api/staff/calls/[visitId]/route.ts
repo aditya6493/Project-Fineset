@@ -11,51 +11,75 @@ import {
   recordStaffCallOutcome,
   revealStaffCallPhone,
 } from "@/lib/services/staff-calls";
-import { staffCallOutcomeSchema } from "@/lib/validations/staff-calls.schema";
+import {
+  staffCallMasterFilterSchema,
+  staffCallOutcomeSchema,
+} from "@/lib/validations/staff-calls.schema";
+import type { StaffCallMasterSource } from "@/types";
 
 interface RouteParams {
   params: Promise<{ visitId: string }>;
 }
 
+function parseMasterSource(value: string | null): StaffCallMasterSource | null {
+  const parsed = staffCallMasterFilterSchema.safeParse(value);
+  if (!parsed.success || parsed.data === "ALL") {
+    return null;
+  }
+  return parsed.data;
+}
+
 export async function POST(req: Request, { params }: RouteParams) {
-  const { visitId } = await params;
+  const { visitId: recordId } = await params;
   const session = await getServerSession();
   if (!requireRole(session, ["STAFF"])) return unauthorized();
 
   const staff = await requireStaffContext(session);
   if (!staff) return unauthorized();
+
+  const masterSource = parseMasterSource(new URL(req.url).searchParams.get("masterSource"));
+  if (!masterSource) {
+    return badRequest("masterSource is required");
+  }
 
   const body: unknown = await req.json();
   const parsed = staffCallOutcomeSchema.safeParse(body);
   if (!parsed.success) return badRequest(parsed.error.flatten());
 
   const result = await recordStaffCallOutcome({
-    visitId,
+    recordId,
+    masterSource,
     staffId: staff.staffId,
     storeId: staff.storeId,
     ...parsed.data,
   });
 
-  if (!result) return notFound("Visit not found");
+  if (!result) return notFound("Call record not found");
 
   return NextResponse.json(result);
 }
 
-export async function GET(_req: Request, { params }: RouteParams) {
-  const { visitId } = await params;
+export async function GET(req: Request, { params }: RouteParams) {
+  const { visitId: recordId } = await params;
   const session = await getServerSession();
   if (!requireRole(session, ["STAFF"])) return unauthorized();
 
   const staff = await requireStaffContext(session);
   if (!staff) return unauthorized();
 
+  const masterSource = parseMasterSource(new URL(req.url).searchParams.get("masterSource"));
+  if (!masterSource) {
+    return badRequest("masterSource is required");
+  }
+
   const result = await revealStaffCallPhone({
-    visitId,
+    recordId,
+    masterSource,
     staffId: staff.staffId,
     storeId: staff.storeId,
   });
 
-  if (!result) return notFound("Phone number unavailable for this visit");
+  if (!result) return notFound("Phone number unavailable for this customer");
 
   return NextResponse.json(result);
 }

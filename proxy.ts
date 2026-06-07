@@ -4,13 +4,17 @@ import {
   isDevAuthBypassEnabled,
 } from "@/lib/auth/dev-bypass";
 import { updateSession } from "@/lib/supabase/middleware";
+import type { UserRole } from "@/types";
 
-/** Dashboard routes that require an authenticated user with the matching role. */
-const PROTECTED_PREFIXES = [
-  { prefix: "/staff/dashboard", role: "STAFF" },
-  { prefix: "/store/dashboard", role: "STORE_MANAGER" },
-  { prefix: "/admin/dashboard", role: "MASTER_ADMIN" },
-] as const;
+/** Dashboard routes that require an authenticated user with one of the listed roles. */
+const PROTECTED_PREFIXES: ReadonlyArray<{
+  prefix: string;
+  roles: readonly UserRole[];
+}> = [
+  { prefix: "/staff/dashboard", roles: ["STAFF"] },
+  { prefix: "/store/dashboard", roles: ["STORE_MANAGER", "BUSINESS_OWNER"] },
+  { prefix: "/admin/dashboard", roles: ["MASTER_ADMIN"] },
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -37,7 +41,7 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(loginUrl);
     }
 
-    if (devSession.role !== protectedRoute.role) {
+    if (!protectedRoute.roles.includes(devSession.role)) {
       const loginUrl = new URL("/", request.url);
       loginUrl.searchParams.set("error", "wrong_portal");
       return NextResponse.redirect(loginUrl);
@@ -57,8 +61,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  const metadataRole = user.app_metadata?.role as string | undefined;
-  if (metadataRole && metadataRole !== protectedRoute.role) {
+  const metadataRole = user.app_metadata?.role as UserRole | undefined;
+  if (metadataRole && !protectedRoute.roles.includes(metadataRole)) {
     const loginUrl = new URL("/", request.url);
     loginUrl.searchParams.set("error", "wrong_portal");
     return NextResponse.redirect(loginUrl);

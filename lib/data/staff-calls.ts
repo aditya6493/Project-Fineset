@@ -26,9 +26,12 @@ export const fetchInitialStaffCalls = cache(
     const data = await listStaffCalls({
       staffId: staff.staffId,
       storeId: staff.storeId,
+      master: merged.master ?? "ALL",
       segment: merged.segment ?? "ALL",
       valueTier: merged.valueTier ?? "ALL",
       queue: merged.queue ?? "ALL",
+      birthday: merged.birthday ?? "ALL",
+      anniversary: merged.anniversary ?? "ALL",
       year: merged.year ?? new Date().getFullYear(),
       month: merged.month ?? new Date().getMonth() + 1,
       page: merged.page ?? 1,

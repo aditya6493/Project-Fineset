@@ -1,8 +1,14 @@
+import { resolveEffectiveRole } from "@/lib/auth/resolve-effective-role";
 import type { User } from "@supabase/supabase-js";
 import type { AppSession, UserRole } from "@/types";
 
 function parseRole(value: unknown): UserRole | null {
-  if (value === "STAFF" || value === "STORE_MANAGER" || value === "MASTER_ADMIN") {
+  if (
+    value === "STAFF" ||
+    value === "STORE_MANAGER" ||
+    value === "BUSINESS_OWNER" ||
+    value === "MASTER_ADMIN"
+  ) {
     return value;
   }
   return null;
@@ -50,13 +56,26 @@ export function appSessionFromSupabaseUser(user: User): AppSession | null {
           typeof meta.employeeId === "string" ? meta.employeeId : undefined,
       };
     }
-    case "STORE_MANAGER": {
+    case "STORE_MANAGER":
+    case "BUSINESS_OWNER": {
       const storeId = typeof meta.storeId === "string" ? meta.storeId : null;
       const storeName =
         typeof meta.storeName === "string" ? meta.storeName : null;
+      const staffId =
+        typeof meta.staffId === "string" ? meta.staffId : null;
       if (!storeId || !storeName) {
         return null;
       }
+      const effectiveRole = resolveEffectiveRole(role, staffId);
+      if (effectiveRole === "BUSINESS_OWNER") {
+        return {
+          ...base,
+          role: "BUSINESS_OWNER",
+          storeId,
+          storeName,
+        };
+      }
+
       return {
         ...base,
         role: "STORE_MANAGER",

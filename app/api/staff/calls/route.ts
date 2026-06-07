@@ -8,7 +8,7 @@ import {
 import { handleRouteError } from "@/lib/api/route-handler";
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { listStaffCalls } from "@/lib/services/staff-calls";
-import { staffCallListQuerySchema } from "@/lib/validations/staff-calls.schema";
+import { staffCallListQuerySchema, staffCallMasterFilterSchema } from "@/lib/validations/staff-calls.schema";
 
 export async function GET(req: Request) {
   const startedAt = Date.now();
@@ -28,9 +28,12 @@ export async function GET(req: Request) {
     const result = await listStaffCalls({
       staffId: staff.staffId,
       storeId: staff.storeId,
+      master: query.data.master,
       segment: query.data.segment,
       valueTier: query.data.valueTier,
       queue: query.data.queue,
+      birthday: query.data.birthday,
+      anniversary: query.data.anniversary,
       year: query.data.year,
       month: query.data.month,
       page: query.data.page,

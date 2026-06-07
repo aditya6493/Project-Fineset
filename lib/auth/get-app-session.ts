@@ -10,66 +10,19 @@ import { appSessionFromSupabaseUser } from "@/lib/auth/session-from-metadata";
 import { createClient } from "@/lib/supabase/server";
 import { isInvalidRefreshTokenError } from "@/lib/supabase/auth-errors";
 import { isSupabaseAuthDisabled } from "@/lib/supabase/env";
+import {
+  appSessionFromProfile,
+  type AppUserWithRelations,
+} from "@/lib/auth/app-session-from-profile";
 import type { AppSession } from "@/types";
-import type { AppRole, AppUser, Store } from "@prisma/client";
+import type { AppRole } from "@prisma/client";
 
-type AppUserWithRelations = AppUser & {
-  store: Pick<Store, "name"> | null;
-  staff: { employeeId: string } | null;
-};
+export { appSessionFromProfile } from "@/lib/auth/app-session-from-profile";
+
+import { loadAppUserProfileByAuthId } from "@/lib/auth/load-app-user-profile";
 
 async function getProfileByAuthId(authId: string): Promise<AppUserWithRelations | null> {
-  return prisma.appUser.findUnique({
-    where: { authId },
-    include: {
-      store: { select: { name: true } },
-      staff: { select: { employeeId: true } },
-    },
-  });
-}
-
-export function appSessionFromProfile(
-  profile: AppUserWithRelations,
-  email: string,
-): AppSession {
-  const base = {
-    userId: profile.id,
-    email: email.toLowerCase(),
-  };
-
-  switch (profile.role) {
-    case "STAFF":
-      if (!profile.staffId || !profile.storeId) {
-        throw new Error("Staff profile is missing staff or store assignment");
-      }
-      return {
-        ...base,
-        role: "STAFF",
-        staffId: profile.staffId,
-        storeId: profile.storeId,
-        name: profile.name,
-        employeeId: profile.staff?.employeeId,
-      };
-    case "STORE_MANAGER":
-      if (!profile.storeId || !profile.store) {
-        throw new Error("Store manager profile is missing store assignment");
-      }
-      return {
-        ...base,
-        role: "STORE_MANAGER",
-        storeId: profile.storeId,
-        storeName: profile.store.name,
-      };
-    case "MASTER_ADMIN":
-      return {
-        ...base,
-        role: "MASTER_ADMIN",
-      };
-    default: {
-      const _exhaustive: never = profile.role;
-      throw new Error(`Unknown role: ${String(_exhaustive)}`);
-    }
-  }
+  return loadAppUserProfileByAuthId(authId);
 }
 
 async function resolveAppSession(): Promise<AppSession | null> {

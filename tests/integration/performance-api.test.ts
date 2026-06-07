@@ -3,7 +3,7 @@ import { NextRequest } from "next/server";
 import { disconnectPerfSeed, seedPerfFixtures } from "@/tests/fixtures/perf-seed";
 import { assertWithinBudget, PERF_BUDGETS } from "@/tests/helpers/perf-budgets";
 import * as sessionModule from "@/lib/auth/get-app-session";
-import type { StoreSession, AdminSession } from "@/types";
+import type { BusinessOwnerSession, AdminSession } from "@/types";
 
 import { GET as getVisits } from "@/app/api/visits/route";
 import { GET as getCalls } from "@/app/api/calls/route";
@@ -32,13 +32,13 @@ async function elapsedFor(handler: (req: NextRequest) => Promise<Response>, url:
 
 describe.skipIf(!hasDb)("performance API routes", () => {
   let fixtures: Awaited<ReturnType<typeof seedPerfFixtures>>;
-  let managerSession: StoreSession;
+  let ownerSession: BusinessOwnerSession;
   let adminSession: AdminSession;
 
   beforeAll(async () => {
     fixtures = await seedPerfFixtures();
-    managerSession = {
-      role: "STORE_MANAGER",
+    ownerSession = {
+      role: "BUSINESS_OWNER",
       userId: "perf-manager-auth",
       email: fixtures.managerEmail,
       storeId: fixtures.storeId,
@@ -57,7 +57,7 @@ describe.skipIf(!hasDb)("performance API routes", () => {
   });
 
   beforeEach(() => {
-    vi.spyOn(sessionModule, "getAppSession").mockImplementation(async () => managerSession);
+    vi.spyOn(sessionModule, "getAppSession").mockImplementation(async () => ownerSession);
   });
 
   it("returns 401 without session", async () => {

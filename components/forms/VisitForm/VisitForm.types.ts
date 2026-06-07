@@ -65,14 +65,12 @@ function resolveDraftPurchaseStatus(
 export function getDefaultVisitValues(
   draft?: Partial<VisitDraftFields>,
 ): VisitFormValues {
-  const now = new Date();
-
   return {
     customerName: "",
     customerPhone: "",
     customerType: draft?.customerType ?? "NEW",
     visitType: draft?.visitType ?? "WALK_IN",
-    inTime: now,
+    inTime: undefined,
     outTime: undefined,
     sourceChannel: draft?.sourceChannel ?? "ORGANIC_WALK_IN",
     area: draft?.area,
@@ -155,7 +153,10 @@ export function getSectionFieldNames(
   sectionId: VisitFormSectionId,
   purchaseStatus?: VisitFormValues["purchaseStatus"],
   enrollmentOutcome?: VisitFormValues["enrollmentOutcome"],
+  schemesPitched?: VisitFormValues["schemesPitched"],
 ): (keyof VisitFormValues)[] {
+  const noSchemesPitched = schemesPitched?.includes("NONE");
+
   switch (sectionId) {
     case "customer":
       return [
@@ -184,17 +185,21 @@ export function getSectionFieldNames(
       ];
     case "scheme":
       return [
-        "schemesPitched",
-        "enrollmentOutcome",
-        ...(enrollmentOutcome === "ENROLLED_GHS" ||
-        enrollmentOutcome === "ENROLLED_GPP" ||
-        enrollmentOutcome === "ENROLLED_BOTH"
-          ? (["monthlyCommitment"] as const)
-          : []),
-        "intentTier",
-        ...(enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK"
-          ? (["reasonNoEnrollment", "schemeCompetitorMention"] as const)
-          : []),
+        "schemesPitched" as const,
+        ...(noSchemesPitched
+          ? []
+          : [
+              "enrollmentOutcome" as const,
+              ...(enrollmentOutcome === "ENROLLED_GHS" ||
+              enrollmentOutcome === "ENROLLED_GPP" ||
+              enrollmentOutcome === "ENROLLED_BOTH"
+                ? (["monthlyCommitment"] as const)
+                : []),
+              ...(enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK"
+                ? (["reasonNoEnrollment", "schemeCompetitorMention"] as const)
+                : []),
+            ]),
+        "intentTier" as const,
       ];
     case "noPurchase":
       return ["reasonNoPurchase", "competitorMention"];

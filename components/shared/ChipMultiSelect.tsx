@@ -9,6 +9,7 @@ interface ChipMultiSelectProps {
   value: string[];
   onChange: (value: string[]) => void;
   error?: string;
+  exclusiveKeys?: string[];
 }
 
 export function ChipMultiSelect({
@@ -17,13 +18,24 @@ export function ChipMultiSelect({
   value,
   onChange,
   error,
+  exclusiveKeys = [],
 }: ChipMultiSelectProps) {
   function toggle(option: string) {
-    if (value.includes(option)) {
-      onChange(value.filter((v) => v !== option));
-    } else {
-      onChange([...value, option]);
+    const isExclusive = exclusiveKeys.includes(option);
+
+    if (isExclusive) {
+      onChange(value.includes(option) ? [] : [option]);
+      return;
     }
+
+    const withoutExclusive = value.filter((item) => !exclusiveKeys.includes(item));
+
+    if (withoutExclusive.includes(option)) {
+      onChange(withoutExclusive.filter((item) => item !== option));
+      return;
+    }
+
+    onChange([...withoutExclusive, option]);
   }
 
   return (

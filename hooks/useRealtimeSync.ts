@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  SSE_CONNECT_DELAY_MS,
   SSE_INVALIDATION_DEBOUNCE_MS,
   SSE_MAX_CONSECUTIVE_ERRORS,
   SSE_RECONNECT_BASE_MS,
@@ -113,10 +114,13 @@ export function useRealtimeSync(): void {
       };
     }
 
-    void connect();
+    const connectTimer = setTimeout(() => {
+      void connect();
+    }, SSE_CONNECT_DELAY_MS);
 
     return () => {
       disposed = true;
+      clearTimeout(connectTimer);
       if (retryTimer) clearTimeout(retryTimer);
       debouncedInvalidateRef.current.cancel();
       source?.close();

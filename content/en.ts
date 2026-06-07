@@ -99,7 +99,7 @@ export const content = {
     title: "Log Customer Visit",
     subtitle: "Record visit details for analytics",
     schemeHint:
-      "Primary goal: pitch Gold Harvest Scheme (GHS) and Gold Purchase Plan (GPP). Capture who you met and what was enrolled.",
+      "Primary goal: pitch Gold Harvest Scheme (GHS) and Jold Purchase Plan (JPP). Capture who you met and what was enrolled.",
     progress: "Step {current} of {total}",
     sections: {
       customer: "Customer Details",
@@ -171,14 +171,22 @@ export const content = {
       productsExplored: {
         label: "Products Explored",
         options: {
-          RINGS: "Rings",
-          NECKLACES: "Necklaces",
           BANGLES: "Bangles",
-          EARRINGS: "Earrings",
+          BRACELET: "Bracelet",
+          EAR_RINGS: "Ear rings",
+          FINGER_RINGS: "Finger rings",
           CHAINS: "Chains",
+          NECKLACE: "Necklace",
+          MANGALSUTRA: "Mangalsutra",
+          NOSE_PIN: "Nose pin",
           PENDANTS: "Pendants",
-          SETS: "Sets",
-          OTHER: "Other",
+          COLLOR: "Collor",
+          JUMKA: "Jumka",
+          PENDANT_EARRINGS: "Pendant & earrings",
+          NECKLACE_EARRINGS: "Necklace & earrings",
+          NECKLACE_PENDANT_EARRINGS: "Necklace & pendant & earrings",
+          COINS: "Coins",
+          SILVER: "Silver",
         },
       },
       purchaseStatus: {
@@ -191,7 +199,7 @@ export const content = {
       productsPurchased: { label: "Products Purchased" },
       transactionAmount: {
         label: "Transaction Amount",
-        placeholder: "Amount in ₹",
+        placeholder: "Enter amount",
       },
       intentTier: {
         label: "Interest Level",
@@ -207,14 +215,15 @@ export const content = {
         label: "Schemes Pitched",
         options: {
           GHS: "GHS — Gold Harvest Scheme",
-          GPP: "GPP — Gold Purchase Plan",
+          GPP: "JPP — Jold Purchase Plan",
+          NONE: "None",
         },
       },
       enrollmentOutcome: {
         label: "Outcome",
         options: {
           ENROLLED_GHS: "Enrolled in GHS",
-          ENROLLED_GPP: "Enrolled in GPP",
+          ENROLLED_GPP: "Enrolled in JPP",
           ENROLLED_BOTH: "Enrolled in both",
           INTERESTED: "Interested — not enrolled yet",
           DECLINED: "Declined",
@@ -222,8 +231,8 @@ export const content = {
         },
       },
       monthlyCommitment: {
-        label: "Monthly Commitment (₹)",
-        placeholder: "Monthly installment amount",
+        label: "Monthly Commitment",
+        placeholder: "Enter amount",
       },
       reasonNoEnrollment: {
         label: "Reason",
@@ -268,10 +277,10 @@ export const content = {
       metalKtPref: {
         label: "Metal / KT Preference",
         options: {
+          GOLD_14KT: "Gold 14KT",
           GOLD_18KT: "Gold 18KT",
           GOLD_22KT: "Gold 22KT",
           DIAMOND: "Diamond",
-          PLATINUM: "Platinum",
           SILVER: "Silver",
         },
       },
@@ -309,9 +318,9 @@ export const content = {
   fieldSalesForm: {
     title: "Log Field Sale",
     subtitle:
-      "Record outdoor customer interactions and GHS / GPP scheme outcomes",
+      "Record outdoor customer interactions and GHS / JPP scheme outcomes",
     schemeHint:
-      "Primary goal: pitch Gold Harvest Scheme (GHS) and Gold Purchase Plan (GPP). Capture who you met and what was enrolled.",
+      "Primary goal: pitch Gold Harvest Scheme (GHS) and Jold Purchase Plan (JPP). Capture who you met and what was enrolled.",
     progress: "Step {current} of {total}",
     sections: {
       customer: "Customer Details",
@@ -376,14 +385,15 @@ export const content = {
         label: "Schemes Pitched",
         options: {
           GHS: "GHS — Gold Harvest Scheme",
-          GPP: "GPP — Gold Purchase Plan",
+          GPP: "JPP — Jold Purchase Plan",
+          NONE: "None",
         },
       },
       enrollmentOutcome: {
         label: "Outcome",
         options: {
           ENROLLED_GHS: "Enrolled in GHS",
-          ENROLLED_GPP: "Enrolled in GPP",
+          ENROLLED_GPP: "Enrolled in JPP",
           ENROLLED_BOTH: "Enrolled in both",
           INTERESTED: "Interested — not enrolled yet",
           DECLINED: "Declined",
@@ -391,8 +401,8 @@ export const content = {
         },
       },
       monthlyCommitment: {
-        label: "Monthly Commitment (₹)",
-        placeholder: "Monthly installment amount",
+        label: "Monthly Commitment",
+        placeholder: "Enter amount",
       },
       intentTier: {
         label: "Interest Level",
@@ -454,7 +464,7 @@ export const content = {
         },
         fieldSales: {
           title: "Field Sales",
-          description: "Log outdoor visits and GHS / GPP enrollments in the field",
+          description: "Log outdoor visits and GHS / JPP enrollments in the field",
           cta: "Log field sale",
         },
       },
@@ -480,12 +490,18 @@ export const content = {
         "Dec",
       ],
       queueLabel: "Call queue",
+      masterFilterLabel: "Source",
       segmentLabel: "Customer segment",
       valueTierLabel: "Ticket value",
       call: "Call",
       noPhone: "No phone on file",
       due: "Due",
       loadError: "Could not load customers. Sign out and sign in again, then retry.",
+      loadErrorUnauthorized:
+        "Your session expired or you are not signed in. Sign in again, then retry.",
+      loadErrorUnavailable:
+        "The server could not reach the database. Wait a moment and try again.",
+      loadErrorGeneric: "Could not load customers. Please try again.",
       noCustomersYet:
         "No customers to call yet. Log a customer visit first — they will appear here.",
       previousPage: "Previous",
@@ -493,8 +509,14 @@ export const content = {
       pageLabel: "Page {page} of {total}",
       queues: [
         { key: "ALL", label: "All customers" },
-        { key: "RETENTION", label: "Retention calls" },
+        { key: "NOT_ANSWERED", label: "Not answered" },
         { key: "FOLLOW_UP", label: "Follow-up calls" },
+      ],
+      masters: [
+        { key: "ALL", label: "All sources" },
+        { key: "STORE_VISIT", label: "Store visits" },
+        { key: "FIELD_SALE", label: "Field sales" },
+        { key: "EXTERNAL", label: "External" },
       ],
       segments: [
         { key: "ALL", label: "All" },
@@ -508,6 +530,16 @@ export const content = {
         { key: "HIGH", label: "High value" },
         { key: "MID", label: "Mid value" },
         { key: "LOW", label: "Low value" },
+      ],
+      birthdayLabel: "Birthday",
+      anniversaryLabel: "Anniversary",
+      birthdays: [
+        { key: "ALL", label: "All" },
+        { key: "THIS_MONTH", label: "This month" },
+      ],
+      anniversaries: [
+        { key: "ALL", label: "All" },
+        { key: "THIS_MONTH", label: "This month" },
       ],
       valueTierLabels: {
         HIGH: "High value",
@@ -527,6 +559,12 @@ export const content = {
       queueStatusLabels: {
         RETENTION: "Retention",
         FOLLOW_UP: "Follow-up",
+        NOT_ANSWERED: "Not answered",
+      },
+      masterSourceLabels: {
+        STORE_VISIT: "Store visit",
+        FIELD_SALE: "Field sales",
+        EXTERNAL: "External",
       },
       callOutcomeLabels: {
         ANSWERED: "Answered",
@@ -534,6 +572,9 @@ export const content = {
         NOT_CALLED: "Not called yet",
       },
       notesLabel: "Notes",
+      customersCount: "{count} customers",
+      moreFilters: "More filters",
+      hideFilters: "Hide filters",
       dialog: {
         title: "Call feedback",
         description: "Update the outcome for {name}",
@@ -568,6 +609,32 @@ export const content = {
     },
     shell: {
       title: "Store Dashboard",
+    },
+    managerPortal: {
+      title: "Store Manager Portal",
+      subtitle: "Choose an action for your assigned store",
+      actions: {
+        visitLog: {
+          title: "Visit log",
+          description: "Review customer visits logged at your store",
+          cta: "View visits",
+        },
+        callRecordings: {
+          title: "Call recordings",
+          description: "Listen to and review retention calls from your team",
+          cta: "View calls",
+        },
+        fieldSales: {
+          title: "Field sales",
+          description: "Track outdoor GHS and JPP enrollment activity",
+          cta: "View field sales",
+        },
+        storeDashboard: {
+          title: "Store dashboard",
+          description: "Open KPIs, analytics, and performance for your store",
+          cta: "Open dashboard",
+        },
+      },
     },
     kpis: {
       totalVisits: "Total Visits",
@@ -694,7 +761,7 @@ export const content = {
     fieldSalesOverview: {
       title: "Field Sales Overview ({period})",
       subtitle:
-        "Track outdoor visits, areas covered, follow-ups, and enrollments to grow GHS/GPP business.",
+        "Track outdoor visits, areas covered, follow-ups, and enrollments to grow GHS/JPP business.",
       empty: "No field sales activity recorded for this period",
       error: "Unable to load field sales analytics.",
       retry: "Retry",
@@ -1160,7 +1227,6 @@ export const content = {
     },
     stores: {
       title: "Stores Management",
-      searchPlaceholder: "Store name or city",
       addStore: "Add Store",
       columns: {
         name: "Store Name",
@@ -1344,7 +1410,7 @@ export const content = {
       },
       queues: [
         { key: "ALL", label: "All customers" },
-        { key: "RETENTION", label: "Retention calls" },
+        { key: "NOT_ANSWERED", label: "Not answered" },
         { key: "FOLLOW_UP", label: "Follow-up calls" },
       ],
       segments: [
@@ -1385,6 +1451,7 @@ export const content = {
       queueStatusLabels: {
         RETENTION: "Retention",
         FOLLOW_UP: "Follow-up",
+        NOT_ANSWERED: "Not answered",
       },
       callOutcomeLabels: {
         ANSWERED: "Answered",
@@ -1394,7 +1461,7 @@ export const content = {
     },
     fieldSales: {
       title: "Field Sales",
-      subtitle: "Outdoor GHS/GPP enrollment activity logged by your team",
+      subtitle: "Outdoor GHS/JPP enrollment activity logged by your team",
       storeFilterLabel: "Store",
       staffFilterLabel: "Staff",
       searchLabel: "Search",

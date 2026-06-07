@@ -52,7 +52,7 @@ const ACTIVITY_TYPE_LABELS: Record<FieldActivityType, string> = {
 
 const OUTCOME_LABELS: Record<SchemeEnrollmentOutcome, string> = {
   ENROLLED_GHS: "Enrolled GHS",
-  ENROLLED_GPP: "Enrolled GPP",
+  ENROLLED_GPP: "Enrolled JPP",
   ENROLLED_BOTH: "Enrolled both",
   INTERESTED: "Interested",
   DECLINED: "Declined",

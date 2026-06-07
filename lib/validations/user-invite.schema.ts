@@ -2,7 +2,7 @@ import { passwordPolicySchema } from "@/lib/auth/password-policy";
 import { phoneSchema } from "@/lib/validations/common.schema";
 import { z } from "zod";
 
-const appRoleSchema = z.enum(["MASTER_ADMIN", "STORE_MANAGER", "STAFF"]);
+const appRoleSchema = z.enum(["MASTER_ADMIN", "BUSINESS_OWNER", "STORE_MANAGER", "STAFF"]);
 
 export const inviteUserSchema = z
   .object({
@@ -28,7 +28,9 @@ export const inviteUserSchema = z
       });
     }
     if (
-      (data.role === "STAFF" || data.role === "STORE_MANAGER") &&
+      (data.role === "STAFF" ||
+        data.role === "STORE_MANAGER" ||
+        data.role === "BUSINESS_OWNER") &&
       !data.storeId
     ) {
       ctx.addIssue({

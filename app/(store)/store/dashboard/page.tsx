@@ -1,5 +1,8 @@
+import { redirect } from "next/navigation";
 import { content } from "@/content/en";
+import { StoreManagerPortal } from "@/components/store/StoreManagerPortal";
 import { StorePortfolio } from "@/components/store/StorePortfolio";
+import { getAppSession } from "@/lib/auth/get-app-session";
 import { fetchInitialStoreManagerPortfolio } from "@/lib/data/analytics";
 import { parsePeriodParam } from "@/lib/utils/analytics-period-url";
 
@@ -10,6 +13,21 @@ interface StoreDashboardPageProps {
 export default async function StoreDashboardPage({
   searchParams,
 }: StoreDashboardPageProps) {
+  const session = await getAppSession();
+  if (!session) {
+    redirect("/");
+  }
+
+  if (session.role === "STORE_MANAGER") {
+    return (
+      <StoreManagerPortal copy={content.store} storeId={session.storeId} />
+    );
+  }
+
+  if (session.role !== "BUSINESS_OWNER") {
+    redirect("/");
+  }
+
   const { period: periodParam } = await searchParams;
   const period = parsePeriodParam(periodParam);
 

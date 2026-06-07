@@ -31,6 +31,7 @@ export function FieldSalesFormSections({
   mode,
 }: FieldSalesFormSectionsProps) {
   const enrollmentOutcome = watch("enrollmentOutcome");
+  const schemesPitched = watch("schemesPitched");
   const followUpNeeded = watch("followUpNeeded");
   const startTime = watch("startTime");
   const endTime = watch("endTime");
@@ -59,12 +60,14 @@ export function FieldSalesFormSections({
           title={copy.sections.scheme}
           copy={getSchemePitchCopy(copy)}
           control={control}
+          schemesPitched={schemesPitched}
           enrollmentOutcome={enrollmentOutcome}
           id="section-scheme"
         />
       )}
 
       {shouldShowSection("noEnrollment", activeSection, mode) &&
+        !schemesPitched.includes("NONE") &&
         (enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK") && (
           <NoEnrollmentSection copy={copy} control={control} />
         )}

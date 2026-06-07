@@ -21,12 +21,11 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { calculateDurationMins, formatDurationMins } from "@/lib/utils/formatters";
 import { useCustomerLookupPrefill } from "@/hooks/useCustomerLookupPrefill";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { FormSection } from "../FormSection";
 import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
 import {
-  formatDateForInput,
   formatTimeForInput,
-  parseDateInput,
   parseTimeInput,
 } from "../VisitForm.types";
 
@@ -309,17 +308,15 @@ export function CustomerSection({
             <FormItem>
               <FormLabel>{fields.dateOfBirth.label}</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? formatDateForInput(field.value) : ""}
-                  onChange={(event) => {
-                    if (!event.target.value) {
-                      field.onChange(undefined);
-                      return;
-                    }
-                    field.onChange(parseDateInput(event.target.value));
-                  }}
-                  max={formatDateForInput(new Date())}
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={fields.dateOfBirth.placeholder}
+                  toDate={new Date()}
+                  captionLayout="dropdown"
+                  fromYear={1920}
+                  toYear={new Date().getFullYear()}
                 />
               </FormControl>
               <FormMessage />
@@ -372,17 +369,15 @@ export function CustomerSection({
             <FormItem>
               <FormLabel>{fields.anniversary.label}</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? formatDateForInput(field.value) : ""}
-                  onChange={(event) => {
-                    if (!event.target.value) {
-                      field.onChange(undefined);
-                      return;
-                    }
-                    field.onChange(parseDateInput(event.target.value));
-                  }}
-                  max={formatDateForInput(new Date())}
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={fields.anniversary.placeholder}
+                  toDate={new Date()}
+                  captionLayout="dropdown"
+                  fromYear={1950}
+                  toYear={new Date().getFullYear()}
                 />
               </FormControl>
               <FormMessage />

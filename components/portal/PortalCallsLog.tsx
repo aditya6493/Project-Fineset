@@ -167,10 +167,10 @@ export function PortalCallsLog({
   }
 
   function getFilterCount(
-    group: "segments" | "valueTiers" | "queues",
+    group: "segments" | "valueTiers" | "queues" | "birthdays" | "anniversaries",
     key: string,
   ): number {
-    return data?.filters[group].find((item) => item.key === key)?.count ?? 0;
+    return data?.filters[group]?.find((item) => item.key === key)?.count ?? 0;
   }
 
   function resetPage<T extends string>(setter: (value: T) => void, value: T) {

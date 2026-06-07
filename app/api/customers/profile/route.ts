@@ -16,7 +16,7 @@ import { getCustomerProfileQuerySchema } from "@/lib/validations/customer.schema
 export async function GET(req: Request) {
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+    if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
       return unauthorized();
     }
 
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
     if (!query.success) return badRequest(query.error.flatten());
 
     const storeId =
-      session.role === "STORE_MANAGER"
+      session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER"
         ? session.storeId
         : searchParams.get("storeId") ?? undefined;
 

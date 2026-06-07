@@ -1,17 +1,17 @@
 import { NextResponse } from "next/server";
 import { withAuthQuery } from "@/lib/api/route-handler";
-import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
+import { resolveStorePortalStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { createPerfTimer, logPerf } from "@/lib/perf/timing";
 import { getStoreAnalytics } from "@/lib/services/analytics";
 import { getAnalyticsQuerySchema } from "@/lib/validations/analytics.schema";
 
 export const GET = withAuthQuery(
-  ["STORE_MANAGER"] as const,
+  ["STORE_MANAGER", "BUSINESS_OWNER"] as const,
   getAnalyticsQuerySchema,
   async (session, query) => {
     const timer = createPerfTimer();
 
-    const storeId = await resolveStoreManagerAnalyticsStoreId(
+    const storeId = await resolveStorePortalStoreId(
       session,
       query.storeId,
     );

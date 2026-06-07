@@ -16,7 +16,9 @@ const cache = new Map<string, CacheEntry>();
 
 function cacheKey(session: AppSession): string {
   const storeId =
-    session.role === "STAFF" || session.role === "STORE_MANAGER"
+    session.role === "STAFF" ||
+    session.role === "STORE_MANAGER" ||
+    session.role === "BUSINESS_OWNER"
       ? session.storeId
       : "all";
   const staffId = session.role === "STAFF" ? session.staffId : "";

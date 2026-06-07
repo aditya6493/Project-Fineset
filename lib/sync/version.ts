@@ -20,7 +20,9 @@ export interface SyncVersionPayload {
 
 function resolveStoreScope(session: AppSession): string | undefined {
   if (session.role === "STAFF") return session.storeId;
-  if (session.role === "STORE_MANAGER") return session.storeId;
+  if (session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER") {
+    return session.storeId;
+  }
   return undefined;
 }
 

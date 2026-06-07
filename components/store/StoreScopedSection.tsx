@@ -14,9 +14,12 @@ export function StoreScopedSection({
   store: StoreContent;
   children: (storeId: string) => ReactNode;
 }) {
-  const { storeId, hasMultipleStores } = useStoreDashboard();
+  const { storeId, hasMultipleStores, isSingleStoreManager } = useStoreDashboard();
 
   if (!storeId) {
+    if (isSingleStoreManager) {
+      return null;
+    }
     if (hasMultipleStores) {
       return <SelectStorePrompt store={store} />;
     }

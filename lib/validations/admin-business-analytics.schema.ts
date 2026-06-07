@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_CATEGORY_VALUES } from "@/lib/constants/product-categories";
 import { periodQuerySchema } from "./common.schema";
 import {
   staffCallSegmentSchema,
@@ -66,17 +67,8 @@ const adminBusinessAnalyticsBaseSchema = z.object({
     "ABOVE_1L",
     "NOT_STATED",
   ]),
-  productCategory: optionalEnum([
-    "RINGS",
-    "NECKLACES",
-    "BANGLES",
-    "EARRINGS",
-    "CHAINS",
-    "PENDANTS",
-    "SETS",
-    "OTHER",
-  ]),
-  schemeProduct: optionalEnum(["GHS", "GPP"]),
+  productCategory: optionalEnum([...PRODUCT_CATEGORY_VALUES]),
+  schemeProduct: optionalEnum(["GHS", "GPP", "NONE"]),
   enrollmentOutcome: withNa([
     "ENROLLED_GHS",
     "ENROLLED_GPP",

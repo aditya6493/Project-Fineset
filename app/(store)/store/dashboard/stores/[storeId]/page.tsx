@@ -1,5 +1,7 @@
 import { content } from "@/content/en";
 import { StoreDetailOverview } from "@/components/store/StoreDetailOverview";
+import { getAppSession } from "@/lib/auth/get-app-session";
+import { resolveStoreDetailAccess } from "@/lib/auth/store-portal-access";
 import { fetchInitialStoreOverviewBundle } from "@/lib/data/analytics";
 import { parsePeriodParam } from "@/lib/utils/analytics-period-url";
 
@@ -12,21 +14,19 @@ export default async function StoreDetailDashboardPage({
   params,
   searchParams,
 }: StoreDetailPageProps) {
-  const { storeId } = await params;
+  const { storeId: urlStoreId } = await params;
   const { period: periodParam } = await searchParams;
   const period = parsePeriodParam(periodParam);
+  const session = await getAppSession();
+  const storeId = await resolveStoreDetailAccess(session, urlStoreId, period);
 
-  let initial: Awaited<ReturnType<typeof fetchInitialStoreOverviewBundle>> = null;
-  try {
-    initial = await fetchInitialStoreOverviewBundle({ storeId, period });
-  } catch (error) {
-    console.error("[store-dashboard] initial store detail failed", { storeId, error });
-  }
+  const initial = await fetchInitialStoreOverviewBundle({ storeId, period });
 
   return (
     <StoreDetailOverview
       storeId={storeId}
       store={content.store}
+      showStaffNav={session?.role === "BUSINESS_OWNER"}
       initialOverviewBundle={initial?.bundle}
       initialOverviewParams={initial?.params}
     />

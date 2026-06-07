@@ -1,8 +1,8 @@
 import { logAuthEvent } from "@/lib/auth/audit";
 import { InviteError, inviteUser } from "@/lib/auth/invite-user";
 import {
-  findExistingStoreManagerByEmail,
-  listStoresLinkedToManagerEmail,
+  findExistingBusinessOwnerByEmail,
+  listOwnedStoresForBusinessOwner,
 } from "@/lib/services/manager-stores";
 import { validatePassword } from "@/lib/auth/password-policy";
 import { ensureProductionStoreSchema } from "@/lib/db/ensure-production-store-schema";
@@ -148,7 +148,7 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
 
     let manager: CreateStoreResult["manager"];
     if (managerEmail) {
-      const existingManager = await findExistingStoreManagerByEmail(managerEmail);
+      const existingManager = await findExistingBusinessOwnerByEmail(managerEmail);
       if (existingManager) {
         manager = {
           email: existingManager.email,
@@ -160,7 +160,7 @@ export async function createStore(input: CreateStoreInput): Promise<CreateStoreR
           name: storeFields.businessOwnerName?.trim() || store.name,
           email: managerEmail,
           password,
-          role: "STORE_MANAGER",
+          role: "BUSINESS_OWNER",
           storeId: store.id,
         });
         manager = { email: invited.email, appUserId: invited.appUserId };
@@ -236,7 +236,7 @@ export async function updateStoreManagerPassword(storeId: string, password: stri
   }
 
   const manager = await prisma.appUser.findFirst({
-    where: { storeId, role: "STORE_MANAGER" },
+    where: { storeId, role: "BUSINESS_OWNER" },
     orderBy: { createdAt: "asc" },
     select: { id: true, authId: true, email: true },
   });
@@ -442,7 +442,7 @@ export async function getManagerStorePerformanceRows(
   primaryStoreId: string,
   period: AnalyticsPeriodLabel,
 ): Promise<StorePerformanceRow[]> {
-  const allowed = await listStoresLinkedToManagerEmail(email, primaryStoreId);
+  const allowed = await listOwnedStoresForBusinessOwner(email, primaryStoreId);
   const allowedIds = new Set(allowed.map((store) => store.id));
   if (allowedIds.size === 0) return [];
 
@@ -558,10 +558,11 @@ export async function getStorePerformanceRows(
   };
 
   const countCallsByStore = (
-    rows: Array<{ visit: { storeId: string } }>,
+    rows: Array<{ visit: { storeId: string } | null }>,
   ) => {
     const map = new Map<string, number>();
     for (const row of rows) {
+      if (!row.visit) continue;
       const storeId = row.visit.storeId;
       map.set(storeId, (map.get(storeId) ?? 0) + 1);
     }

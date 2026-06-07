@@ -11,14 +11,13 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
-import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/shared/DatePicker";
+import { cn } from "@/lib/utils";
 import type { Content } from "@/content/en";
 import type { StaffCallDialResult, StaffCallListItem } from "@/types";
 import type { StaffCallOutcomeInput } from "@/lib/validations/staff-calls.schema";
-import { formatDateForInput, parseDateInput } from "@/components/forms/VisitForm/VisitForm.types";
 
 type StaffCallsCopy = Content["staff"]["calls"];
 
@@ -46,13 +45,13 @@ export function CallFeedbackDialog({
   const [answered, setAnswered] = useState<"ANSWERED" | "NOT_ANSWERED" | null>(null);
   const [feedback, setFeedback] = useState("");
   const [scheduleFollowUp, setScheduleFollowUp] = useState(false);
-  const [followUpDate, setFollowUpDate] = useState("");
+  const [followUpDate, setFollowUpDate] = useState<Date | undefined>(undefined);
 
   function resetForm() {
     setAnswered(null);
     setFeedback("");
     setScheduleFollowUp(false);
-    setFollowUpDate("");
+    setFollowUpDate(undefined);
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -71,15 +70,15 @@ export function CallFeedbackDialog({
       scheduleFollowUp: answered === "ANSWERED" ? scheduleFollowUp : false,
       followUpDate:
         answered === "ANSWERED" && scheduleFollowUp && followUpDate
-          ? parseDateInput(followUpDate)
+          ? followUpDate
           : undefined,
     });
   }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
+      <DialogContent className="flex max-h-[90vh] max-w-md flex-col gap-0 overflow-hidden p-0">
+        <DialogHeader className="space-y-1 border-b border-border px-6 py-4">
           <DialogTitle>{copy.dialog.title}</DialogTitle>
           <DialogDescription>
             {item
@@ -88,19 +87,21 @@ export function CallFeedbackDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div className="space-y-4 overflow-y-auto px-6 py-4">
           <div className="rounded-input border border-border bg-surface-secondary p-4">
             {isDialLoading ? (
               <p className="text-sm text-text-secondary">{copy.dialog.revealingPhone}</p>
             ) : dialInfo ? (
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-3">
                 <div>
                   <p className="text-sm font-medium text-text-primary">{dialInfo.displayName}</p>
-                  <p className="text-sm text-text-secondary">{dialInfo.phone}</p>
+                  <p className="text-lg font-semibold tracking-wide text-text-primary">
+                    {dialInfo.phone}
+                  </p>
                 </div>
-                <Button asChild className="w-full sm:w-auto">
+                <Button asChild className="h-12 w-full gap-2 text-base">
                   <a href={dialInfo.dialUrl}>
-                    <Phone className="h-4 w-4" aria-hidden />
+                    <Phone className="h-5 w-5" aria-hidden />
                     {copy.call}
                   </a>
                 </Button>
@@ -112,22 +113,28 @@ export function CallFeedbackDialog({
 
           <div className="space-y-2">
             <Label>{copy.dialog.outcomeLabel}</Label>
-            <RadioGroup
-              value={answered ?? ""}
-              onValueChange={(value) =>
-                setAnswered(value as "ANSWERED" | "NOT_ANSWERED")
-              }
-              className="grid grid-cols-2 gap-2"
-            >
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="ANSWERED" id="outcome-answered" />
-                <Label htmlFor="outcome-answered">{copy.dialog.answered}</Label>
-              </div>
-              <div className="flex items-center gap-2">
-                <RadioGroupItem value="NOT_ANSWERED" id="outcome-not-answered" />
-                <Label htmlFor="outcome-not-answered">{copy.dialog.notAnswered}</Label>
-              </div>
-            </RadioGroup>
+            <div className="grid grid-cols-2 gap-2">
+              {(
+                [
+                  { value: "ANSWERED", label: copy.dialog.answered },
+                  { value: "NOT_ANSWERED", label: copy.dialog.notAnswered },
+                ] as const
+              ).map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={answered === option.value ? "default" : "outline"}
+                  className={cn(
+                    "h-12",
+                    answered === option.value && "ring-2 ring-brand-gold ring-offset-2",
+                  )}
+                  aria-pressed={answered === option.value}
+                  onClick={() => setAnswered(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
+            </div>
           </div>
 
           {answered === "ANSWERED" && (
@@ -158,12 +165,11 @@ export function CallFeedbackDialog({
               {scheduleFollowUp && (
                 <div className="space-y-2">
                   <Label htmlFor="follow-up-date">{copy.dialog.followUpDateLabel}</Label>
-                  <Input
+                  <DatePicker
                     id="follow-up-date"
-                    type="date"
                     value={followUpDate}
-                    onChange={(event) => setFollowUpDate(event.target.value)}
-                    min={formatDateForInput(new Date())}
+                    onChange={setFollowUpDate}
+                    fromDate={new Date()}
                   />
                 </div>
               )}
@@ -184,10 +190,12 @@ export function CallFeedbackDialog({
               <p className="text-xs text-text-muted">{copy.dialog.notAnsweredHint}</p>
             </div>
           )}
+        </div>
 
+        <div className="border-t border-border px-6 py-4">
           <Button
             type="button"
-            className="w-full"
+            className="h-12 w-full"
             disabled={
               !answered ||
               isSubmitting ||

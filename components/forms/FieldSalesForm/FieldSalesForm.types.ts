@@ -62,7 +62,10 @@ export function getDefaultFieldSaleValues(): FieldSalesFormValues {
 export function getSectionFieldNames(
   sectionId: FieldSalesFormSectionId,
   enrollmentOutcome?: FieldSalesFormValues["enrollmentOutcome"],
+  schemesPitched?: FieldSalesFormValues["schemesPitched"],
 ): (keyof FieldSalesFormValues)[] {
+  const noSchemesPitched = schemesPitched?.includes("NONE");
+
   switch (sectionId) {
     case "customer":
       return [
@@ -85,8 +88,9 @@ export function getSectionFieldNames(
     case "scheme":
       return [
         "schemesPitched",
-        "enrollmentOutcome",
-        "monthlyCommitment",
+        ...(noSchemesPitched
+          ? []
+          : ["enrollmentOutcome", "monthlyCommitment"] as const),
         "intentTier",
       ];
     case "noEnrollment":
@@ -101,6 +105,7 @@ export function getSectionFieldNames(
 export function buildFieldSalesSections(
   copy: FieldSalesFormCopy,
   enrollmentOutcome?: FieldSalesFormValues["enrollmentOutcome"],
+  schemesPitched?: FieldSalesFormValues["schemesPitched"],
 ): FieldSalesFormSection[] {
   const all: FieldSalesFormSection[] = [
     { id: "customer", title: copy.sections.customer },
@@ -110,7 +115,10 @@ export function buildFieldSalesSections(
     { id: "followUp", title: copy.sections.followUp },
   ];
 
-  if (enrollmentOutcome !== "DECLINED" && enrollmentOutcome !== "CALLBACK") {
+  if (
+    schemesPitched?.includes("NONE") ||
+    (enrollmentOutcome !== "DECLINED" && enrollmentOutcome !== "CALLBACK")
+  ) {
     return all.filter((section) => section.id !== "noEnrollment");
   }
 

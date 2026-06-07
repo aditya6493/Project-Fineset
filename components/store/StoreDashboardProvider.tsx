@@ -15,28 +15,45 @@ import {
   SELECTED_STORE_STORAGE_KEY,
 } from "@/lib/utils/store-dashboard-url";
 import { useMyStores } from "@/hooks/useMyStores";
+import type { StorePortalSession } from "@/types";
 
 interface StoreDashboardContextValue {
   storeId: string | null;
   setStoreId: (id: string) => void;
   hasMultipleStores: boolean;
+  isSingleStoreManager: boolean;
 }
 
 const StoreDashboardContext = createContext<StoreDashboardContextValue | null>(
   null,
 );
 
-export function StoreDashboardProvider({ children }: { children: ReactNode }) {
+interface StoreDashboardProviderProps {
+  children: ReactNode;
+  portalRole: StorePortalSession["role"];
+  assignedStoreId: string;
+}
+
+export function StoreDashboardProvider({
+  children,
+  portalRole,
+  assignedStoreId,
+}: StoreDashboardProviderProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { data: myStores } = useMyStores();
   const stores = myStores?.data ?? [];
+  const isSingleStoreManager = portalRole === "STORE_MANAGER";
 
   const pathStoreId = parseStoreIdFromPath(pathname);
   const queryStoreId = searchParams.get("storeId");
   const [manualStoreId, setManualStoreId] = useState<string | null>(null);
 
   const resolvedStoreId = useMemo(() => {
+    if (isSingleStoreManager) {
+      return assignedStoreId;
+    }
+
     const allowedIds = new Set(stores.map((s) => s.id));
     const candidates = [
       pathStoreId,
@@ -52,26 +69,39 @@ export function StoreDashboardProvider({ children }: { children: ReactNode }) {
       if (id && allowedIds.has(id)) return id;
     }
     return pathStoreId ?? queryStoreId ?? null;
-  }, [pathStoreId, manualStoreId, queryStoreId, myStores, stores]);
+  }, [
+    isSingleStoreManager,
+    assignedStoreId,
+    pathStoreId,
+    manualStoreId,
+    queryStoreId,
+    myStores,
+    stores,
+  ]);
 
   useEffect(() => {
-    if (resolvedStoreId) {
+    if (resolvedStoreId && !isSingleStoreManager) {
       window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, resolvedStoreId);
     }
-  }, [resolvedStoreId]);
+  }, [resolvedStoreId, isSingleStoreManager]);
 
-  const setStoreId = useCallback((id: string) => {
-    setManualStoreId(id);
-    window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, id);
-  }, []);
+  const setStoreId = useCallback(
+    (id: string) => {
+      if (isSingleStoreManager) return;
+      setManualStoreId(id);
+      window.localStorage.setItem(SELECTED_STORE_STORAGE_KEY, id);
+    },
+    [isSingleStoreManager],
+  );
 
   const value = useMemo(
     () => ({
       storeId: resolvedStoreId,
       setStoreId,
-      hasMultipleStores: stores.length > 1,
+      hasMultipleStores: !isSingleStoreManager && stores.length > 1,
+      isSingleStoreManager,
     }),
-    [resolvedStoreId, setStoreId, stores.length],
+    [resolvedStoreId, setStoreId, isSingleStoreManager, stores.length],
   );
 
   return (

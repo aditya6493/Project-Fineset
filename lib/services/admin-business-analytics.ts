@@ -1,4 +1,5 @@
 import { mergeStoreWhere } from "@/lib/db/store-scope";
+import { PRODUCT_CATEGORY_LABELS } from "@/lib/constants/product-categories";
 import { prisma } from "@/lib/db/prisma";
 import {
   computeVisitValueTier,
@@ -155,7 +156,9 @@ function buildVisitWhere(
   if (isActive(query, "schemeEnrolled")) {
     if (query.schemeEnrolledNa) {
       where.enrollmentOutcome = null;
-      where.schemesPitched = { equals: [] };
+      where.NOT = {
+        schemesPitched: { hasSome: ["GHS", "GPP"] },
+      };
     } else if (query.schemeEnrolled !== undefined) {
       where.schemeEnrolled = query.schemeEnrolled;
     }
@@ -170,14 +173,16 @@ function buildVisitWhere(
 
   if (isActive(query, "schemeProduct") && query.schemeProduct) {
     if (query.schemeProduct === ANALYTICS_FILTER_NA) {
-      where.schemesPitched = { equals: [] };
+      where.NOT = {
+        schemesPitched: { hasSome: ["GHS", "GPP"] },
+      };
     } else {
       where.schemesPitched = { has: query.schemeProduct as SchemeProduct };
     }
   }
 
   if (isActive(query, "productCategory") && query.productCategory) {
-    if (query.productCategory === ANALYTICS_FILTER_NA) {
+    if (String(query.productCategory) === ANALYTICS_FILTER_NA) {
       where.AND = [
         { productsExplored: { equals: [] } },
         { productsPurchased: { equals: [] } },
@@ -328,7 +333,7 @@ function buildAppliedFilters(
           key,
           label: "Product",
           value:
-            query.productCategory === ANALYTICS_FILTER_NA
+            String(query.productCategory) === ANALYTICS_FILTER_NA
               ? "N/A"
               : labelFor(options.productCategories, query.productCategory),
         });
@@ -669,20 +674,11 @@ const LABELS = {
     ABOVE_1L: "Above ₹1L",
     NOT_STATED: "Not stated",
   },
-  productCategory: {
-    RINGS: "Rings",
-    NECKLACES: "Necklaces",
-    BANGLES: "Bangles",
-    EARRINGS: "Earrings",
-    CHAINS: "Chains",
-    PENDANTS: "Pendants",
-    SETS: "Sets",
-    OTHER: "Other",
-  },
-  schemeProduct: { GHS: "GHS", GPP: "GPP" },
+  productCategory: PRODUCT_CATEGORY_LABELS,
+  schemeProduct: { GHS: "GHS", GPP: "JPP", NONE: "None" },
   enrollmentOutcome: {
     ENROLLED_GHS: "Enrolled GHS",
-    ENROLLED_GPP: "Enrolled GPP",
+    ENROLLED_GPP: "Enrolled JPP",
     ENROLLED_BOTH: "Enrolled both",
     INTERESTED: "Interested",
     DECLINED: "Declined",

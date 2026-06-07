@@ -17,11 +17,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { FormSection } from "@/components/forms/VisitForm/FormSection";
+import { DatePicker } from "@/components/shared/DatePicker";
 import type { FieldSalesFormCopy, FieldSalesFormValues } from "../FieldSalesForm.types";
 import {
-  formatDateForInput,
   formatTimeForInput,
-  parseDateInput,
   parseTimeInput,
 } from "../FieldSalesForm.types";
 
@@ -92,13 +91,10 @@ export function ActivitySection({
             <FormItem>
               <FormLabel>{fields.activityDate.label}</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? formatDateForInput(field.value) : ""}
-                  onChange={(event) => {
-                    if (!event.target.value) return;
-                    field.onChange(parseDateInput(event.target.value));
-                  }}
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
                 />
               </FormControl>
               <FormMessage />

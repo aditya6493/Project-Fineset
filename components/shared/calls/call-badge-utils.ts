@@ -23,6 +23,7 @@ export function badgeClass(
 
   if (kind === "queue") {
     if (value === "FOLLOW_UP") return "bg-brand-gold/10 text-brand-gold";
+    if (value === "NOT_ANSWERED") return "bg-status-error/10 text-status-error";
     return "bg-surface-secondary text-text-secondary";
   }
 

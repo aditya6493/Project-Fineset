@@ -16,7 +16,7 @@ interface RouteParams {
 export async function GET(_req: Request, { params }: RouteParams) {
   const { id } = await params;
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN", "STAFF"])) {
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN", "STAFF"])) {
     return unauthorized();
   }
 

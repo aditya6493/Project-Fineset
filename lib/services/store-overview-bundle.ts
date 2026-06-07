@@ -1,5 +1,5 @@
 import { getStoreAnalytics } from "@/lib/services/analytics";
-import { listStoresLinkedToManagerEmail } from "@/lib/services/manager-stores";
+import { listAccessibleStores } from "@/lib/services/manager-stores";
 import { getStoreCallAnalytics } from "@/lib/services/store-call-analytics";
 import { getStoreFieldSaleAnalytics } from "@/lib/services/store-field-sale-analytics";
 import { getStoreRsoPerformance } from "@/lib/services/rso-performance";
@@ -9,6 +9,7 @@ import type {
   MyStoresResponse,
   StoreCallAnalytics,
   StoreFieldSaleAnalytics,
+  StorePortalSession,
   StoreRsoPerformance,
 } from "@/types";
 
@@ -21,13 +22,12 @@ export interface StoreOverviewBundle {
 }
 
 export async function getStoreOverviewBundle(
-  email: string,
-  primaryStoreId: string,
+  session: StorePortalSession,
   storeId: string,
   period: AnalyticsPeriod["label"],
 ): Promise<StoreOverviewBundle> {
   const [stores, kpis, calls, fieldSales, rsoPerformance] = await Promise.all([
-    listStoresLinkedToManagerEmail(email, primaryStoreId),
+    listAccessibleStores(session),
     getStoreAnalytics(storeId, period),
     getStoreCallAnalytics(storeId, period),
     getStoreFieldSaleAnalytics(storeId, period),

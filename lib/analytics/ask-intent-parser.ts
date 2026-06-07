@@ -123,12 +123,25 @@ function extractFilters(text: string): Partial<ParsedAnalyticsAskIntent> {
   }
 
   const products: Array<{ key: ParsedAnalyticsAskIntent["productCategory"]; pattern: RegExp }> = [
-    { key: "RINGS", pattern: /\brings?\b/ },
-    { key: "NECKLACES", pattern: /\bnecklaces?\b/ },
     { key: "BANGLES", pattern: /\bbangles?\b/ },
-    { key: "EARRINGS", pattern: /\bearrings?\b/ },
+    { key: "BRACELET", pattern: /\bbracelets?\b/ },
+    { key: "EAR_RINGS", pattern: /\bear[\s-]?rings?\b/ },
+    { key: "FINGER_RINGS", pattern: /\bfinger[\s-]?rings?\b|\brings?\b/ },
     { key: "CHAINS", pattern: /\bchains?\b/ },
+    { key: "NECKLACE", pattern: /\bnecklaces?\b/ },
+    { key: "MANGALSUTRA", pattern: /\bmangalsutras?\b/ },
+    { key: "NOSE_PIN", pattern: /\bnose[\s-]?pins?\b/ },
     { key: "PENDANTS", pattern: /\bpendants?\b/ },
+    { key: "COLLOR", pattern: /\bcollors?\b|\bcollars?\b/ },
+    { key: "JUMKA", pattern: /\bjumkas?\b|\bjhumkas?\b/ },
+    { key: "PENDANT_EARRINGS", pattern: /\bpendant\s*(?:&|and)\s*earrings?\b/ },
+    { key: "NECKLACE_EARRINGS", pattern: /\bnecklace\s*(?:&|and)\s*earrings?\b/ },
+    {
+      key: "NECKLACE_PENDANT_EARRINGS",
+      pattern: /\bnecklace\s*(?:&|and)\s*pendant\s*(?:&|and)\s*earrings?\b/,
+    },
+    { key: "COINS", pattern: /\bcoins?\b/ },
+    { key: "SILVER", pattern: /\bsilver\b/ },
   ];
   for (const { key, pattern } of products) {
     if (pattern.test(text)) {

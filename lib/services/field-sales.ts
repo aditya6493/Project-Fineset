@@ -2,12 +2,14 @@ import { prisma } from "@/lib/db/prisma";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import type { FieldSale, Prisma } from "@prisma/client";
 import { resolveSchemeEnrollmentFlags } from "@/lib/services/scheme-enrollment";
+import { normalizeSchemesPitched } from "@/lib/validations/scheme.schema";
 import { broadcastSyncEvent } from "@/lib/sync/broadcaster";
 import { buildFieldSaleSearchWhere } from "@/lib/services/customer-search";
 import {
   decryptVisitPii,
   prepareCustomerPii,
 } from "@/lib/services/pii";
+import { fieldSaleDenormFields } from "@/lib/services/call-record-denorm";
 import { calculateDurationMins, formatDate } from "@/lib/utils/formatters";
 
 interface CreateFieldSaleParams extends CreateFieldSaleInput {
@@ -18,6 +20,8 @@ interface CreateFieldSaleParams extends CreateFieldSaleInput {
 export async function createFieldSale(
   params: CreateFieldSaleParams,
 ): Promise<FieldSale> {
+  const normalizedParams = normalizeSchemesPitched(params);
+
   const {
     storeId,
     staffId,
@@ -34,9 +38,9 @@ export async function createFieldSale(
     followUpDate,
     enrollmentOutcome: _enrollmentOutcome,
     ...fieldData
-  } = params;
+  } = normalizedParams;
 
-  const enrollmentOutcome = params.enrollmentOutcome ?? null;
+  const enrollmentOutcome = normalizedParams.enrollmentOutcome ?? null;
 
   const customerPii = prepareCustomerPii(customerName, customerPhone);
   const enrollmentFlags = resolveSchemeEnrollmentFlags(enrollmentOutcome);
@@ -85,6 +89,12 @@ export async function createFieldSale(
       },
     });
 
+    const denorm = fieldSaleDenormFields({
+      monthlyCommitment: fieldData.monthlyCommitment ?? null,
+      dateOfBirth: customer.dateOfBirth,
+      anniversary: customer.anniversary,
+    });
+
     const fieldSale = await tx.fieldSale.create({
       data: {
         ...fieldData,
@@ -107,6 +117,7 @@ export async function createFieldSale(
         profession,
         followUpNeeded,
         followUpDate: followUpNeeded ? followUpDate : null,
+        ...denorm,
       },
     });
 

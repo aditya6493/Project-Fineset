@@ -7,7 +7,7 @@ const ENTITY_QUERY_KEYS: Record<SyncEntity, string[][]> = {
   staff: [["staff"]],
   customers: [["customers"]],
   followUps: [["follow-ups"]],
-  callLogs: [["staff-calls"], ["portal-calls"], ["calls"]],
+  callLogs: [["staff-calls"], ["staff-calls-filters"], ["portal-calls"], ["calls"]],
   stores: [["stores"], ["analytics"]],
 };
 

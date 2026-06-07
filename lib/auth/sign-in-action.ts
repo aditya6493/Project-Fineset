@@ -47,6 +47,13 @@ export async function signInAction(
 
   if (isDevAuthBypassEnabled()) {
     const session = await createDevSessionForEmail(normalizedEmail);
+    if (!session) {
+      logSignIn("dev_bypass_rejected", {
+        totalMs: Date.now() - startedAt,
+        email: normalizedEmail,
+      });
+      return { ok: false, code: "invalid_credentials" };
+    }
 
     await setDevSessionCookie({
       email: normalizedEmail,

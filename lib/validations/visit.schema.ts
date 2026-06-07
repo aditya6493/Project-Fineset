@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_CATEGORY_VALUES } from "@/lib/constants/product-categories";
 import { paginationQuerySchema, phoneSchema, sortOrderSchema } from "./common.schema";
 import {
   fieldDeclineReasonSchema,
@@ -30,16 +31,7 @@ const sourceChannelSchema = z.enum([
   "USER_CALLS",
   "OTHER",
 ]);
-const productCategorySchema = z.enum([
-  "RINGS",
-  "NECKLACES",
-  "BANGLES",
-  "EARRINGS",
-  "CHAINS",
-  "PENDANTS",
-  "SETS",
-  "OTHER",
-]);
+const productCategorySchema = z.enum(PRODUCT_CATEGORY_VALUES);
 const genderSchema = z.enum(["MALE", "FEMALE", "OTHER", "PREFER_NOT_TO_SAY"]);
 const ageGroupSchema = z.enum(["18-25", "26-35", "36-50", "50+"]);
 const noPurchaseReasonSchema = z.enum([
@@ -58,10 +50,10 @@ const purchaseOccasionSchema = z.enum([
   "FESTIVAL",
 ]);
 const metalKtPrefSchema = z.enum([
+  "GOLD_14KT",
   "GOLD_18KT",
   "GOLD_22KT",
   "DIAMOND",
-  "PLATINUM",
   "SILVER",
 ]);
 

@@ -21,7 +21,7 @@ interface RouteParams {
 export async function PATCH(req: Request, { params }: RouteParams) {
   const { id } = await params;
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "STAFF"])) return unauthorized();
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "STAFF"])) return unauthorized();
 
   const body: unknown = await req.json();
   const parsed = patchFollowUpSchema.safeParse(body);

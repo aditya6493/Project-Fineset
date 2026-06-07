@@ -1,8 +1,18 @@
 import { prisma } from "@/lib/db/prisma";
 import type { PortalCallsQuery } from "@/lib/validations/portal-calls.schema";
 import {
+  buildCallsPeriodRange,
+  buildFollowUpOpenWhere,
+  buildNotAnsweredWhere,
+} from "@/lib/services/call-queue-utils";
+import {
+  buildVisitSegmentWhere,
+} from "@/lib/services/staff-calls-query";
+import {
   buildVisitCallSummary,
   computeVisitValueTier,
+  deriveCallQueue,
+  extractCallQueueSignals,
   matchesCallIntentTier,
   matchesCallQueue,
   matchesCallSegment,
@@ -44,6 +54,7 @@ const portalVisitListSelect = (): Prisma.VisitSelect => ({
   intentTier: true,
   reasonNoPurchase: true,
   staffNotes: true,
+  lastCallAnswered: true,
   staff: {
     select: {
       id: true,
@@ -97,9 +108,12 @@ function toPortalCallItem(visit: PortalVisitRow): PortalCallListItem {
   const decrypted = decryptVisitPii(visit);
   const valueTier = computeVisitValueTier(visit);
   const lastCall = getLastCallForStaff(visit);
-  const hasOpenFollowUp =
-    visit.followUp?.status === "OPEN" &&
-    visit.followUp.assignedStaffId === visit.staffId;
+  const signals = extractCallQueueSignals({
+    staffId: visit.staffId,
+    followUp: visit.followUp,
+    lastCallAnswered: visit.lastCallAnswered,
+    callLogs: visit.callLogs,
+  });
   const notes =
     lastCall?.feedback?.trim() ||
     visit.followUp?.notes?.trim() ||
@@ -121,7 +135,7 @@ function toPortalCallItem(visit: PortalVisitRow): PortalCallListItem {
     purchaseStatus: visit.purchaseStatus,
     valueTier,
     visitSummary: buildVisitCallSummary(visit),
-    queue: hasOpenFollowUp || lastCall?.answered === "NOT_ANSWERED" ? "FOLLOW_UP" : "RETENTION",
+    queue: deriveCallQueue(signals),
     followUpDueDate: visit.followUp?.followUpDate.toISOString() ?? null,
     lastCallStatus: lastCall?.answered ?? null,
     notes,
@@ -180,7 +194,7 @@ function countFilters(
     "NOT_PURCHASED",
   ];
   const valueTiers: StaffCallValueTier[] = ["ALL", "HIGH", "MID", "LOW"];
-  const queues: StaffCallQueue[] = ["ALL", "RETENTION", "FOLLOW_UP"];
+  const queues: StaffCallQueue[] = ["ALL", "NOT_ANSWERED", "FOLLOW_UP"];
 
   const withPeriod = (visit: PortalVisitRow, month: number) =>
     matchesCallSegment(visit, active.segment) &&
@@ -226,6 +240,20 @@ function countFilters(
           matchesVisitPeriod(visit.visitDate, active.year, active.month),
       ).length,
     })),
+    birthdays: [
+      { key: "ALL", count: base.length },
+      { key: "THIS_MONTH", count: 0 },
+    ],
+    anniversaries: [
+      { key: "ALL", count: base.length },
+      { key: "THIS_MONTH", count: 0 },
+    ],
+    masters: [
+      { key: "ALL" as const, count: base.length },
+      { key: "STORE_VISIT" as const, count: base.length },
+      { key: "FIELD_SALE" as const, count: 0 },
+      { key: "EXTERNAL" as const, count: 0 },
+    ],
     months: Array.from({ length: 12 }, (_, index) => {
       const month = index + 1;
       return {
@@ -238,16 +266,24 @@ function countFilters(
 }
 
 function portalPeriodRange(year: number, month: number): { start: Date; end: Date } {
-  const start = new Date(year, month - 1, 1);
-  const end = new Date(year, month, 0, 23, 59, 59, 999);
-  return { start, end };
+  return buildCallsPeriodRange(year, month);
 }
 
 export function buildPortalVisitsWhere(params: ListPortalCallsParams): Prisma.VisitWhereInput {
   const { start, end } = portalPeriodRange(params.year, params.month);
   const where: Prisma.VisitWhereInput = {
     visitDate: { gte: start, lte: end },
+    ...buildVisitSegmentWhere(params.segment),
   };
+
+  if (params.queue === "NOT_ANSWERED") {
+    Object.assign(where, buildNotAnsweredWhere());
+  } else if (params.queue === "FOLLOW_UP") {
+    where.followUp = params.staffId
+      ? buildFollowUpOpenWhere(params.staffId)
+      : { is: { status: "OPEN" } };
+  }
+
   if (params.storeId) where.storeId = params.storeId;
   if (params.staffId) where.staffId = params.staffId;
   if (params.intentTier) where.intentTier = params.intentTier;

@@ -10,7 +10,16 @@ export const staffCallSegmentSchema = z.enum([
 
 export const staffCallValueTierSchema = z.enum(["ALL", "HIGH", "MID", "LOW"]);
 
-export const staffCallQueueSchema = z.enum(["ALL", "RETENTION", "FOLLOW_UP"]);
+export const staffCallQueueSchema = z.enum(["ALL", "RETENTION", "FOLLOW_UP", "NOT_ANSWERED"]);
+
+export const staffCallOccasionFilterSchema = z.enum(["ALL", "THIS_MONTH"]);
+
+export const staffCallMasterFilterSchema = z.enum([
+  "ALL",
+  "STORE_VISIT",
+  "FIELD_SALE",
+  "EXTERNAL",
+]);
 
 export const staffCallListQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -18,6 +27,9 @@ export const staffCallListQuerySchema = z.object({
   segment: staffCallSegmentSchema.default("ALL"),
   valueTier: staffCallValueTierSchema.default("ALL"),
   queue: staffCallQueueSchema.default("ALL"),
+  master: staffCallMasterFilterSchema.default("ALL"),
+  birthday: staffCallOccasionFilterSchema.default("ALL"),
+  anniversary: staffCallOccasionFilterSchema.default("ALL"),
   year: z.coerce
     .number()
     .int()

@@ -79,8 +79,13 @@ describe.skipIf(!hasDb)("performance services", () => {
   it("B1.6 store overview bundle completes within budget", async () => {
     const started = Date.now();
     await getStoreOverviewBundle(
-      fixtures.managerEmail,
-      fixtures.storeId,
+      {
+        role: "BUSINESS_OWNER",
+        userId: "perf-manager-auth",
+        email: fixtures.managerEmail,
+        storeId: fixtures.storeId,
+        storeName: "Perf Test Store",
+      },
       fixtures.storeId,
       "week",
     );

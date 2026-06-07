@@ -33,6 +33,9 @@ export const SSE_HEARTBEAT_MS = 30_000;
 /** Close SSE before serverless hard timeout (Vercel ~300s). */
 export const SSE_SERVER_MAX_CONNECTION_MS = 240_000;
 
+/** Delay SSE connect so initial page data requests are not competing on cold load. */
+export const SSE_CONNECT_DELAY_MS = 2_500;
+
 /** SSE reconnect backoff base (ms). */
 export const SSE_RECONNECT_BASE_MS = 1_000;
 

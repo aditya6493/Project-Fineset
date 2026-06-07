@@ -22,6 +22,7 @@ interface VisitFormSectionsProps {
   activeSection?: VisitFormSectionId;
   mode: "wizard" | "full";
   enrollmentOutcome?: VisitFormValues["enrollmentOutcome"];
+  schemesPitched?: VisitFormValues["schemesPitched"];
 }
 
 export function VisitFormSections({
@@ -31,6 +32,7 @@ export function VisitFormSections({
   activeSection,
   mode,
   enrollmentOutcome,
+  schemesPitched = [],
 }: VisitFormSectionsProps) {
   const purchaseStatus = watch("purchaseStatus");
   const followUpNeeded = watch("followUpNeeded");
@@ -61,9 +63,11 @@ export function VisitFormSections({
           title={copy.sections.scheme}
           copy={getSchemePitchCopy(copy)}
           control={control}
+          schemesPitched={schemesPitched}
           enrollmentOutcome={enrollmentOutcome}
           showNoEnrollmentFields={
-            enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK"
+            !schemesPitched.includes("NONE") &&
+            (enrollmentOutcome === "DECLINED" || enrollmentOutcome === "CALLBACK")
           }
           id="section-scheme"
         />

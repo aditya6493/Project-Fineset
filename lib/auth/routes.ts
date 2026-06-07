@@ -5,6 +5,7 @@ export function getRedirectForRole(role: AppSession["role"]): string {
     case "STAFF":
       return "/staff/dashboard";
     case "STORE_MANAGER":
+    case "BUSINESS_OWNER":
       return "/store/dashboard";
     case "MASTER_ADMIN":
       return "/admin/dashboard";

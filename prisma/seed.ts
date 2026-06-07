@@ -1,4 +1,5 @@
 import { PrismaClient } from "@prisma/client";
+import { fieldSaleDenormFields, visitDenormFields } from "../lib/services/call-record-denorm";
 import { prepareCustomerPii } from "../lib/services/pii";
 
 const prisma = new PrismaClient();
@@ -45,8 +46,21 @@ function visitTime(hours: number, minutes: number, base = new Date()): Date {
   return date;
 }
 
+/** Keeps staff-call seed visits inside the active month (default filter on /staff/dashboard/calls). */
+function dayInCurrentMonth(day: number, hour = 11, minute = 0): Date {
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const safeDay = Math.min(Math.max(day, 1), lastDay);
+  return new Date(now.getFullYear(), now.getMonth(), safeDay, hour, minute, 0, 0);
+}
+
 function customerPii(name: string, phone: string) {
   return prepareCustomerPii(name, phone);
+}
+
+function customerCreatePii(pii: ReturnType<typeof customerPii>) {
+  const { name, phone, phoneHash, nameSearch, phoneLast4 } = pii;
+  return { name, phone, phoneHash, nameSearch, phoneLast4 };
 }
 
 async function main(): Promise<void> {
@@ -97,7 +111,7 @@ async function main(): Promise<void> {
   const piiAnita = customerPii("Anita Reddy", "9810001001");
   const customerAnita = await prisma.customer.create({
     data: {
-      ...piiAnita,
+      ...customerCreatePii(piiAnita),
       area: "Banjara Hills",
       gender: "FEMALE",
       ageGroup: "36-50",
@@ -108,7 +122,7 @@ async function main(): Promise<void> {
   const piiKaran = customerPii("Karan Mehta", "9810001002");
   const customerKaran = await prisma.customer.create({
     data: {
-      ...piiKaran,
+      ...customerCreatePii(piiKaran),
       area: "Jubilee Hills",
       gender: "MALE",
       ageGroup: "26-35",
@@ -119,7 +133,7 @@ async function main(): Promise<void> {
   const piiPriya = customerPii("Priya Sharma", "9810001004");
   await prisma.customer.create({
     data: {
-      ...piiPriya,
+      ...customerCreatePii(piiPriya),
       area: "Gachibowli",
       gender: "FEMALE",
       ageGroup: "18-25",
@@ -130,7 +144,7 @@ async function main(): Promise<void> {
   const piiAmit = customerPii("Amit Verma", "9810001005");
   await prisma.customer.create({
     data: {
-      ...piiAmit,
+      ...customerCreatePii(piiAmit),
       area: "Madhapur",
       gender: "MALE",
       ageGroup: "36-50",
@@ -141,7 +155,7 @@ async function main(): Promise<void> {
   const piiVikram = customerPii("Vikram Singh", "9810001006");
   await prisma.customer.create({
     data: {
-      ...piiVikram,
+      ...customerCreatePii(piiVikram),
       area: "Hitech City",
       gender: "MALE",
       ageGroup: "50+",
@@ -152,7 +166,7 @@ async function main(): Promise<void> {
   const piiMeera = customerPii("Meera Patel", "9810001007");
   await prisma.customer.create({
     data: {
-      ...piiMeera,
+      ...customerCreatePii(piiMeera),
       area: "Kondapur",
       gender: "FEMALE",
       ageGroup: "26-35",
@@ -163,7 +177,7 @@ async function main(): Promise<void> {
   const piiRahul = customerPii("Rahul Kumar", "9810001008");
   await prisma.customer.create({
     data: {
-      ...piiRahul,
+      ...customerCreatePii(piiRahul),
       area: "Secunderabad",
       gender: "MALE",
       ageGroup: "26-35",
@@ -174,7 +188,7 @@ async function main(): Promise<void> {
   const piiSunita = customerPii("Sunita Iyer", "9810001009");
   await prisma.customer.create({
     data: {
-      ...piiSunita,
+      ...customerCreatePii(piiSunita),
       area: "Ameerpet",
       gender: "FEMALE",
       ageGroup: "36-50",
@@ -185,7 +199,7 @@ async function main(): Promise<void> {
   const piiDeepa = customerPii("Deepa Nair", "9810001010");
   await prisma.customer.create({
     data: {
-      ...piiDeepa,
+      ...customerCreatePii(piiDeepa),
       area: "Kukatpally",
       gender: "FEMALE",
       ageGroup: "26-35",
@@ -195,6 +209,7 @@ async function main(): Promise<void> {
 
   // ── Staff A visits — retention & follow-up call queues ─────────────────────
 
+  const visitAnitaDate = dayInCurrentMonth(1);
   const visitAnita = await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -203,15 +218,15 @@ async function main(): Promise<void> {
       customerName: piiAnita.name,
       customerPhone: piiAnita.phone,
       customerPhoneHash: piiAnita.phoneHash,
-      visitDate: daysAgo(2),
-      inTime: visitTime(11, 15, daysAgo(2)),
-      outTime: visitTime(12, 5, daysAgo(2)),
+      visitDate: visitAnitaDate,
+      inTime: visitTime(11, 15, visitAnitaDate),
+      outTime: visitTime(12, 5, visitAnitaDate),
       durationMins: 50,
       customerType: "REPEAT",
       visitType: "WALK_IN",
       purchaseStatus: "PURCHASED",
-      productsExplored: ["RINGS", "NECKLACES"],
-      productsPurchased: ["RINGS"],
+      productsExplored: ["FINGER_RINGS", "NECKLACE"],
+      productsPurchased: ["FINGER_RINGS"],
       transactionAmount: 72000,
       intentTier: "HOT",
       purchaseOccasion: "ANNIVERSARY",
@@ -219,9 +234,17 @@ async function main(): Promise<void> {
       budgetStated: "K50_1L",
       sourceChannel: "REFERRAL",
       area: "Banjara Hills",
+      ...visitDenormFields({
+        transactionAmount: 72000,
+        budgetStated: "K50_1L",
+        purchaseStatus: "PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
+  const visitPriyaDate = dayInCurrentMonth(2);
   await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -229,23 +252,31 @@ async function main(): Promise<void> {
       customerName: piiPriya.name,
       customerPhone: piiPriya.phone,
       customerPhoneHash: piiPriya.phoneHash,
-      visitDate: daysAgo(1),
-      inTime: visitTime(14, 30, daysAgo(1)),
-      outTime: visitTime(15, 10, daysAgo(1)),
+      visitDate: visitPriyaDate,
+      inTime: visitTime(14, 30, visitPriyaDate),
+      outTime: visitTime(15, 10, visitPriyaDate),
       durationMins: 40,
       customerType: "NEW",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["NECKLACES", "EARRINGS"],
+      productsExplored: ["NECKLACE", "EAR_RINGS"],
       productsPurchased: [],
       intentTier: "HOT",
       reasonNoPurchase: "EXPLORING",
       budgetStated: "K50_1L",
       sourceChannel: "SOCIAL_MEDIA",
       area: "Gachibowli",
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "K50_1L",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
+  const visitAmitDate = dayInCurrentMonth(3);
   await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -253,9 +284,9 @@ async function main(): Promise<void> {
       customerName: piiAmit.name,
       customerPhone: piiAmit.phone,
       customerPhoneHash: piiAmit.phoneHash,
-      visitDate: daysAgo(3),
-      inTime: visitTime(16, 0, daysAgo(3)),
-      outTime: visitTime(16, 25, daysAgo(3)),
+      visitDate: visitAmitDate,
+      inTime: visitTime(16, 0, visitAmitDate),
+      outTime: visitTime(16, 25, visitAmitDate),
       durationMins: 25,
       customerType: "REPEAT",
       visitType: "APPOINTMENT",
@@ -267,9 +298,17 @@ async function main(): Promise<void> {
       budgetStated: "UNDER_15K",
       sourceChannel: "REFERRAL",
       area: "Madhapur",
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "UNDER_15K",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
+  const visitVikramDate = dayInCurrentMonth(4);
   await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -277,15 +316,15 @@ async function main(): Promise<void> {
       customerName: piiVikram.name,
       customerPhone: piiVikram.phone,
       customerPhoneHash: piiVikram.phoneHash,
-      visitDate: daysAgo(5),
-      inTime: visitTime(12, 0, daysAgo(5)),
-      outTime: visitTime(13, 20, daysAgo(5)),
+      visitDate: visitVikramDate,
+      inTime: visitTime(12, 0, visitVikramDate),
+      outTime: visitTime(13, 20, visitVikramDate),
       durationMins: 80,
       customerType: "VIP",
       visitType: "APPOINTMENT",
       purchaseStatus: "PURCHASED",
-      productsExplored: ["SETS", "BANGLES"],
-      productsPurchased: ["SETS"],
+      productsExplored: ["NECKLACE_PENDANT_EARRINGS"],
+      productsPurchased: ["NECKLACE_PENDANT_EARRINGS"],
       transactionAmount: 125000,
       intentTier: "HOT",
       purchaseOccasion: "WEDDING",
@@ -293,9 +332,17 @@ async function main(): Promise<void> {
       budgetStated: "ABOVE_1L",
       sourceChannel: "PHONE",
       area: "Hitech City",
+      ...visitDenormFields({
+        transactionAmount: 125000,
+        budgetStated: "ABOVE_1L",
+        purchaseStatus: "PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
+  const visitMeeraDate = dayInCurrentMonth(5);
   const visitMeera = await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -303,14 +350,14 @@ async function main(): Promise<void> {
       customerName: piiMeera.name,
       customerPhone: piiMeera.phone,
       customerPhoneHash: piiMeera.phoneHash,
-      visitDate: daysAgo(4),
-      inTime: visitTime(10, 45, daysAgo(4)),
-      outTime: visitTime(11, 30, daysAgo(4)),
+      visitDate: visitMeeraDate,
+      inTime: visitTime(10, 45, visitMeeraDate),
+      outTime: visitTime(11, 30, visitMeeraDate),
       durationMins: 45,
       customerType: "NEW",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["BANGLES", "EARRINGS"],
+      productsExplored: ["BANGLES", "EAR_RINGS"],
       productsPurchased: [],
       intentTier: "WARM",
       reasonNoPurchase: "DESIGN_NOT_LIKED",
@@ -319,6 +366,15 @@ async function main(): Promise<void> {
       followUpDate: daysFromNow(1),
       sourceChannel: "ORGANIC_WALK_IN",
       area: "Kondapur",
+      lastCallAnswered: "NOT_ANSWERED",
+      lastCallAt: visitTime(17, 0, visitMeeraDate),
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "K15_50K",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
@@ -343,6 +399,7 @@ async function main(): Promise<void> {
     },
   });
 
+  const visitRahulDate = dayInCurrentMonth(6);
   const visitRahul = await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -350,14 +407,14 @@ async function main(): Promise<void> {
       customerName: piiRahul.name,
       customerPhone: piiRahul.phone,
       customerPhoneHash: piiRahul.phoneHash,
-      visitDate: daysAgo(6),
-      inTime: visitTime(15, 0, daysAgo(6)),
-      outTime: visitTime(15, 40, daysAgo(6)),
+      visitDate: visitRahulDate,
+      inTime: visitTime(15, 0, visitRahulDate),
+      outTime: visitTime(15, 40, visitRahulDate),
       durationMins: 40,
       customerType: "NEW",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["RINGS"],
+      productsExplored: ["FINGER_RINGS"],
       productsPurchased: [],
       intentTier: "WARM",
       reasonNoPurchase: "WILL_VISIT_AGAIN",
@@ -366,6 +423,15 @@ async function main(): Promise<void> {
       followUpDate: daysFromNow(3),
       sourceChannel: "INTERNET",
       area: "Secunderabad",
+      lastCallAnswered: "ANSWERED",
+      lastCallAt: visitTime(16, 0, visitRahulDate),
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "K15_50K",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
@@ -378,6 +444,7 @@ async function main(): Promise<void> {
     },
   });
 
+  const visitSunitaDate = dayInCurrentMonth(7);
   const visitSunita = await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -385,14 +452,14 @@ async function main(): Promise<void> {
       customerName: piiSunita.name,
       customerPhone: piiSunita.phone,
       customerPhoneHash: piiSunita.phoneHash,
-      visitDate: daysAgo(7),
-      inTime: visitTime(11, 0, daysAgo(7)),
-      outTime: visitTime(11, 50, daysAgo(7)),
+      visitDate: visitSunitaDate,
+      inTime: visitTime(11, 0, visitSunitaDate),
+      outTime: visitTime(11, 50, visitSunitaDate),
       durationMins: 50,
       customerType: "REPEAT",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["PENDANTS", "NECKLACES"],
+      productsExplored: ["PENDANTS", "NECKLACE"],
       productsPurchased: [],
       intentTier: "HOT",
       reasonNoPurchase: "COMPETITOR",
@@ -402,6 +469,13 @@ async function main(): Promise<void> {
       followUpDate: daysFromNow(2),
       sourceChannel: "TANISHQ_REF",
       area: "Ameerpet",
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "K50_1L",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
@@ -415,6 +489,7 @@ async function main(): Promise<void> {
     },
   });
 
+  const visitDeepaDate = dayInCurrentMonth(8);
   await prisma.visit.create({
     data: {
       storeId: storeAlpha.id,
@@ -422,20 +497,27 @@ async function main(): Promise<void> {
       customerName: piiDeepa.name,
       customerPhone: piiDeepa.phone,
       customerPhoneHash: piiDeepa.phoneHash,
-      visitDate: daysAgo(1),
-      inTime: visitTime(17, 15, daysAgo(1)),
-      outTime: visitTime(17, 45, daysAgo(1)),
+      visitDate: visitDeepaDate,
+      inTime: visitTime(17, 15, visitDeepaDate),
+      outTime: visitTime(17, 45, visitDeepaDate),
       durationMins: 30,
       customerType: "NEW",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["EARRINGS"],
+      productsExplored: ["EAR_RINGS"],
       productsPurchased: [],
       intentTier: "BROWSING",
       reasonNoPurchase: "EXPLORING",
       budgetStated: "UNDER_15K",
       sourceChannel: "ORGANIC_WALK_IN",
       area: "Kukatpally",
+      ...visitDenormFields({
+        transactionAmount: null,
+        budgetStated: "UNDER_15K",
+        purchaseStatus: "NOT_PURCHASED",
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
@@ -456,7 +538,7 @@ async function main(): Promise<void> {
       customerType: "NEW",
       visitType: "WALK_IN",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["BANGLES", "EARRINGS"],
+      productsExplored: ["BANGLES", "EAR_RINGS"],
       productsPurchased: [],
       intentTier: "WARM",
       reasonNoPurchase: "BUDGET",
@@ -483,7 +565,7 @@ async function main(): Promise<void> {
   const piiCustomerC = customerPii("Lakshmi Rao", "9810001003");
   await prisma.customer.create({
     data: {
-      ...piiCustomerC,
+      ...customerCreatePii(piiCustomerC),
       area: "Indiranagar",
       gender: "FEMALE",
       ageGroup: "18-25",
@@ -505,7 +587,7 @@ async function main(): Promise<void> {
       customerType: "VIP",
       visitType: "APPOINTMENT",
       purchaseStatus: "NOT_PURCHASED",
-      productsExplored: ["SETS"],
+      productsExplored: ["NECKLACE_PENDANT_EARRINGS"],
       productsPurchased: [],
       intentTier: "HOT",
       budgetStated: "ABOVE_1L",
@@ -517,6 +599,7 @@ async function main(): Promise<void> {
   // ── Field sales (Staff A — GHS / GPP) ─────────────────────────────────────
 
   const piiField1 = customerPii("Rajesh Naidu", "9810002001");
+  const fieldSale1Date = dayInCurrentMonth(9);
   await prisma.fieldSale.create({
     data: {
       storeId: storeAlpha.id,
@@ -524,9 +607,9 @@ async function main(): Promise<void> {
       customerName: piiField1.name,
       customerPhone: piiField1.phone,
       customerPhoneHash: piiField1.phoneHash,
-      activityDate: daysAgo(1),
-      startTime: visitTime(10, 0, daysAgo(1)),
-      endTime: visitTime(10, 35, daysAgo(1)),
+      activityDate: fieldSale1Date,
+      startTime: visitTime(10, 0, fieldSale1Date),
+      endTime: visitTime(10, 35, fieldSale1Date),
       durationMins: 35,
       customerType: "NEW",
       area: "Miyapur",
@@ -539,10 +622,16 @@ async function main(): Promise<void> {
       enrollmentOutcome: "ENROLLED_GHS",
       monthlyCommitment: 5000,
       intentTier: "HOT",
+      ...fieldSaleDenormFields({
+        monthlyCommitment: 5000,
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
   const piiField2 = customerPii("Sneha Gupta", "9810002002");
+  const fieldSale2Date = dayInCurrentMonth(10);
   await prisma.fieldSale.create({
     data: {
       storeId: storeAlpha.id,
@@ -550,9 +639,9 @@ async function main(): Promise<void> {
       customerName: piiField2.name,
       customerPhone: piiField2.phone,
       customerPhoneHash: piiField2.phoneHash,
-      activityDate: daysAgo(2),
-      startTime: visitTime(16, 30, daysAgo(2)),
-      endTime: visitTime(17, 0, daysAgo(2)),
+      activityDate: fieldSale2Date,
+      startTime: visitTime(16, 30, fieldSale2Date),
+      endTime: visitTime(17, 0, fieldSale2Date),
       durationMins: 30,
       customerType: "NEW",
       area: "Kukatpally",
@@ -567,6 +656,11 @@ async function main(): Promise<void> {
       followUpNeeded: true,
       followUpDate: daysFromNow(2),
       staffNotes: "Wants to compare GPP vs GHS before deciding",
+      ...fieldSaleDenormFields({
+        monthlyCommitment: null,
+        dateOfBirth: null,
+        anniversary: null,
+      }),
     },
   });
 
@@ -579,7 +673,7 @@ async function main(): Promise<void> {
     fieldSalesForStaffA: 2,
     followUps: 3,
     callLogs: 2,
-    loginHint: "Run npm run auth:bootstrap-dev after seed for Supabase login accounts",
+    loginHint: "Run npm run auth:bootstrap-dev && npm run db:seed:staff-calls for staff calls mock data",
     sampleVisitId: visitAnita.id,
   });
 }

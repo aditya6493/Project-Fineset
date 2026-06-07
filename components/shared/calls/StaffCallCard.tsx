@@ -11,12 +11,14 @@ import type { StaffCallListItem } from "@/types";
 interface StaffCallCardLabels {
   valueTierLabels: Record<string, string>;
   queueStatusLabels: Record<string, string>;
+  masterSourceLabels: Record<string, string>;
   callOutcomeLabels: Record<string, string>;
   purchaseStatusLabels: Record<string, string>;
   customerTypeLabels: Record<string, string>;
   notesLabel: string;
   due: string;
   call: string;
+  noPhone: string;
 }
 
 interface StaffCallCardProps {
@@ -27,63 +29,73 @@ interface StaffCallCardProps {
 
 export function StaffCallCard({ item, labels, onCall }: StaffCallCardProps) {
   const callOutcomeKey = getCallOutcomeKey(item.lastCallStatus);
+  const isFollowUp = item.queue === "FOLLOW_UP";
 
   return (
-    <article className="rounded-card border border-border bg-surface-card p-4 shadow-card">
-      <div className="flex items-start gap-3">
-        <div className="min-w-0 flex-1 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
+    <article
+      className={cn(
+        "rounded-card border bg-surface-card p-4 shadow-card",
+        isFollowUp ? "border-brand-gold/40" : "border-border",
+      )}
+    >
+      <div className="space-y-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
             <h2 className="font-display text-lg font-semibold text-text-primary">
               {item.displayName}
             </h2>
-            <Badge variant="outline" className={cn(badgeClass("value", item.valueTier))}>
-              {labels.valueTierLabels[item.valueTier]}
-            </Badge>
+            <p className="text-sm text-text-secondary">{item.visitSummary}</p>
           </div>
-
-          <p className="text-sm text-text-secondary">{item.visitSummary}</p>
-
-          <div className="flex flex-wrap gap-2 text-xs">
-            {item.queue !== "ALL" && (
-              <Badge variant="outline" className={cn(badgeClass("queue", item.queue))}>
-                {labels.queueStatusLabels[item.queue]}
+          <div className="flex shrink-0 items-start gap-2">
+            {isFollowUp && (
+              <Badge variant="default" className="shrink-0">
+                {labels.queueStatusLabels.FOLLOW_UP}
               </Badge>
             )}
-            <Badge variant="outline" className={cn(badgeClass("callOutcome", callOutcomeKey))}>
-              {labels.callOutcomeLabels[callOutcomeKey]}
-            </Badge>
-            <Badge variant="outline" className={cn(badgeClass("status", item.purchaseStatus))}>
-              {labels.purchaseStatusLabels[item.purchaseStatus]}
-            </Badge>
-            <Badge variant="secondary">{labels.customerTypeLabels[item.customerType]}</Badge>
-            <Badge variant="secondary">{item.visitDateLabel}</Badge>
-            {item.followUpDueDate && item.queue === "FOLLOW_UP" && (
-              <Badge variant="default">
-                {labels.due} {formatDate(item.followUpDueDate)}
-              </Badge>
-            )}
+            <Button
+              type="button"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-full"
+              disabled={!item.canCall}
+              aria-label={item.canCall ? labels.call : labels.noPhone}
+              title={item.canCall ? labels.call : labels.noPhone}
+              onClick={() => onCall(item)}
+            >
+              <Phone className="h-4 w-4" aria-hidden />
+            </Button>
           </div>
+        </div>
 
-          {item.notes && (
-            <div className="border-t border-border pt-2">
-              <p className="text-sm text-text-secondary">
-                <span className="font-medium text-text-primary">{labels.notesLabel}: </span>
-                {item.notes}
-              </p>
-            </div>
+        <div className="flex flex-wrap gap-2 text-xs">
+          <Badge variant="secondary">
+            {labels.masterSourceLabels[item.masterSource]}
+          </Badge>
+          <Badge variant="outline" className={cn(badgeClass("value", item.valueTier))}>
+            {labels.valueTierLabels[item.valueTier]}
+          </Badge>
+          <Badge variant="outline" className={cn(badgeClass("callOutcome", callOutcomeKey))}>
+            {labels.callOutcomeLabels[callOutcomeKey]}
+          </Badge>
+          <Badge variant="outline" className={cn(badgeClass("status", item.purchaseStatus))}>
+            {labels.purchaseStatusLabels[item.purchaseStatus]}
+          </Badge>
+          <Badge variant="secondary">{labels.customerTypeLabels[item.customerType]}</Badge>
+          <Badge variant="secondary">{item.visitDateLabel}</Badge>
+          {item.followUpDueDate && isFollowUp && (
+            <Badge variant="outline" className="border-status-warning text-status-warning">
+              {labels.due} {formatDate(item.followUpDueDate)}
+            </Badge>
           )}
         </div>
 
-        <Button
-          type="button"
-          size="icon"
-          className="h-12 w-12 shrink-0 rounded-full"
-          disabled={!item.canCall}
-          aria-label={labels.call}
-          onClick={() => onCall(item)}
-        >
-          <Phone className="h-5 w-5" aria-hidden />
-        </Button>
+        {item.notes && (
+          <div className="border-t border-border pt-2">
+            <p className="text-sm text-text-secondary">
+              <span className="font-medium text-text-primary">{labels.notesLabel}: </span>
+              {item.notes}
+            </p>
+          </div>
+        )}
       </div>
     </article>
   );

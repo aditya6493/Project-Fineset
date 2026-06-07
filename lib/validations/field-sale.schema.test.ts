@@ -18,6 +18,14 @@ describe("createFieldSaleSchema", () => {
     expect(result.success).toBe(true);
   });
 
+  it("accepts a field sale with explicit none selection", () => {
+    const result = createFieldSaleSchema.safeParse({
+      ...baseFieldSale,
+      schemesPitched: ["NONE"],
+    });
+    expect(result.success).toBe(true);
+  });
+
   it("still requires outcome when schemes are pitched", () => {
     const result = createFieldSaleSchema.safeParse({
       ...baseFieldSale,

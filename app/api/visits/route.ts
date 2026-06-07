@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { unauthorized } from "@/lib/auth/session";
 import { requireStaffContext } from "@/lib/auth/resolve-staff";
 import { checkWriteRateLimit, getRequestIdentifier } from "@/lib/rate-limit";
-import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
+import { resolveStorePortalStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { createVisit, listVisits } from "@/lib/services/visits";
 import { withAuthQuery, withAuthValidation } from "@/lib/api/route-handler";
 import { createPerfTimer, logPerf } from "@/lib/perf/timing";
@@ -38,15 +38,15 @@ export const POST = await withAuthValidation(
 );
 
 export const GET = withAuthQuery(
-  ["STORE_MANAGER", "MASTER_ADMIN"] as const,
+  ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"] as const,
   getVisitsQuerySchema,
   async (session, query) => {
     const timer = createPerfTimer();
     timer.mark("auth");
 
     let storeId: string | undefined;
-    if (session.role === "STORE_MANAGER") {
-      const resolved = await resolveStoreManagerAnalyticsStoreId(
+    if (session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER") {
+      const resolved = await resolveStorePortalStoreId(
         session,
         query.storeId,
       );

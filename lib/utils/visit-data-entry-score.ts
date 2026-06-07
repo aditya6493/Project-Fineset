@@ -35,19 +35,23 @@ export interface VisitDataEntryInput {
 type TrackableField = keyof VisitDataEntryInput;
 
 function getApplicableFields(visit: VisitDataEntryInput): TrackableField[] {
+  const noSchemesPitched = visit.schemesPitched.includes("NONE");
   const fields: TrackableField[] = [
     "outTime",
     "area",
     "gender",
     "ageGroup",
     "schemesPitched",
-    "enrollmentOutcome",
     "intentTier",
     "purchaseOccasion",
     "metalKtPref",
     "budgetStated",
     "staffNotes",
   ];
+
+  if (!noSchemesPitched) {
+    fields.push("enrollmentOutcome");
+  }
 
   if (visit.purchaseStatus === "PURCHASED") {
     fields.push("productsPurchased", "transactionAmount");
@@ -57,14 +61,18 @@ function getApplicableFields(visit: VisitDataEntryInput): TrackableField[] {
 
   const outcome = visit.enrollmentOutcome;
   if (
-    outcome === "ENROLLED_GHS" ||
-    outcome === "ENROLLED_GPP" ||
-    outcome === "ENROLLED_BOTH"
+    !noSchemesPitched &&
+    (outcome === "ENROLLED_GHS" ||
+      outcome === "ENROLLED_GPP" ||
+      outcome === "ENROLLED_BOTH")
   ) {
     fields.push("monthlyCommitment");
   }
 
-  if (outcome === "DECLINED" || outcome === "CALLBACK") {
+  if (
+    !noSchemesPitched &&
+    (outcome === "DECLINED" || outcome === "CALLBACK")
+  ) {
     fields.push("reasonNoEnrollment", "schemeCompetitorMention");
   }
 

@@ -1,0 +1,88 @@
+import Link from "next/link";
+import { BarChart3, ClipboardList, MapPin, Phone } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import type { Content } from "@/content/en";
+
+type StoreContent = Content["store"];
+
+interface StoreManagerPortalProps {
+  copy: StoreContent;
+  storeId: string;
+}
+
+const actionIcons = {
+  visitLog: ClipboardList,
+  callRecordings: Phone,
+  fieldSales: MapPin,
+  storeDashboard: BarChart3,
+} as const;
+
+export function StoreManagerPortal({ copy, storeId }: StoreManagerPortalProps) {
+  const actions = [
+    {
+      key: "visitLog" as const,
+      href: "/store/dashboard/visits",
+      ...copy.managerPortal.actions.visitLog,
+    },
+    {
+      key: "callRecordings" as const,
+      href: "/store/dashboard/calls",
+      ...copy.managerPortal.actions.callRecordings,
+    },
+    {
+      key: "fieldSales" as const,
+      href: "/store/dashboard/field-sales",
+      ...copy.managerPortal.actions.fieldSales,
+    },
+    {
+      key: "storeDashboard" as const,
+      href: `/store/dashboard/stores/${storeId}`,
+      ...copy.managerPortal.actions.storeDashboard,
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <header className="space-y-1">
+        <h1 className="font-display text-2xl font-bold text-text-primary sm:text-3xl">
+          {copy.managerPortal.title}
+        </h1>
+        <p className="text-text-secondary">{copy.managerPortal.subtitle}</p>
+      </header>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        {actions.map((action) => {
+          const Icon = actionIcons[action.key];
+
+          return (
+            <Link key={action.key} href={action.href} className="group block h-full">
+              <Card className="flex h-full flex-col transition-shadow hover:shadow-lg group-focus-visible:ring-2 group-focus-visible:ring-brand-gold group-focus-visible:ring-offset-2">
+                <CardHeader className="space-y-4">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-card bg-brand-gold/10 text-brand-gold">
+                    <Icon className="h-6 w-6" aria-hidden />
+                  </div>
+                  <div className="space-y-1.5">
+                    <CardTitle className="text-xl">{action.title}</CardTitle>
+                    <CardDescription>{action.description}</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="mt-auto">
+                  <Button className="w-full" tabIndex={-1}>
+                    {action.cta}
+                  </Button>
+                </CardContent>
+              </Card>
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

@@ -10,7 +10,7 @@ import { getCustomersQuerySchema } from "@/lib/validations/analytics.schema";
 
 export async function GET(req: Request) {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
     return unauthorized();
   }
 

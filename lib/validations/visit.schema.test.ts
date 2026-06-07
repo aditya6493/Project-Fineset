@@ -9,7 +9,7 @@ const validPurchasedVisit = {
   visitType: "WALK_IN" as const,
   sourceChannel: "ORGANIC_WALK_IN" as const,
   purchaseStatus: "PURCHASED" as const,
-  productsPurchased: ["RINGS" as const],
+  productsPurchased: ["FINGER_RINGS" as const],
   transactionAmount: 25000,
   schemesPitched: ["GHS" as const],
   enrollmentOutcome: "ENROLLED_GHS" as const,
@@ -24,7 +24,7 @@ const validNotPurchasedVisit = {
   visitType: "APPOINTMENT" as const,
   sourceChannel: "REFERRAL" as const,
   purchaseStatus: "NOT_PURCHASED" as const,
-  productsExplored: ["EARRINGS" as const],
+  productsExplored: ["EAR_RINGS" as const],
   reasonNoPurchase: "BUDGET" as const,
   schemesPitched: ["GHS" as const],
   enrollmentOutcome: "DECLINED" as const,
@@ -50,6 +50,16 @@ describe("createVisitSchema", () => {
 
   it("accepts a valid not-purchased visit", () => {
     const result = createVisitSchema.safeParse(validNotPurchasedVisit);
+    expect(result.success).toBe(true);
+  });
+
+  it("accepts a visit with no schemes pitched", () => {
+    const result = createVisitSchema.safeParse({
+      ...validPurchasedVisit,
+      schemesPitched: ["NONE"],
+      enrollmentOutcome: undefined,
+      monthlyCommitment: undefined,
+    });
     expect(result.success).toBe(true);
   });
 

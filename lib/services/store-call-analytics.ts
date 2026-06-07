@@ -99,14 +99,19 @@ async function fetchCallLogsForStore(
   start: Date,
   end: Date,
 ): Promise<CallLogRow[]> {
-  return prisma.staffCallLog.findMany({
+  const logs = await prisma.staffCallLog.findMany({
     where: {
       createdAt: { gte: start, lte: end },
+      visitId: { not: null },
       visit: { storeId },
     },
     select: callLogSelect,
     orderBy: { createdAt: "asc" },
   });
+
+  return logs.filter(
+    (log): log is CallLogRow => log.visitId != null && log.visit != null,
+  );
 }
 
 async function fetchPurchasedVisitsByPhone(

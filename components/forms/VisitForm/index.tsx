@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressIndicator } from "./FormSection";
 import { VisitFormSections } from "./VisitFormSections";
 import { VisitFormSuccess } from "./VisitFormSuccess";
-import { clearVisitDraft, loadVisitDraft, useVisitDraft } from "./useVisitDraft";
+import { buildClientVisitFormValues, clearVisitDraft, loadVisitDraft, useVisitDraft } from "./useVisitDraft";
 import {
   buildSections,
   getDefaultVisitValues,
@@ -25,16 +25,16 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
   const [isSuccess, setIsSuccess] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const draft = useMemo(() => loadVisitDraft(), []);
   const form = useForm<VisitFormValues>({
     resolver: zodResolver(createVisitSchema),
-    defaultValues: getDefaultVisitValues(draft),
+    defaultValues: getDefaultVisitValues(),
     mode: "onBlur",
   });
 
   const { watch, control, handleSubmit, reset, trigger } = form;
   const purchaseStatus = watch("purchaseStatus");
   const enrollmentOutcome = watch("enrollmentOutcome");
+  const schemesPitched = watch("schemesPitched");
   const sections = useMemo(
     () => buildSections(copy, purchaseStatus),
     [copy, purchaseStatus],
@@ -57,8 +57,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
     .replace("{total}", String(sections.length));
 
   const resetForm = useCallback(() => {
-    const savedDraft = loadVisitDraft();
-    reset(getDefaultVisitValues(savedDraft));
+    reset(buildClientVisitFormValues(loadVisitDraft()));
     setStepIndex(0);
     setSubmitError(null);
     setIsSuccess(false);
@@ -71,7 +70,14 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
       return true;
     }
 
-    return trigger(getSectionFieldNames(activeSection, purchaseStatus, enrollmentOutcome));
+    return trigger(
+      getSectionFieldNames(
+        activeSection,
+        purchaseStatus,
+        enrollmentOutcome,
+        schemesPitched,
+      ),
+    );
   }
 
   function handlePrevious() {
@@ -147,6 +153,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
             activeSection={activeSection}
             mode="wizard"
             enrollmentOutcome={enrollmentOutcome}
+            schemesPitched={schemesPitched}
           />
         </div>
 
@@ -157,6 +164,7 @@ export function VisitForm({ copy, common, errors }: VisitFormProps) {
             watch={watch}
             mode="full"
             enrollmentOutcome={enrollmentOutcome}
+            schemesPitched={schemesPitched}
           />
         </div>
 

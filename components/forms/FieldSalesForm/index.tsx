@@ -32,9 +32,10 @@ export function FieldSalesForm({ copy, common, errors }: FieldSalesFormProps) {
 
   const { watch, control, handleSubmit, reset, trigger } = form;
   const enrollmentOutcome = watch("enrollmentOutcome");
+  const schemesPitched = watch("schemesPitched");
   const sections = useMemo(
-    () => buildFieldSalesSections(copy, enrollmentOutcome),
-    [copy, enrollmentOutcome],
+    () => buildFieldSalesSections(copy, enrollmentOutcome, schemesPitched),
+    [copy, enrollmentOutcome, schemesPitched],
   );
 
   const createFieldSaleMutation = useCreateFieldSale();
@@ -70,7 +71,7 @@ export function FieldSalesForm({ copy, common, errors }: FieldSalesFormProps) {
       return true;
     }
 
-    return trigger(getSectionFieldNames(activeSection, enrollmentOutcome));
+    return trigger(getSectionFieldNames(activeSection, enrollmentOutcome, schemesPitched));
   }
 
   function handlePrevious() {

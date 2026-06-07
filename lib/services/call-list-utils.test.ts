@@ -46,4 +46,18 @@ describe("call-list-utils", () => {
       ),
     ).toBe(false);
   });
+
+  it("matches not answered queue filter from call logs", () => {
+    expect(
+      matchesCallQueue(
+        {
+          ...baseVisit,
+          followUp: null,
+          callLogs: [{ answered: "NOT_ANSWERED", staffId: "staff-1" }],
+        },
+        "NOT_ANSWERED",
+      ),
+    ).toBe(true);
+    expect(matchesCallQueue(baseVisit, "NOT_ANSWERED")).toBe(false);
+  });
 });

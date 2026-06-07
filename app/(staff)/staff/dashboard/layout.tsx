@@ -1,5 +1,6 @@
 import { content } from "@/content/en";
 import { PortalShell } from "@/components/layout/PortalShell";
+import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
 import { requirePortalSession } from "@/lib/auth/require-portal-session";
 
 import type { Metadata } from "next";
@@ -23,7 +24,7 @@ export default async function StaffLayout({
       title={content.staff.shell.title}
       signOutLabel={content.common.signOut}
     >
-      {children}
+      <RealtimeSyncProvider>{children}</RealtimeSyncProvider>
     </PortalShell>
   );
 }

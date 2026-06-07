@@ -9,7 +9,7 @@ import { importVisitsFromCsv } from "@/lib/services/visit-import";
 
 export async function POST(req: Request) {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
+  if (!requireRole(session, ["BUSINESS_OWNER"])) return unauthorized();
 
   let formData: FormData;
   try {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PRODUCT_CATEGORY_VALUES } from "@/lib/constants/product-categories";
 import { COHORT_PIVOT_DIMENSIONS } from "@/lib/analytics/cohort-pivot";
 
 export const analyticsAskChartTypeSchema = z.enum([
@@ -32,18 +33,7 @@ export const analyticsAskIntentSchema = z.object({
   segment: z.enum(["ALL", "NEW", "RETAINED", "PURCHASED", "NOT_PURCHASED"]).optional(),
   valueTier: z.enum(["ALL", "HIGH", "MID", "LOW"]).optional(),
   customerType: z.enum(["NEW", "REPEAT", "VIP"]).optional(),
-  productCategory: z
-    .enum([
-      "RINGS",
-      "NECKLACES",
-      "BANGLES",
-      "EARRINGS",
-      "CHAINS",
-      "PENDANTS",
-      "SETS",
-      "OTHER",
-    ])
-    .optional(),
+  productCategory: z.enum(PRODUCT_CATEGORY_VALUES).optional(),
   area: z.string().min(1).max(100).optional(),
 });
 

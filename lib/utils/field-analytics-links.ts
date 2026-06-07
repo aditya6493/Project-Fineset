@@ -37,7 +37,7 @@ const ACTIVITY_TYPE_MAP: Record<string, FieldActivityTypeFilter> = {
 
 const OUTCOME_MAP: Record<string, FieldEnrollmentOutcomeFilter> = {
   "Enrolled GHS": "ENROLLED_GHS",
-  "Enrolled GPP": "ENROLLED_GPP",
+  "Enrolled JPP": "ENROLLED_GPP",
   "Enrolled both": "ENROLLED_BOTH",
   Interested: "INTERESTED",
   Declined: "DECLINED",

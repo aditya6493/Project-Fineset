@@ -13,7 +13,9 @@ export function assertStoreAccess(
 ): void {
   if (session.role === "MASTER_ADMIN") return;
   if (
-    (session.role === "STORE_MANAGER" || session.role === "STAFF") &&
+    (session.role === "STORE_MANAGER" ||
+      session.role === "BUSINESS_OWNER" ||
+      session.role === "STAFF") &&
     session.storeId === storeId
   ) {
     return;
@@ -28,7 +30,14 @@ export function getScopedStoreId(
   if (session.role === "MASTER_ADMIN") {
     return requestedStoreId ?? null;
   }
-  if (session.role === "STORE_MANAGER" || session.role === "STAFF") {
+  if (
+    session.role === "STORE_MANAGER" ||
+    session.role === "BUSINESS_OWNER" ||
+    session.role === "STAFF"
+  ) {
+    if (session.role === "BUSINESS_OWNER") {
+      return requestedStoreId ?? session.storeId;
+    }
     return session.storeId;
   }
   return null;

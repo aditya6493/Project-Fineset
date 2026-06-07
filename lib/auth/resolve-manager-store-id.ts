@@ -1,19 +1,30 @@
 import { forbidden } from "@/lib/auth/session";
-import { resolveManagerStoreId } from "@/lib/services/manager-stores";
-import type { StoreSession } from "@/types";
+import {
+  isStorePortalSession,
+  resolveAccessibleStoreId,
+} from "@/lib/services/manager-stores";
+import type { AppSession, StorePortalSession } from "@/types";
 import { NextResponse } from "next/server";
 
-export async function resolveStoreManagerAnalyticsStoreId(
-  session: StoreSession,
+export async function resolveStorePortalStoreId(
+  session: AppSession,
   requestedStoreId?: string,
 ): Promise<string | NextResponse> {
+  if (!isStorePortalSession(session)) {
+    return forbidden();
+  }
+
   try {
-    return await resolveManagerStoreId(
-      session.email,
-      session.storeId,
-      requestedStoreId,
-    );
+    return await resolveAccessibleStoreId(session, requestedStoreId);
   } catch {
     return forbidden();
   }
+}
+
+/** @deprecated Use resolveStorePortalStoreId */
+export async function resolveStoreManagerAnalyticsStoreId(
+  session: StorePortalSession,
+  requestedStoreId?: string,
+): Promise<string | NextResponse> {
+  return resolveStorePortalStoreId(session, requestedStoreId);
 }

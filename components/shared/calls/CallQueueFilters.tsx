@@ -6,6 +6,13 @@ interface FilterOption {
   label: string;
 }
 
+type FilterCountGroup =
+  | "segments"
+  | "valueTiers"
+  | "queues"
+  | "birthdays"
+  | "anniversaries";
+
 interface CallQueueFiltersProps {
   queueLabel: string;
   segmentLabel: string;
@@ -16,10 +23,18 @@ interface CallQueueFiltersProps {
   queue: string;
   segment: string;
   valueTier: string;
-  getFilterCount: (group: "segments" | "valueTiers" | "queues", key: string) => number;
+  getFilterCount: (group: FilterCountGroup, key: string) => number;
   onQueueChange: (value: string) => void;
   onSegmentChange: (value: string) => void;
   onValueTierChange: (value: string) => void;
+  birthdayLabel?: string;
+  anniversaryLabel?: string;
+  birthdays?: readonly FilterOption[];
+  anniversaries?: readonly FilterOption[];
+  birthday?: string;
+  anniversary?: string;
+  onBirthdayChange?: (value: string) => void;
+  onAnniversaryChange?: (value: string) => void;
 }
 
 export function CallQueueFilters({
@@ -36,23 +51,33 @@ export function CallQueueFilters({
   onQueueChange,
   onSegmentChange,
   onValueTierChange,
+  birthdayLabel,
+  anniversaryLabel,
+  birthdays,
+  anniversaries,
+  birthday,
+  anniversary,
+  onBirthdayChange,
+  onAnniversaryChange,
 }: CallQueueFiltersProps) {
   return (
     <>
-      <div className="space-y-2" role="group" aria-labelledby="queue-filter-label">
-        <Label id="queue-filter-label">{queueLabel}</Label>
-        <div className="flex flex-wrap gap-2">
-          {queues.map((option) => (
-            <FilterChip
-              key={option.key}
-              active={queue === option.key}
-              label={option.label}
-              count={getFilterCount("queues", option.key)}
-              onClick={() => onQueueChange(option.key)}
-            />
-          ))}
+      {queues.length > 0 && (
+        <div className="space-y-2" role="group" aria-labelledby="queue-filter-label">
+          <Label id="queue-filter-label">{queueLabel}</Label>
+          <div className="flex flex-wrap gap-2">
+            {queues.map((option) => (
+              <FilterChip
+                key={option.key}
+                active={queue === option.key}
+                label={option.label}
+                count={getFilterCount("queues", option.key)}
+                onClick={() => onQueueChange(option.key)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="space-y-2" role="group" aria-labelledby="segment-filter-label">
         <Label id="segment-filter-label">{segmentLabel}</Label>
@@ -83,6 +108,40 @@ export function CallQueueFilters({
           ))}
         </div>
       </div>
+
+      {birthdays && birthdays.length > 0 && birthdayLabel && birthday && onBirthdayChange ? (
+        <div className="space-y-2" role="group" aria-labelledby="birthday-filter-label">
+          <Label id="birthday-filter-label">{birthdayLabel}</Label>
+          <div className="flex flex-wrap gap-2">
+            {birthdays.map((option) => (
+              <FilterChip
+                key={option.key}
+                active={birthday === option.key}
+                label={option.label}
+                count={getFilterCount("birthdays", option.key)}
+                onClick={() => onBirthdayChange(option.key)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {anniversaries && anniversaries.length > 0 && anniversaryLabel && anniversary && onAnniversaryChange ? (
+        <div className="space-y-2" role="group" aria-labelledby="anniversary-filter-label">
+          <Label id="anniversary-filter-label">{anniversaryLabel}</Label>
+          <div className="flex flex-wrap gap-2">
+            {anniversaries.map((option) => (
+              <FilterChip
+                key={option.key}
+                active={anniversary === option.key}
+                label={option.label}
+                count={getFilterCount("anniversaries", option.key)}
+                onClick={() => onAnniversaryChange(option.key)}
+              />
+            ))}
+          </div>
+        </div>
+      ) : null}
     </>
   );
 }

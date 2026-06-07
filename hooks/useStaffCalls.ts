@@ -1,18 +1,39 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  getStaffCallFilters,
   getStaffCalls,
   revealStaffCallPhone,
   submitStaffCallOutcome,
+  type StaffCallRecordRef,
 } from "@/lib/api/staff-calls";
 import { staffCallsParamsMatch } from "@/lib/query/initial-data";
 import { invalidatePortalData } from "@/lib/sync/invalidate-portal-data";
-import { LIVE_QUERY_OPTIONS, queryOptionsForHydration } from "@/lib/sync/constants";
+import {
+  LIVE_QUERY_OPTIONS,
+  STAFF_FILTER_QUERY_OPTIONS,
+  queryOptionsForHydration,
+} from "@/lib/sync/constants";
 import type { GetStaffCallsParams, StaffCallListResponse } from "@/types";
 import type { StaffCallOutcomeInput } from "@/lib/validations/staff-calls.schema";
 
 interface UseStaffCallsOptions {
   initialData?: StaffCallListResponse;
   initialParams?: GetStaffCallsParams;
+}
+
+function staffCallFilterParams(params: GetStaffCallsParams): GetStaffCallsParams {
+  const { page: _page, pageSize: _pageSize, ...rest } = params;
+  return rest;
+}
+
+export function useStaffCallFilterCounts(params: GetStaffCallsParams) {
+  const filterParams = staffCallFilterParams(params);
+
+  return useQuery({
+    queryKey: ["staff-calls-filters", filterParams],
+    queryFn: () => getStaffCallFilters(filterParams),
+    ...STAFF_FILTER_QUERY_OPTIONS,
+  });
 }
 
 export function useStaffCalls(params: GetStaffCallsParams, options?: UseStaffCallsOptions) {
@@ -32,7 +53,7 @@ export function useStaffCalls(params: GetStaffCallsParams, options?: UseStaffCal
 
 export function useRevealStaffCallPhone() {
   return useMutation({
-    mutationFn: (visitId: string) => revealStaffCallPhone(visitId),
+    mutationFn: (ref: StaffCallRecordRef) => revealStaffCallPhone(ref),
   });
 }
 
@@ -41,12 +62,12 @@ export function useSubmitStaffCallOutcome() {
 
   return useMutation({
     mutationFn: ({
-      visitId,
+      ref,
       payload,
     }: {
-      visitId: string;
+      ref: StaffCallRecordRef;
       payload: StaffCallOutcomeInput;
-    }) => submitStaffCallOutcome(visitId, payload),
+    }) => submitStaffCallOutcome(ref, payload),
     onSuccess: () => {
       void invalidatePortalData(queryClient);
     },

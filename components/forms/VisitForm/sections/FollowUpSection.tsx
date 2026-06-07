@@ -6,12 +6,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { DatePicker } from "@/components/shared/DatePicker";
 import { FormSection } from "../FormSection";
 import type { VisitFormCopy, VisitFormValues } from "../VisitForm.types";
-import { formatDateForInput, parseDateInput } from "../VisitForm.types";
 
 interface FollowUpSectionProps {
   copy: VisitFormCopy;
@@ -49,16 +48,12 @@ export function FollowUpSection({
             <FormItem className="max-w-xs">
               <FormLabel>{fields.followUpDate.label}</FormLabel>
               <FormControl>
-                <Input
-                  type="date"
-                  value={field.value ? formatDateForInput(field.value) : ""}
-                  onChange={(event) => {
-                    if (event.target.value) {
-                      field.onChange(parseDateInput(event.target.value));
-                    } else {
-                      field.onChange(undefined);
-                    }
-                  }}
+                <DatePicker
+                  value={field.value}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  placeholder={fields.followUpDate.placeholder}
+                  fromDate={new Date()}
                 />
               </FormControl>
               <FormMessage />

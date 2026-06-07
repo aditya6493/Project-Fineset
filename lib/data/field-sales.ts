@@ -1,7 +1,7 @@
 import { cache } from "react";
 import type { CreateFieldSaleInput } from "@/lib/validations/field-sale.schema";
 import { getServerSession, requireRole } from "@/lib/auth/session";
-import { resolveManagerStoreId } from "@/lib/services/manager-stores";
+import { resolveAccessibleStoreId } from "@/lib/services/manager-stores";
 import { listFieldSales } from "@/lib/services/field-sales";
 import { defaultFieldSalesParams } from "@/lib/query/initial-data";
 import type { FieldSaleListResponse, GetFieldSalesListParams } from "@/types";
@@ -16,15 +16,14 @@ export const fetchInitialFieldSales = cache(async function fetchInitialFieldSale
   overrides?: GetFieldSalesListParams,
 ): Promise<InitialFieldSalesPayload | null> {
   const session = await getServerSession();
-  if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+  if (!requireRole(session, ["STORE_MANAGER", "BUSINESS_OWNER", "MASTER_ADMIN"])) {
     return null;
   }
 
   let resolvedStoreId = storeId;
-  if (session.role === "STORE_MANAGER") {
-    resolvedStoreId = await resolveManagerStoreId(
-      session.email,
-      session.storeId,
+  if (session.role === "STORE_MANAGER" || session.role === "BUSINESS_OWNER") {
+    resolvedStoreId = await resolveAccessibleStoreId(
+      session,
       storeId ?? overrides?.storeId,
     );
   }

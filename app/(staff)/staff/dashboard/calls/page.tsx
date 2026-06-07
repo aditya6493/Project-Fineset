@@ -1,19 +1,20 @@
 import { content } from "@/content/en";
-import { RealtimeSyncProvider } from "@/components/layout/RealtimeSyncProvider";
 import { StaffCallList } from "@/components/staff/StaffCallList";
-import { fetchInitialStaffCalls } from "@/lib/data/staff-calls";
+import { parseStaffCallsSearchParams } from "@/lib/utils/staff-calls-url";
 
-export default async function StaffCallsPage() {
-  const initial = await fetchInitialStaffCalls();
+interface StaffCallsPageProps {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}
+
+export default async function StaffCallsPage({ searchParams }: StaffCallsPageProps) {
+  const resolved = await searchParams;
+  const urlFilters = parseStaffCallsSearchParams(resolved);
 
   return (
-    <RealtimeSyncProvider>
-      <StaffCallList
-        copy={content.staff}
-        emptyMessage={content.empty.staffCalls}
-        initialCalls={initial?.data}
-        initialCallsParams={initial?.params}
-      />
-    </RealtimeSyncProvider>
+    <StaffCallList
+      copy={content.staff}
+      emptyMessage={content.empty.staffCalls}
+      initialCallsParams={urlFilters}
+    />
   );
 }

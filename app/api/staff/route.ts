@@ -7,7 +7,7 @@ import {
   unauthorized,
 } from "@/lib/auth/session";
 import { handleRouteError } from "@/lib/api/route-handler";
-import { resolveStoreManagerAnalyticsStoreId } from "@/lib/auth/resolve-manager-store-id";
+import { resolveStorePortalStoreId } from "@/lib/auth/resolve-manager-store-id";
 import { InviteError } from "@/lib/auth/invite-user";
 import { createStaff, getStaffPerformance, listStaff } from "@/lib/services/staff";
 import { createStaffSchema } from "@/lib/validations/staff.schema";
@@ -17,7 +17,7 @@ export async function GET(req: Request) {
   const startedAt = Date.now();
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER", "MASTER_ADMIN"])) {
+    if (!requireRole(session, ["BUSINESS_OWNER", "MASTER_ADMIN"])) {
       return unauthorized();
     }
 
@@ -29,8 +29,8 @@ export async function GET(req: Request) {
 
     if (query.data.performance === "true") {
       let storeId: string | undefined;
-      if (session.role === "STORE_MANAGER") {
-        const resolved = await resolveStoreManagerAnalyticsStoreId(
+      if (session.role === "BUSINESS_OWNER") {
+        const resolved = await resolveStorePortalStoreId(
           session,
           query.data.storeId,
         );
@@ -43,8 +43,8 @@ export async function GET(req: Request) {
       return NextResponse.json(data);
     }
 
-    if (session.role === "STORE_MANAGER") {
-      const resolved = await resolveStoreManagerAnalyticsStoreId(
+    if (session.role === "BUSINESS_OWNER") {
+      const resolved = await resolveStorePortalStoreId(
         session,
         query.data.storeId,
       );
@@ -74,7 +74,7 @@ export async function POST(req: Request) {
   const startedAt = Date.now();
   try {
     const session = await getServerSession();
-    if (!requireRole(session, ["STORE_MANAGER"])) return unauthorized();
+    if (!requireRole(session, ["BUSINESS_OWNER"])) return unauthorized();
 
     const body: unknown = await req.json();
     const parsed = createStaffSchema.safeParse(body);
@@ -88,7 +88,7 @@ export async function POST(req: Request) {
     }
 
     const { searchParams } = new URL(req.url);
-    const resolved = await resolveStoreManagerAnalyticsStoreId(
+    const resolved = await resolveStorePortalStoreId(
       session,
       searchParams.get("storeId") ?? undefined,
     );
