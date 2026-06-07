@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "prisma generate",
+    "predev": "node scripts/ensure-prisma-client.mjs",
     "dev": "next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
