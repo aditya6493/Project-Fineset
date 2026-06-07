@@ -40,8 +40,7 @@ export const content = {
         "If an account exists for that email, a password reset link has been sent. Check your inbox.",
       resetEmailSentHint:
         "Open the link once from your email. You can use any browser after the link arrives.",
-      resetEmailCooldown: (seconds: number) =>
-        `Wait ${seconds}s before requesting another reset link.`,
+      resetEmailCooldown: "Wait {seconds}s before requesting another reset link.",
       resetEmailError: "Could not send the reset email. Try again in a few minutes.",
       resetEmailRateLimited:
         "Too many reset requests. Please wait a few minutes and try again.",

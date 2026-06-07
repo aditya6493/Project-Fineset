@@ -32,7 +32,7 @@ interface SupabaseLoginFormProps {
   forgotPasswordEmailRequired: string;
   resetEmailSent: string;
   resetEmailSentHint: string;
-  resetEmailCooldown: (seconds: number) => string;
+  resetEmailCooldownLabel: string;
   resetEmailError: string;
   resetEmailRateLimited: string;
   resetEmailRedirectError: string;
@@ -52,7 +52,7 @@ export function SupabaseLoginForm({
   forgotPasswordEmailRequired,
   resetEmailSent,
   resetEmailSentHint,
-  resetEmailCooldown,
+  resetEmailCooldownLabel,
   resetEmailError,
   resetEmailRateLimited,
   resetEmailRedirectError,
@@ -215,7 +215,7 @@ export function SupabaseLoginForm({
   const forgotPasswordDisabled = isLoading || resetCooldownSeconds > 0;
   const forgotPasswordText =
     resetCooldownSeconds > 0
-      ? resetEmailCooldown(resetCooldownSeconds)
+      ? resetEmailCooldownLabel.replace("{seconds}", String(resetCooldownSeconds))
       : forgotPasswordLabel;
 
   return (
