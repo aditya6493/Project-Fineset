@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "predev": "node scripts/ensure-prisma-client.mjs",
+    "predev:staging": "node scripts/ensure-prisma-client.mjs",
     "dev": "next dev --hostname 0.0.0.0",
+    "dev:staging": "dotenv -e .env.staging.local -- next dev --hostname 0.0.0.0",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
